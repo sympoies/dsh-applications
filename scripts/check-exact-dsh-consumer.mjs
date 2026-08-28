@@ -54,9 +54,6 @@ try {
       ignoreDeprecations: "6.0",
       paths: {
         ...await exactDshPackagePaths(),
-        "@sympoies/dsh-manager": ["packages/manager/index.d.ts"],
-        "@sympoies/dsh-plugin-sdk": ["packages/plugin-sdk/index.d.ts"],
-        "@sympoies/dsh-rc2-adapter": ["packages/dsh-rc2-adapter/index.d.ts"],
       },
     },
     files: [join(applicationRoot, "test", "exact-dsh-consumer.ts")],

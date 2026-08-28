@@ -1,6 +1,7 @@
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | { readonly [key: string]: JsonValue } | readonly JsonValue[];
-export type Sha256Digest = `sha256:${string}`;
+declare const sha256DigestBrand: unique symbol;
+export type Sha256Digest = string & { readonly [sha256DigestBrand]: "sha256" };
 export type TriggerClass = "manual" | "event" | "channel" | "schedule";
 
 export interface TriggerDescriptor {
@@ -102,9 +103,10 @@ export interface RuntimeKitPluginValidator {
   validatePluginDescriptor(value: unknown): unknown;
 }
 
-export function defineTrigger<const T extends TriggerDescriptor>(input: T): Readonly<T>;
-export function defineOutput<const T extends OutputDescriptor>(input: T): Readonly<T>;
-export function defineConfiguration<const T extends ConfigurationDescriptor>(input: T): Readonly<T>;
-export function defineHealth<const T extends HealthDescriptor>(input: T): Readonly<T>;
-export function defineSandbox<const T extends SandboxDescriptor>(input: T): Readonly<T>;
-export function definePlugin<const T extends PluginDescriptor>(runtimeKit: RuntimeKitPluginValidator, input: T): Readonly<T>;
+export function defineDigest(input: string): Sha256Digest;
+export function defineTrigger(input: TriggerDescriptor): Readonly<TriggerDescriptor>;
+export function defineOutput(input: OutputDescriptor): Readonly<OutputDescriptor>;
+export function defineConfiguration(input: ConfigurationDescriptor): Readonly<ConfigurationDescriptor>;
+export function defineHealth(input: HealthDescriptor): Readonly<HealthDescriptor>;
+export function defineSandbox(input: SandboxDescriptor): Readonly<SandboxDescriptor>;
+export function definePlugin(runtimeKit: RuntimeKitPluginValidator, input: PluginDescriptor): Readonly<PluginDescriptor>;

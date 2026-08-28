@@ -105,12 +105,15 @@ function assertBoundedJson(value, { maxBytes, maxDepth, maxItems }, label) {
     if ((!isArray && prototype !== Object.prototype && prototype !== null)
       || (isArray && prototype !== Array.prototype)) fail(`${label} must contain only JSON containers`);
     if (Object.getOwnPropertySymbols(candidate).length !== 0) fail(`${label} must not contain symbol fields`);
+    if (isArray && candidate.length > maxItems - items) fail(`${label} exceeds its item limit`);
     const descriptors = Object.getOwnPropertyDescriptors(candidate);
     const keys = Object.keys(descriptors);
     if (isArray) {
-      const expected = Array.from({ length: candidate.length }, (_unused, index) => String(index));
       const dataKeys = keys.filter(key => key !== "length");
-      if (dataKeys.join("\0") !== expected.join("\0")) fail(`${label} arrays must be dense`);
+      if (dataKeys.length !== candidate.length) fail(`${label} arrays must be dense`);
+      for (let index = 0; index < dataKeys.length; index += 1) {
+        if (dataKeys[index] !== String(index)) fail(`${label} arrays must be dense`);
+      }
     }
     ancestors.add(candidate);
     add(2);
@@ -142,7 +145,11 @@ function lockedInstanceEvidence(state, identity) {
     fail("plugin instance is not locked by runtime-kit");
   }
   if (instance.state !== "Running") fail("plugin instance is not running");
+  if (typeof instance.receiptHead !== "string" || instance.receiptHead.length === 0) {
+    fail("plugin instance lifecycle receipt is unavailable");
+  }
   return Object.freeze({
+    receiptChainHead: instance.receiptHead,
     resolvedCompositionDigest: instance.resolvedCompositionDigest,
     compositionLockReceiptDigest: instance.compositionLockReceiptDigest,
     admissionSealDigest: instance.admissionSealDigest,
@@ -268,7 +275,7 @@ export function createPluginSandbox({
     }));
     const current = lockedInstanceEvidence(state, detachedIdentity);
     for (const field of [
-      "resolvedCompositionDigest", "compositionLockReceiptDigest", "admissionSealDigest",
+      "receiptChainHead", "resolvedCompositionDigest", "compositionLockReceiptDigest", "admissionSealDigest",
     ]) if (current[field] !== locked[field]) fail("locked plugin admission changed during resolution");
     const admitted = admittedDescriptor(resolution, current, pluginId, runtimeKit);
     const descriptor = structuredClone(admitted);
@@ -280,24 +287,37 @@ export function createPluginSandbox({
     });
     inputSchema.validate(structuredClone(detachedInput));
     const detachedDescriptor = structuredClone(descriptor);
+    let invocationActive = true;
     const hostAction = async request => {
-      if (!sameIdentity(request?.identity, detachedIdentity)) fail("mediated action identity does not match plugin instance");
-      if (request.pluginId !== descriptor.metadata.id) fail("mediated action plugin does not match descriptor");
-      if (request.actionId !== action.id) fail("mediated action does not match plugin action");
-      if (request.pluginDescriptorDigest !== descriptor.metadata.digest) fail("mediated action descriptor digest does not match plugin");
-      if (request.inputSchemaDigest !== action.inputSchemaDigest || request.outputSchemaDigest !== action.outputSchemaDigest) {
+      if (!invocationActive) fail("mediated host capability is no longer active");
+      assertBoundedJson(request, {
+        maxBytes: configuredLimits.inputBytes,
+        maxDepth: configuredLimits.depth,
+        maxItems: configuredLimits.items,
+      }, "mediated host request");
+      const detachedRequest = structuredClone(request);
+      if (!sameIdentity(detachedRequest?.identity, detachedIdentity)) fail("mediated action identity does not match plugin instance");
+      if (detachedRequest.pluginId !== descriptor.metadata.id) fail("mediated action plugin does not match descriptor");
+      if (detachedRequest.actionId !== action.id) fail("mediated action does not match plugin action");
+      if (detachedRequest.pluginDescriptorDigest !== descriptor.metadata.digest) fail("mediated action descriptor digest does not match plugin");
+      if (detachedRequest.inputSchemaDigest !== action.inputSchemaDigest || detachedRequest.outputSchemaDigest !== action.outputSchemaDigest) {
         fail("mediated action schemas do not match plugin action");
       }
-      runtimeKit.validateMediatedHostActionRequest(request);
-      return state.hostService.execute(request);
+      runtimeKit.validateMediatedHostActionRequest(detachedRequest);
+      return state.hostService.execute(detachedRequest);
     };
-    const output = await dshAdapter.executePlugin(Object.freeze({
-      descriptor: detachedDescriptor,
-      actionId: action.id,
-      identity: detachedIdentity,
-      input: detachedInput,
-      hostAction,
-    }));
+    let output;
+    try {
+      output = await dshAdapter.executePlugin(Object.freeze({
+        descriptor: detachedDescriptor,
+        actionId: action.id,
+        identity: detachedIdentity,
+        input: detachedInput,
+        hostAction,
+      }));
+    } finally {
+      invocationActive = false;
+    }
     assertBoundedJson(output, {
       maxBytes: Math.min(configuredLimits.outputBytes, descriptor.mediation.resources.outputBytes),
       maxDepth: configuredLimits.depth,

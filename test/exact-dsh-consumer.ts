@@ -15,9 +15,10 @@ import {
   type LockedPluginAdmission,
   type RuntimeKitBoundary,
   type RuntimeStore,
-} from "@sympoies/dsh-manager";
+} from "@sympoies/dsh-application-manager";
 import {
   defineConfiguration,
+  defineDigest,
   defineHealth,
   defineOutput,
   definePlugin,
@@ -35,8 +36,10 @@ declare const sessionId: SessionId;
 declare const agent: Agent;
 declare const tools: ToolRuntime;
 
+const DIGEST = defineDigest(`sha256:${"1".repeat(64)}`);
+
 const configuration = defineConfiguration({
-  schemaDigest: "sha256:configuration",
+  schemaDigest: DIGEST,
   defaults: { enabled: true },
 });
 const health = defineHealth({ probes: [{ id: "ready", requirement: "required" }] });
@@ -50,17 +53,17 @@ const sandbox = defineSandbox({
 const trigger = defineTrigger({
   id: "manual",
   class: "manual",
-  inputSchemaDigest: "sha256:input",
+  inputSchemaDigest: DIGEST,
 });
-const output = defineOutput({ id: "result", schemaDigest: "sha256:output" });
+const output = defineOutput({ id: "result", schemaDigest: DIGEST });
 
 const descriptor = definePlugin(runtimeKit, {
   apiVersion: "runtime.sympoies.dev/v1",
   kind: "PluginDescriptor",
-  metadata: { id: "review", version: "1.0.0", digest: "sha256:descriptor" },
+  metadata: { id: "review", version: "1.0.0", digest: DIGEST },
   artifact: {
     package: "@example/review",
-    digest: "sha256:artifact",
+    digest: DIGEST,
     entrypoint: "./index.js",
     sourceRevision: "revision",
     attestationIdentity: "build@example",
@@ -135,9 +138,9 @@ const admission: LockedPluginAdmission = {
   descriptor,
   descriptorDigest: descriptor.metadata.digest,
   artifactDigest: descriptor.artifact.digest,
-  resolvedCompositionDigest: "sha256:composition",
-  compositionLockReceiptDigest: "sha256:receipt",
-  admissionSealDigest: "sha256:seal",
+  resolvedCompositionDigest: DIGEST,
+  compositionLockReceiptDigest: DIGEST,
+  admissionSealDigest: DIGEST,
 };
 createPluginSandbox({
   runtimeKit,
@@ -153,4 +156,14 @@ void tools;
 const invalidActionClass: PluginActionDescriptor["class"] = "shell";
 // @ts-expect-error Schema identities must be canonical sha256 digests.
 defineOutput({ id: "invalid", schemaDigest: "output" });
+// @ts-expect-error Unknown top-level fields must be rejected before runtime validation.
+defineOutput({ id: "invalid-extra", schemaDigest: DIGEST, privateBinding: true });
+defineSandbox({
+  filesystem: [], network: [], subprocess: [], credentialHandleClasses: [],
+  // @ts-expect-error Unknown nested fields must also be rejected.
+  resources: { cpuClass: "shared", memoryMb: 128, outputBytes: 4096, privateBinding: true },
+});
+// @ts-expect-error Raw or malformed strings are not canonical digest values.
+const invalidDigest: import("@sympoies/dsh-plugin-sdk").Sha256Digest = "sha256:short";
 void invalidActionClass;
+void invalidDigest;

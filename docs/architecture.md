@@ -54,12 +54,16 @@ concurrency controllers. DSH owns the agent loop, persistence, cancellation,
 tool registry, monotonic guard, restrictions, and enforced sandbox. The
 application layer never claims that a same-process JavaScript wrapper is a
 sandbox. Plugin invocation requires current identity-bound confinement evidence
-from the instance's DSH runtime, and every host effect is a complete runtime-kit
-`MediatedHostActionRequest`.
+from the instance's DSH runtime and cannot cross a runtime-kit lifecycle receipt
+epoch. Invocation-scoped host capabilities are revoked before DSH in-flight
+accounting ends, and every host effect is a bounded, detached, complete
+runtime-kit `MediatedHostActionRequest`.
 
 The plugin SDK does not define a parallel PluginDescriptor schema. It delegates
 the canonical `runtime.sympoies.dev/v1` descriptor, digest, and secret checks to
-the exact runtime-kit validator. Trigger and output helpers are immutable
+the exact runtime-kit validator. The SDK exposes a typed canonical-digest
+constructor and exact descriptor inputs while retaining runtime validation for
+untyped callers. Trigger and output helpers are immutable
 application configuration only; neither can grant or widen authority.
 
 ## Compatibility

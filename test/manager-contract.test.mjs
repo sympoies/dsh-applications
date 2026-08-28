@@ -146,10 +146,15 @@ function createAdapterHarness(options = {}) {
   const hostExecutions = [];
   const releases = [];
   const inspectCalls = [];
+  const disposeAttempts = [];
+  const disposeCompletions = [];
+  const releaseCompletions = [];
   const handles = new Map();
   const persisted = new Map();
   let failedCreates = options.failedCreates ?? 0;
   let failedRegistrations = options.failedRegistrations ?? 0;
+  let failedDisposals = options.failedDisposals ?? 0;
+  let failedReleases = options.failedReleases ?? 0;
 
   function makeHandle(sessionId, root) {
     const agent = {
@@ -163,8 +168,14 @@ function createAdapterHarness(options = {}) {
     return {
       agent,
       async dispose() {
+        disposeAttempts.push(sessionId);
         if (typeof options.beforeDispose === "function") await options.beforeDispose();
+        if (failedDisposals > 0) {
+          failedDisposals -= 1;
+          throw new Error("injected dispose failure");
+        }
         handles.delete(sessionId);
+        disposeCompletions.push(sessionId);
       },
     };
   }
@@ -261,7 +272,14 @@ function createAdapterHarness(options = {}) {
       if (typeof options.execute === "function") return options.execute(invocation, context);
       return invocation.input;
     },
-    async release(binding) { releases.push(binding); },
+    async release(binding) {
+      releases.push(binding);
+      if (failedReleases > 0) {
+        failedReleases -= 1;
+        throw new Error("injected release failure");
+      }
+      releaseCompletions.push(binding);
+    },
   };
   const adapter = createDshRc2Adapter({
     ctx,
@@ -274,7 +292,8 @@ function createAdapterHarness(options = {}) {
   });
   return {
     adapter, ctx, created, resumed, flushed, configured, restrictions, guards,
-    hostExecutions, releases, handles, persisted, runtimes, defaultRuntime, inspectCalls,
+    hostExecutions, releases, releaseCompletions, handles, persisted, runtimes,
+    defaultRuntime, inspectCalls, disposeAttempts, disposeCompletions,
   };
 }
 
@@ -457,4 +476,63 @@ test("confinement proof and execution share one captured entry and stop fences b
   execution.resolve({ completed: true });
   assert.deepEqual(await pendingExecution, { completed: true });
   await stopping;
+});
+
+test("stop retries only unfinished release and dispose phases", async () => {
+  for (const failure of ["release", "dispose"]) {
+    const subject = createAdapterHarness({
+      failedReleases: failure === "release" ? 1 : 0,
+      failedDisposals: failure === "dispose" ? 1 : 0,
+    });
+    const instanceIdentity = identity(`stop-${failure}`);
+    await subject.adapter.lifecycleEffects.start({ identity: instanceIdentity });
+    await assert.rejects(
+      subject.adapter.lifecycleEffects.stop({ identity: instanceIdentity }),
+      /disposal failed/i,
+    );
+    assert.deepEqual(await subject.adapter.lifecycleEffects.stop({ identity: instanceIdentity }), {
+      status: "succeeded",
+      retainedStateDisposition: "retained",
+    });
+    assert.equal(subject.releaseCompletions.length, 1, `${failure}: release completes once`);
+    assert.equal(subject.disposeCompletions.length, 1, `${failure}: dispose completes once`);
+    assert.equal(subject.releases.length, failure === "release" ? 2 : 1, `${failure}: release attempts`);
+    assert.equal(subject.disposeAttempts.length, failure === "dispose" ? 2 : 1, `${failure}: dispose attempts`);
+  }
+});
+
+test("stale resume retries unfinished retirement before reopening the session", async () => {
+  const subject = createAdapterHarness({ failedReleases: 1 });
+  const instanceIdentity = identity("stale-retry");
+  await subject.adapter.lifecycleEffects.start({ identity: instanceIdentity });
+  subject.handles.delete("session-stale-retry");
+  assert.deepEqual(await subject.adapter.lifecycleEffects.resume({ identity: instanceIdentity }), {
+    status: "failed", code: "runtime-unavailable",
+  });
+  assert.equal((await subject.adapter.lifecycleEffects.resume({ identity: instanceIdentity })).status, "succeeded");
+  assert.equal(subject.releaseCompletions.length, 1);
+  assert.equal(subject.disposeCompletions.length, 1);
+  assert.equal(subject.resumed.length, 1);
+});
+
+test("the adapter revokes a retained host capability before in-flight accounting ends", async () => {
+  let retainedHostAction;
+  let hostEffects = 0;
+  const subject = createAdapterHarness({
+    execute(invocation) {
+      retainedHostAction = invocation.hostAction;
+      return invocation.input;
+    },
+  });
+  const instanceIdentity = identity("retained-capability");
+  await subject.adapter.lifecycleEffects.start({ identity: instanceIdentity });
+  await subject.adapter.executePlugin({
+    ...invocation(instanceIdentity),
+    async hostAction(request) { hostEffects += 1; return request; },
+  });
+  await assert.rejects(retainedHostAction({ late: true }), /active|revoked|settled/i);
+  await subject.adapter.lifecycleEffects.stop({ identity: instanceIdentity });
+  await subject.adapter.lifecycleEffects.resume({ identity: instanceIdentity });
+  await assert.rejects(retainedHostAction({ later: true }), /active|revoked|settled/i);
+  assert.equal(hostEffects, 0);
 });

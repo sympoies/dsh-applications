@@ -115,6 +115,7 @@ export function admitRunningPlugin(runtimeKit, instanceIdentity, descriptor = pl
   runtimeKit.store.instances.set(instanceIdentity.namespace, {
     identity: structuredClone(instanceIdentity),
     state: "Running",
+    receiptHead: DIGEST,
     resolvedCompositionDigest: DIGEST,
     compositionLockReceiptDigest: DIGEST,
     admissionSealDigest: DIGEST,

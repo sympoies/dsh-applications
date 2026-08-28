@@ -202,6 +202,11 @@ export function createDshRc2Adapter({ ctx, resolveInstanceRuntime, hostSandbox }
         reservation,
         accepting: true,
         retiring: false,
+        retirementMode: undefined,
+        cleanupPromise: undefined,
+        bindingReleased: typeof hostSandbox.release !== "function",
+        handleDisposed: false,
+        reservationReleased: false,
         inFlight: 0,
         inFlightDrain: undefined,
         controllers: new Set(),
@@ -256,12 +261,47 @@ export function createDshRc2Adapter({ ctx, resolveInstanceRuntime, hostSandbox }
     return { status: "succeeded" };
   }
 
-  async function retireStale(namespace, entry) {
-    entry.retiring = true;
-    fence(entry, new Error("DSH agent entry was replaced"));
-    await beginDrain(entry);
-    if (typeof hostSandbox.release === "function") await hostSandbox.release(entry.scoped.binding);
-    if (instances.get(namespace) === entry) instances.delete(namespace);
+  async function cleanupEntry(namespace, entry, mode, reason) {
+    if (entry.retiring !== true) {
+      entry.retiring = true;
+      entry.retirementMode = mode;
+      fence(entry, reason);
+    }
+    if (entry.cleanupPromise !== undefined) return entry.cleanupPromise;
+    const cleanup = (async () => {
+      await beginDrain(entry);
+      const failures = [];
+      if (!entry.bindingReleased) {
+        try {
+          await hostSandbox.release(entry.scoped.binding);
+          entry.bindingReleased = true;
+        } catch (error) {
+          failures.push(error);
+        }
+      }
+      if (!entry.handleDisposed) {
+        try {
+          await entry.handle.dispose();
+          entry.handleDisposed = true;
+        } catch (error) {
+          failures.push(error);
+        }
+      }
+      if (entry.bindingReleased && entry.handleDisposed) {
+        if (!entry.reservationReleased) {
+          rollbackReservation(entry.reservation);
+          entry.reservationReleased = true;
+        }
+        if (instances.get(namespace) === entry) instances.delete(namespace);
+      }
+      if (failures.length > 0) throw new AggregateError(failures, "DSH plugin instance disposal failed");
+    })();
+    entry.cleanupPromise = cleanup;
+    try {
+      await cleanup;
+    } finally {
+      if (entry.cleanupPromise === cleanup) entry.cleanupPromise = undefined;
+    }
   }
 
   const lifecycleEffects = Object.freeze({
@@ -270,7 +310,15 @@ export function createDshRc2Adapter({ ctx, resolveInstanceRuntime, hostSandbox }
       const namespace = namespaceOf(request);
       const entry = row(request);
       if (entry !== undefined) {
-        if (entry.retiring === true) return { status: "failed", code: "runtime-unavailable" };
+        if (entry.retiring === true) {
+          if (entry.retirementMode !== "stale") return { status: "failed", code: "runtime-unavailable" };
+          try {
+            await cleanupEntry(namespace, entry, "stale", new Error("DSH agent entry was replaced"));
+          } catch {
+            return { status: "failed", code: "runtime-unavailable" };
+          }
+          return prepare(request, true);
+        }
         let live;
         try { live = ctx.agents.get(entry.runtime.sessionId); } catch {
           return { status: "failed", code: "runtime-unavailable" };
@@ -283,7 +331,9 @@ export function createDshRc2Adapter({ ctx, resolveInstanceRuntime, hostSandbox }
           fence(entry, new Error("DSH session identity collision"));
           return { status: "failed", code: "runtime-unavailable" };
         }
-        try { await retireStale(namespace, entry); } catch {
+        try {
+          await cleanupEntry(namespace, entry, "stale", new Error("DSH agent entry was replaced"));
+        } catch {
           return { status: "failed", code: "runtime-unavailable" };
         }
       }
@@ -301,22 +351,16 @@ export function createDshRc2Adapter({ ctx, resolveInstanceRuntime, hostSandbox }
     },
     stop(request) {
       const entry = row(request);
-      if (entry === undefined || entry.retiring === true) {
+      if (entry === undefined) {
         return Promise.resolve({ status: "failed", code: "runtime-unavailable" });
       }
-      entry.retiring = true;
-      fence(entry, new Error("plugin instance stopping"));
       return (async () => {
-        await beginDrain(entry);
-        const failures = [];
-        if (typeof hostSandbox.release === "function") {
-          try { await hostSandbox.release(entry.scoped.binding); } catch (error) { failures.push(error); }
-        }
-        try { await entry.handle.dispose(); } catch (error) { failures.push(error); }
-        if (instances.get(request.identity.namespace) === entry) {
-          instances.delete(request.identity.namespace);
-        }
-        if (failures.length > 0) throw new AggregateError(failures, "DSH plugin instance disposal failed");
+        await cleanupEntry(
+          request.identity.namespace,
+          entry,
+          "stop",
+          new Error("plugin instance stopping"),
+        );
         return { status: "succeeded", retainedStateDisposition: "retained" };
       })();
     },
@@ -330,6 +374,7 @@ export function createDshRc2Adapter({ ctx, resolveInstanceRuntime, hostSandbox }
     const controller = new AbortController();
     captured.controllers.add(controller);
     let invocationId;
+    let capabilityActive = true;
     try {
       const confinement = assertConfinementEvidence(await hostSandbox.assertCurrent(
         captured.scoped.binding,
@@ -345,7 +390,16 @@ export function createDshRc2Adapter({ ctx, resolveInstanceRuntime, hostSandbox }
       }
       invocationSequence += 1;
       invocationId = `${captured.runtime.sessionId}:${invocationSequence}`;
-      captured.scoped.pending.set(invocationId, Object.freeze({ invocation, confinement }));
+      const scopedInvocation = Object.freeze({
+        ...invocation,
+        async hostAction(request) {
+          if (!capabilityActive || controller.signal.aborted) {
+            fail("plugin host capability is no longer active");
+          }
+          return invocation.hostAction(request);
+        },
+      });
+      captured.scoped.pending.set(invocationId, Object.freeze({ invocation: scopedInvocation, confinement }));
       const result = await captured.scoped.executeTool({
         callId: `sympoies-plugin-${invocationSequence}`,
         name: PLUGIN_TOOL,
@@ -356,6 +410,7 @@ export function createDshRc2Adapter({ ctx, resolveInstanceRuntime, hostSandbox }
       if (result?.isError !== false) fail(`DSH plugin tool failed: ${result?.error?.message ?? "unknown failure"}`);
       return result.value;
     } finally {
+      capabilityActive = false;
       if (invocationId !== undefined) captured.scoped.pending.delete(invocationId);
       captured.controllers.delete(controller);
       finishInvocation(captured);

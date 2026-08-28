@@ -100,6 +100,17 @@ test("workspace packages are components of one coordinated application artifact"
   assert.match(read(".github/workflows/release.yml"), /test "\$package_version" != "0\.0\.0"/);
 });
 
+test("installed workspace resolves every actual public package specifier", async () => {
+  for (const [specifier, exported] of [
+    ["@sympoies/dsh-application-manager", "createApplicationManager"],
+    ["@sympoies/dsh-plugin-sdk", "definePlugin"],
+    ["@sympoies/dsh-rc2-adapter", "createDshRc2Adapter"],
+  ]) {
+    const module = await import(specifier);
+    assert.equal(typeof module[exported], "function", `${specifier} must resolve from the installed workspace`);
+  }
+});
+
 test("compatibility lock pins the accepted runtime-kit and DSH identities", () => {
   const lock = json("compatibility/dsh-applications-lock.json");
   assert.equal(lock.schema_version, "dsh-applications.compatibility-lock.v1");

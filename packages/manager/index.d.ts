@@ -84,6 +84,7 @@ export function createApplicationControlService(options: {
 export interface LockedAdmissionQuery {
   readonly identity: InstanceIdentity;
   readonly pluginId: string;
+  readonly receiptChainHead: Sha256Digest;
   readonly resolvedCompositionDigest: Sha256Digest;
   readonly compositionLockReceiptDigest: Sha256Digest;
   readonly admissionSealDigest: Sha256Digest;

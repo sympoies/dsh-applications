@@ -26,6 +26,11 @@ function digest(value, label) {
   if (typeof value !== "string" || !DIGEST_PATTERN.test(value)) fail(`${label} must be a sha256 digest`);
 }
 
+export function defineDigest(input) {
+  digest(input, "digest");
+  return input;
+}
+
 function boundedArray(value, label, validate) {
   if (!Array.isArray(value) || value.length > 1024) fail(`${label} must be a bounded array`);
   value.forEach((item, index) => validate(item, `${label}[${index}]`));
@@ -61,9 +66,10 @@ function assertJsonValue(value, label) {
     const descriptors = Object.getOwnPropertyDescriptors(candidate);
     const keys = Object.keys(descriptors);
     if (isArray) {
-      const expected = Array.from({ length: candidate.length }, (_unused, index) => String(index));
-      if (keys.filter(key => key !== "length").join("\0") !== expected.join("\0")) {
-        fail(`${label} must be lossless JSON`);
+      const dataKeys = keys.filter(key => key !== "length");
+      if (dataKeys.length !== candidate.length) fail(`${label} must be lossless JSON`);
+      for (let index = 0; index < dataKeys.length; index += 1) {
+        if (dataKeys[index] !== String(index)) fail(`${label} must be lossless JSON`);
       }
     }
     ancestors.add(candidate);

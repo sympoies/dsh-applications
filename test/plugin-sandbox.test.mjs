@@ -182,6 +182,37 @@ test("input schema, secret, byte, depth, item, accessor, and clone bounds fail b
   assert.equal(executions, 0);
 });
 
+test("a huge sparse array is rejected before length-proportional construction", async () => {
+  let executions = 0;
+  let amplified = false;
+  const { sandbox, instanceIdentity } = setupSandbox(async invocation => {
+    executions += 1;
+    return invocation.input;
+  }, {
+    payloadLimits: { inputBytes: 128, outputBytes: 128, depth: 3, items: 4 },
+  });
+  const sparse = [];
+  sparse.length = 2 ** 32 - 1;
+  const originalArrayFrom = Array.from;
+  Array.from = function guardedArrayFrom(value, ...rest) {
+    if (Number.isSafeInteger(value?.length) && value.length > 1_000) {
+      amplified = true;
+      throw new Error("length-proportional construction attempted");
+    }
+    return originalArrayFrom.call(Array, value, ...rest);
+  };
+  try {
+    await assert.rejects(
+      sandbox.invoke(invokeRequest(instanceIdentity, sparse)),
+      /item limit/i,
+    );
+  } finally {
+    Array.from = originalArrayFrom;
+  }
+  assert.equal(amplified, false);
+  assert.equal(executions, 0);
+});
+
 test("plugin invocation bytes are snapshotted before asynchronous admission", async () => {
   const gate = Promise.withResolvers();
   const runtimeKit = createOwnerRuntimeKit();
@@ -221,6 +252,69 @@ test("admission is revalidated against the current running instance after asynch
   gate.resolve();
   await assert.rejects(pending, /running/i);
   assert.equal(executions, 0);
+});
+
+test("admission cannot cross a complete lifecycle receipt epoch", async () => {
+  const gate = Promise.withResolvers();
+  let executions = 0;
+  const runtimeKit = createOwnerRuntimeKit();
+  const instanceIdentity = identity();
+  const admission = admitRunningPlugin(runtimeKit, instanceIdentity);
+  const subject = setupSandbox(async () => { executions += 1; return {}; }, {
+    runtimeKit,
+    identity: instanceIdentity,
+    admissionResolver: async query => {
+      await gate.promise;
+      return admission.admissionResolver(query);
+    },
+  });
+  const pending = subject.sandbox.invoke(invokeRequest(instanceIdentity, {}));
+  const instance = runtimeKit.store.instances.get(instanceIdentity.namespace);
+  instance.state = "Stopped";
+  instance.receiptHead = `sha256:${"2".repeat(64)}`;
+  instance.state = "Running";
+  gate.resolve();
+  await assert.rejects(pending, /lifecycle|receipt|epoch|changed/i);
+  assert.equal(executions, 0);
+});
+
+test("mediated host effects receive a detached request snapshot", async () => {
+  const gate = Promise.withResolvers();
+  const effects = [];
+  const instanceIdentity = identity();
+  const runtimeKit = createOwnerRuntimeKit({
+    async host(request) {
+      await gate.promise;
+      effects.push(structuredClone(request));
+      return request;
+    },
+  });
+  const { sandbox } = setupSandbox(async invocation => {
+    const request = hostAction(instanceIdentity, { payload: { revision: "original" } });
+    const pending = invocation.hostAction(request);
+    request.payload.revision = "mutated";
+    gate.resolve();
+    return pending;
+  }, { runtimeKit, identity: instanceIdentity });
+  const result = await sandbox.invoke(invokeRequest(instanceIdentity, {}));
+  assert.equal(effects[0].payload.revision, "original");
+  assert.equal(result.payload.revision, "original");
+});
+
+test("a retained mediated-host capability is revoked when plugin execution settles", async () => {
+  const instanceIdentity = identity();
+  let retainedHostAction;
+  let effects = 0;
+  const runtimeKit = createOwnerRuntimeKit({
+    host(request) { effects += 1; return request; },
+  });
+  const { sandbox } = setupSandbox(async invocation => {
+    retainedHostAction = invocation.hostAction;
+    return { completed: true };
+  }, { runtimeKit, identity: instanceIdentity });
+  assert.deepEqual(await sandbox.invoke(invokeRequest(instanceIdentity, {})), { completed: true });
+  await assert.rejects(retainedHostAction(hostAction(instanceIdentity)), /active|revoked|settled/i);
+  assert.equal(effects, 0);
 });
 
 test("output schema, descriptor byte ceiling, and secret-shaped material fail before release", async () => {
