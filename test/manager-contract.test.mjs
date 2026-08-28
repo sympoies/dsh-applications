@@ -6,7 +6,7 @@ import {
   createApplicationControlService,
   createApplicationManager,
 } from "../packages/manager/src/index.js";
-import { createDshRc2Adapter } from "../packages/dsh-rc2-adapter/src/index.js";
+import { createDshRc2Adapter, REQUIRED_AMBIENT_DENIALS } from "../packages/dsh-rc2-adapter/src/index.js";
 import { createOwnerRuntimeKit, identity } from "./helpers/owner-fixtures.mjs";
 
 const expectedOperations = [
@@ -14,16 +14,20 @@ const expectedOperations = [
   "interrupt", "drain", "stop", "doctor",
 ];
 
-test("public application manager exposes exactly the ten reviewed operations", async () => {
-  const runtimeKit = createOwnerRuntimeKit();
-  const dshAdapter = { lifecycleEffects: Object.freeze({}) };
-  const manager = createApplicationManager({
+function managerOptions(runtimeKit, dshAdapter = { lifecycleEffects: {} }) {
+  return {
     runtimeKit,
+    runtimeStore: runtimeKit.store,
     dshAdapter,
     composition: { catalog: "public" },
     trustVerifier: { acceptSignedDocument() {} },
     health: async () => ({ state: "ready", code: "READY" }),
-  });
+  };
+}
+
+test("public application manager exposes exactly the ten reviewed operations", async () => {
+  const runtimeKit = createOwnerRuntimeKit();
+  const manager = createApplicationManager(managerOptions(runtimeKit));
 
   assert.deepEqual([...PUBLIC_MANAGER_OPERATIONS], expectedOperations);
   assert.deepEqual(Object.keys(manager), expectedOperations);
@@ -39,14 +43,31 @@ test("public application manager exposes exactly the ten reviewed operations", a
   ]) assert.equal(manager[forbidden], undefined);
 });
 
+test("manager requires an explicit owner store and recreation retains shared runtime-kit truth", async () => {
+  const runtimeKit = createOwnerRuntimeKit({
+    status(request) {
+      return { retained: runtimeKit.store.instances.get(request.identity.namespace) };
+    },
+  });
+  assert.throws(() => createApplicationManager({
+    ...managerOptions(runtimeKit), runtimeStore: undefined,
+  }), /runtimeStore/i);
+  const first = createApplicationManager(managerOptions(runtimeKit));
+  runtimeKit.store.instances.set(identity().namespace, { state: "Running", receiptHead: "retained" });
+  const replacement = createApplicationManager(managerOptions(runtimeKit));
+  assert.deepEqual(await replacement.status({ identity: identity() }), {
+    retained: { state: "Running", receiptHead: "retained" },
+  });
+  assert.equal(await first.status({ identity: identity() }).then(result => result.retained.receiptHead), "retained");
+  const creations = runtimeKit.calls.filter(call => call.operation === "create-manager");
+  assert.equal(creations.length, 2);
+  assert(creations.every(call => call.options.store === runtimeKit.store));
+});
+
 test("runtime-kit owns composition, lifecycle, the shared store, mediation, and authenticated reconcile", async () => {
   const runtimeKit = createOwnerRuntimeKit();
   const manager = createApplicationManager({
-    runtimeKit,
-    dshAdapter: { lifecycleEffects: { start() {} } },
-    composition: { catalog: "public" },
-    trustVerifier: { acceptSignedDocument() {} },
-    health: async () => ({ state: "ready", code: "READY" }),
+    ...managerOptions(runtimeKit, { lifecycleEffects: { start() {} } }),
     host: { authorize: async () => ({ allowed: false, admissionSealDigest: "none" }) },
   });
   const control = createApplicationControlService({
@@ -55,7 +76,10 @@ test("runtime-kit owns composition, lifecycle, the shared store, mediation, and 
     peers: { controller: { operations: ["reconcile"], namespacePrefixes: ["public-test"] } },
     reconcileEvidence: async () => ({ status: "temporary-unavailable" }),
   });
-  const reconciled = await control.handle({ operation: "instance.reconcile", payload: { identity: identity() } }, { peerIdentity: "controller" });
+  const reconciled = await control.handle(
+    { operation: "instance.reconcile", payload: { identity: identity() } },
+    { peerIdentity: "controller" },
+  );
   assert.equal(reconciled.owner, "runtime-kit");
   assert.equal(reconciled.operation, "reconcile");
   const managerCreation = runtimeKit.calls.find(call => call.operation === "create-manager");
@@ -80,120 +104,357 @@ test("authenticated control maps all ten public frames and keeps reconcile inter
   for (const [operation, variants] of Object.entries(resultKinds)) {
     for (const kind of variants) {
       const runtimeKit = createOwnerRuntimeKit({ [operation]: () => ({ kind }) });
-      const manager = createApplicationManager({ runtimeKit, dshAdapter: { lifecycleEffects: {} }, composition: {}, trustVerifier: {}, health: async () => ({ state: "ready", code: "READY" }) });
-      const control = createApplicationControlService({ runtimeKit, manager, peers: { controller: { operations: [`instance.${operation}`], namespacePrefixes: ["public-test"] } }, reconcileEvidence: async () => ({ status: "temporary-unavailable" }) });
-      assert.equal((await control.handle({ operation: `instance.${operation}`, payload: { identity: identity() } }, { peerIdentity: "controller" })).kind, kind);
+      const manager = createApplicationManager(managerOptions(runtimeKit));
+      const control = createApplicationControlService({
+        runtimeKit,
+        manager,
+        peers: { controller: { operations: [`instance.${operation}`], namespacePrefixes: ["public-test"] } },
+        reconcileEvidence: async () => ({ status: "temporary-unavailable" }),
+      });
+      assert.equal((await control.handle(
+        { operation: `instance.${operation}`, payload: { identity: identity() } },
+        { peerIdentity: "controller" },
+      )).kind, kind);
     }
   }
-  const runtimeKit = createOwnerRuntimeKit({ reconcile: (_request, context) => ({ kind: "ReconcileInstanceResult", evidence: context.evidence.status }) });
-  const manager = createApplicationManager({ runtimeKit, dshAdapter: { lifecycleEffects: {} }, composition: {}, trustVerifier: {}, health: async () => ({ state: "ready", code: "READY" }) });
+  const runtimeKit = createOwnerRuntimeKit({
+    reconcile: (_request, context) => ({ kind: "ReconcileInstanceResult", evidence: context.evidence.status }),
+  });
+  const manager = createApplicationManager(managerOptions(runtimeKit));
   for (const status of ["committed", "not-committed", "temporary-unavailable", "authority-unavailable", "conflict"]) {
-    const control = createApplicationControlService({ runtimeKit, manager, peers: { controller: { operations: ["reconcile"], namespacePrefixes: ["public-test"] } }, reconcileEvidence: async () => ({ status }) });
-    assert.equal((await control.handle({ operation: "instance.reconcile", payload: { identity: identity(), sourceState: "Absent", transientState: null, terminalState: "Locked" } }, { peerIdentity: "controller" })).evidence, status);
+    const control = createApplicationControlService({
+      runtimeKit,
+      manager,
+      peers: { controller: { operations: ["reconcile"], namespacePrefixes: ["public-test"] } },
+      reconcileEvidence: async () => ({ status }),
+    });
+    assert.equal((await control.handle(
+      { operation: "instance.reconcile", payload: { identity: identity() } },
+      { peerIdentity: "controller" },
+    )).evidence, status);
   }
   assert.equal(manager.reconcile, undefined);
 });
 
-test("the rc2 adapter creates isolated DSH agents and uses public lifecycle services only", async () => {
+function createAdapterHarness(options = {}) {
   const created = [];
   const resumed = [];
   const flushed = [];
-  const handles = new Map();
-  const persisted = new Set();
   const configured = [];
-  const getCalls = [];
+  const restrictions = [];
+  const guards = [];
+  const hostExecutions = [];
+  const releases = [];
+  const inspectCalls = [];
+  const handles = new Map();
+  const persisted = new Map();
+  let failedCreates = options.failedCreates ?? 0;
+  let failedRegistrations = options.failedRegistrations ?? 0;
+
+  function makeHandle(sessionId, root) {
+    const agent = {
+      id: sessionId,
+      session: { id: sessionId, header: { cwd: root } },
+      status: "idle",
+      cancelCalls: [],
+      cancel(cause, cancelOptions) { this.cancelCalls.push({ cause, options: cancelOptions }); },
+      async whenIdle() {},
+    };
+    return {
+      agent,
+      async dispose() {
+        if (typeof options.beforeDispose === "function") await options.beforeDispose();
+        handles.delete(sessionId);
+      },
+    };
+  }
+
+  async function setupAgent(sessionId, root, setup) {
+    const handle = makeHandle(sessionId, root);
+    let definition;
+    let guard;
+    const tools = {
+      register(value) {
+        if (failedRegistrations > 0) {
+          failedRegistrations -= 1;
+          throw new Error("injected scoped registration failure");
+        }
+        definition = value;
+      },
+      restrict(value) { restrictions.push(value); },
+      guard(value) { guard = value; guards.push(value); },
+      async execute(execution) {
+        const denied = guard?.(execution);
+        if (denied !== undefined) return { isError: true, error: { message: denied }, content: [] };
+        if (definition?.name !== execution.name) return { isError: true, error: { message: "unknown tool" }, content: [] };
+        try {
+          const value = await definition.execute(execution.arguments, { ...execution, agent: execution.agent });
+          return { isError: false, value: structuredClone(value), content: [] };
+        } catch (error) {
+          return { isError: true, error: { message: error.message }, content: [] };
+        }
+      },
+    };
+    await setup({ agent: handle.agent, tools });
+    return handle;
+  }
+
   const ctx = {
     agents: {
-      async create(options) {
-        created.push({ sessionId: options.sessionId, meta: structuredClone(options.meta), agentOptions: structuredClone(options.agentOptions) });
-        await options.setup({ tools: { register() {}, restrict() {}, guard() {}, async execute() {} } });
-        const handle = makeHandle(options.sessionId);
-        handles.set(options.sessionId, handle);
-        persisted.add(options.sessionId);
+      async create(createOptions) {
+        created.push(createOptions);
+        const handle = await setupAgent(createOptions.sessionId, createOptions.meta.cwd, createOptions.setup);
+        if (failedCreates > 0) { failedCreates -= 1; throw new Error("injected create failure"); }
+        handles.set(createOptions.sessionId, handle);
+        persisted.set(createOptions.sessionId, createOptions.meta.cwd);
         return handle;
       },
-      async resume(options) {
-        resumed.push({ resumeSessionId: options.resumeSessionId, agentOptions: structuredClone(options.agentOptions) });
-        await options.setup({ tools: { register() {}, restrict() {}, guard() {}, async execute() {} } });
-        const handle = makeHandle(options.resumeSessionId);
-        handles.set(options.resumeSessionId, handle);
+      async resume(resumeOptions) {
+        resumed.push(resumeOptions);
+        const root = persisted.get(resumeOptions.resumeSessionId);
+        const handle = await setupAgent(resumeOptions.resumeSessionId, root, resumeOptions.setup);
+        handles.set(resumeOptions.resumeSessionId, handle);
         return handle;
       },
-      get(sessionId) {
-        getCalls.push(sessionId);
-        return handles.get(sessionId)?.agent;
-      },
+      get(sessionId) { return handles.get(sessionId)?.agent; },
     },
     sessions: { async flush(session) { flushed.push(session.id); } },
     sessionPersistence: {
-      async inspect(sessionId) { return { meta: { id: sessionId }, events: [] }; },
-      async list() { return [...persisted].map(id => ({ id })); },
+      async inspect(sessionId) {
+        inspectCalls.push(sessionId);
+        if (!persisted.has(sessionId)) throw new Error("not found");
+        return { meta: { id: sessionId, cwd: persisted.get(sessionId) }, events: [] };
+      },
     },
-    tools: { register() {}, guard() {}, restrict() {}, async execute(input) { return { isError: false, value: input.arguments }; } },
   };
-  function makeHandle(sessionId) {
-    const agent = {
-      id: sessionId,
-      session: { id: sessionId },
-      status: "idle",
-      cancelCalls: [],
-      cancel(cause, options) { this.cancelCalls.push({ cause, options }); },
-      async whenIdle() {},
+  const runtimes = new Map();
+  function defaultRuntime(instanceIdentity) {
+    return {
+      sessionId: `session-${instanceIdentity.instanceId}`,
+      root: `/isolated/${instanceIdentity.instanceId}`,
+      agentOptions: { provider: `provider-${instanceIdentity.instanceId}` },
+      memory: { namespace: `memory-${instanceIdentity.instanceId}` },
+      queue: { namespace: `queue-${instanceIdentity.instanceId}` },
+      credentialHandles: { namespace: `credentials-${instanceIdentity.instanceId}` },
+      budget: { namespace: `budget-${instanceIdentity.instanceId}` },
+      concurrencyController: { namespace: `concurrency-${instanceIdentity.instanceId}` },
+      async configureScope(agentCtx, runtime) { configured.push({ agentCtx, runtime }); },
     };
-    return { agent, async dispose() { handles.delete(sessionId); } };
   }
-  const adapter = createDshRc2Adapter({
-    ctx,
-    resolveInstanceRuntime(instanceIdentity) {
+  const hostSandbox = {
+    async bind(facts) { return Object.freeze({ facts }); },
+    async assertCurrent(binding, facts) {
+      if (typeof options.assertCurrent === "function") await options.assertCurrent(binding, facts);
       return {
-        sessionId: `session-${instanceIdentity.instanceId}`,
-        root: `/isolated/${instanceIdentity.instanceId}`,
-        agentOptions: { provider: `provider-${instanceIdentity.instanceId}` },
-        memory: { namespace: `memory-${instanceIdentity.instanceId}` },
-        queue: { namespace: `queue-${instanceIdentity.instanceId}` },
-        credentialHandles: { namespace: `credentials-${instanceIdentity.instanceId}` },
-        budget: { namespace: `budget-${instanceIdentity.instanceId}` },
-        concurrencyController: { namespace: `concurrency-${instanceIdentity.instanceId}` },
-        sandbox: {
-          kind: "dsh-rc2-enforced",
-          deniedAmbient: ["env", "host-socket", "filesystem", "network", "subprocess", "credential", "secret", "provider", "clock", "random", "cross-instance"],
-          async execute() {},
-          async assertCurrentConfinement(subject) {
-            return { owner: "DSH", enforced: true, namespace: subject.namespace, generationId: subject.generationId, scopeRevision: "1", deniedAmbient: this.deniedAmbient };
-          },
-        },
-        async configureScope(_agentCtx, runtime) { configured.push(runtime); },
+        owner: "DSH/host",
+        enforced: true,
+        identity: structuredClone(facts.identity),
+        sessionId: facts.sessionId,
+        root: facts.root,
+        agentId: facts.agent.id,
+        scopeRevision: "1",
+        deniedAmbient: [...REQUIRED_AMBIENT_DENIALS],
       };
     },
+    async execute(_binding, invocation, context) {
+      hostExecutions.push({ invocation, context });
+      if (typeof options.execute === "function") return options.execute(invocation, context);
+      return invocation.input;
+    },
+    async release(binding) { releases.push(binding); },
+  };
+  const adapter = createDshRc2Adapter({
+    ctx,
+    hostSandbox,
+    resolveInstanceRuntime(instanceIdentity) {
+      const runtime = options.runtimeFactory?.(instanceIdentity, runtimes) ?? defaultRuntime(instanceIdentity);
+      runtimes.set(instanceIdentity.namespace, runtime);
+      return runtime;
+    },
   });
+  return {
+    adapter, ctx, created, resumed, flushed, configured, restrictions, guards,
+    hostExecutions, releases, handles, persisted, runtimes, defaultRuntime, inspectCalls,
+  };
+}
+
+function invocation(instanceIdentity, input = { value: "ok" }) {
+  return {
+    identity: instanceIdentity,
+    descriptor: { metadata: { id: "review" } },
+    actionId: "review.pull-request",
+    input,
+    async hostAction(request) { return request; },
+  };
+}
+
+test("the rc2 adapter binds isolated agents to DSH-owned tool execution and lifecycle services", async () => {
+  const subject = createAdapterHarness();
   const a = identity("a");
   const b = identity("b");
   const c = identity("c");
-  assert.equal((await adapter.lifecycleEffects.start({ identity: a })).sessionIdentity, "session-a");
-  assert.equal((await adapter.lifecycleEffects.start({ identity: b })).sessionIdentity, "session-b");
-  assert.equal((await adapter.lifecycleEffects.start({ identity: c })).sessionIdentity, "session-c");
-  assert.notEqual(created[0].meta.cwd, created[1].meta.cwd);
-  assert.notEqual(created[0].agentOptions.provider, created[1].agentOptions.provider);
-  assert.notEqual(configured[0].memory, configured[1].memory);
-  assert.notEqual(configured[0].queue, configured[1].queue);
-  assert.notEqual(configured[0].credentialHandles, configured[1].credentialHandles);
-  assert.notEqual(configured[0].budget, configured[1].budget);
-  assert.notEqual(configured[0].concurrencyController, configured[1].concurrencyController);
-  await adapter.lifecycleEffects.interrupt({ identity: a });
-  assert.deepEqual(handles.get("session-a").agent.cancelCalls[0], { cause: { kind: "user" }, options: undefined });
-  await assert.rejects(adapter.executePlugin({ identity: a }), /not accepting/i);
-  await adapter.lifecycleEffects.drain({ identity: b });
-  assert.deepEqual(handles.get("session-b").agent.cancelCalls[0], { cause: { kind: "parent" }, options: { keepInbox: true } });
-  await adapter.lifecycleEffects.stop({ identity: b });
-  assert.equal(handles.has("session-b"), false);
-  await adapter.lifecycleEffects.resume({ identity: a });
-  assert.equal(resumed.length, 0, "an interrupted live agent resumes without a duplicate DSH registration");
-  await adapter.executePlugin({ identity: a });
-  await adapter.lifecycleEffects.resume({ identity: b });
-  assert.equal(resumed[0].resumeSessionId, "session-b");
-  handles.delete("session-c");
-  await adapter.lifecycleEffects.resume({ identity: c });
-  assert.equal(resumed[1].resumeSessionId, "session-c", "a stale in-memory handle falls back to persisted cold resume");
-  assert.deepEqual(getCalls, ["session-a", "session-c"]);
-  assert(flushed.includes("session-a"));
+  assert.equal((await subject.adapter.lifecycleEffects.start({ identity: a })).sessionIdentity, "session-a");
+  assert.equal((await subject.adapter.lifecycleEffects.start({ identity: b })).sessionIdentity, "session-b");
+  assert.equal((await subject.adapter.lifecycleEffects.start({ identity: c })).sessionIdentity, "session-c");
+  assert.notEqual(subject.created[0].meta.cwd, subject.created[1].meta.cwd);
+  assert.notEqual(subject.configured[0].runtime.memory, subject.configured[1].runtime.memory);
+  assert.deepEqual(subject.restrictions, [{ allow: [] }, { allow: [] }, { allow: [] }]);
+  assert.equal((await subject.adapter.executePlugin(invocation(a))).value, "ok");
+  assert.equal(subject.hostExecutions.length, 1, "execution crosses the agent-scoped DSH tool");
+  await subject.adapter.lifecycleEffects.interrupt({ identity: a });
+  assert.deepEqual(subject.handles.get("session-a").agent.cancelCalls[0], {
+    cause: { kind: "user" }, options: undefined,
+  });
+  await assert.rejects(subject.adapter.executePlugin(invocation(a)), /not accepting/i);
+  await subject.adapter.lifecycleEffects.drain({ identity: b });
+  assert.deepEqual(subject.handles.get("session-b").agent.cancelCalls[0], {
+    cause: { kind: "parent" }, options: { keepInbox: true },
+  });
+  await subject.adapter.lifecycleEffects.stop({ identity: b });
+  assert.equal(subject.handles.has("session-b"), false);
+  await subject.adapter.lifecycleEffects.resume({ identity: a });
+  assert.equal(subject.resumed.length, 0, "a live interrupted agent is reopened without duplicate registration");
+  assert.deepEqual(await subject.adapter.executePlugin(invocation(a)), { value: "ok" });
+  await subject.adapter.lifecycleEffects.resume({ identity: b });
+  assert.equal(subject.resumed[0].resumeSessionId, "session-b");
+  subject.handles.delete("session-c");
+  await subject.adapter.lifecycleEffects.resume({ identity: c });
+  assert.equal(subject.resumed[1].resumeSessionId, "session-c");
+  assert.deepEqual(subject.inspectCalls, ["session-b", "session-c"]);
+  assert(subject.flushed.includes("session-a"));
+});
+
+test("every session, root, and controller collision fails before DSH effects and leaves the first instance usable", async () => {
+  const fields = ["sessionId", "root", "memory", "queue", "credentialHandles", "budget", "concurrencyController"];
+  for (const field of fields) {
+    let firstRuntime;
+    const subject = createAdapterHarness({
+      runtimeFactory(instanceIdentity) {
+        const runtime = subject.defaultRuntime(instanceIdentity);
+        if (instanceIdentity.instanceId === "a") firstRuntime = runtime;
+        if (instanceIdentity.instanceId === "b") runtime[field] = firstRuntime[field];
+        return runtime;
+      },
+    });
+    const a = identity("a");
+    const b = identity("b");
+    assert.equal((await subject.adapter.lifecycleEffects.start({ identity: a })).status, "succeeded", field);
+    assert.deepEqual(await subject.adapter.lifecycleEffects.start({ identity: b }), {
+      status: "failed", code: "runtime-unavailable",
+    }, field);
+    assert.equal(subject.created.length, 1, `${field} collision must fail before create`);
+    assert.deepEqual(await subject.adapter.executePlugin(invocation(a, { field })), { field });
+  }
+});
+
+test("failed preparation rolls back every reservation and permits an exact retry", async () => {
+  const subject = createAdapterHarness({ failedCreates: 1 });
+  const instanceIdentity = identity("retry");
+  assert.deepEqual(await subject.adapter.lifecycleEffects.start({ identity: instanceIdentity }), {
+    status: "failed", code: "runtime-unavailable",
+  });
+  assert.equal(subject.releases.length, 1, "failed setup binding is released");
+  assert.equal((await subject.adapter.lifecycleEffects.start({ identity: instanceIdentity })).status, "succeeded");
+  assert.equal(subject.created.length, 2);
+});
+
+test("a setup failure after host binding releases the binding and permits an exact retry", async () => {
+  const subject = createAdapterHarness({ failedRegistrations: 1 });
+  const instanceIdentity = identity("setup-retry");
+  assert.deepEqual(await subject.adapter.lifecycleEffects.start({ identity: instanceIdentity }), {
+    status: "failed", code: "runtime-unavailable",
+  });
+  assert.equal(subject.releases.length, 1, "the already-created host binding is released");
+  assert.equal((await subject.adapter.lifecycleEffects.start({ identity: instanceIdentity })).status, "succeeded");
+});
+
+test("concurrent starts for one canonical identity publish at most one DSH agent", async () => {
+  const runtimeReady = Promise.withResolvers();
+  let resolutions = 0;
+  let subject;
+  subject = createAdapterHarness({
+    async runtimeFactory(instanceIdentity) {
+      resolutions += 1;
+      if (resolutions === 1) await runtimeReady.promise;
+      return subject.defaultRuntime(instanceIdentity);
+    },
+  });
+  const instanceIdentity = identity("concurrent");
+  const first = subject.adapter.lifecycleEffects.start({ identity: instanceIdentity });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(await subject.adapter.lifecycleEffects.start({ identity: instanceIdentity }), {
+    status: "failed", code: "runtime-unavailable",
+  });
+  runtimeReady.resolve();
+  assert.equal((await first).status, "succeeded");
+  assert.equal(subject.created.length, 1);
+});
+
+test("cold resume uses a point lookup and rejects a persisted session at another root", async () => {
+  const subject = createAdapterHarness();
+  const instanceIdentity = identity("cold");
+  await subject.adapter.lifecycleEffects.start({ identity: instanceIdentity });
+  await subject.adapter.lifecycleEffects.drain({ identity: instanceIdentity });
+  await subject.adapter.lifecycleEffects.stop({ identity: instanceIdentity });
+  subject.persisted.set("session-cold", "/isolated/victim");
+  assert.deepEqual(await subject.adapter.lifecycleEffects.resume({ identity: instanceIdentity }), {
+    status: "failed", code: "runtime-unavailable",
+  });
+  assert.deepEqual(subject.inspectCalls, ["session-cold"]);
+  assert.equal(subject.resumed.length, 0);
+  subject.persisted.set("session-cold", "/isolated/cold");
+  assert.equal((await subject.adapter.lifecycleEffects.resume({ identity: instanceIdentity })).status, "succeeded");
+  assert.deepEqual(subject.inspectCalls, ["session-cold", "session-cold"]);
+});
+
+test("full canonical identity is required before selecting a live sandbox", async () => {
+  const subject = createAdapterHarness();
+  const victim = identity("victim");
+  await subject.adapter.lifecycleEffects.start({ identity: victim });
+  for (const alias of [
+    { ...victim, profileId: "other" },
+    { ...victim, generationId: "other" },
+    { ...victim, instanceId: "other" },
+    { ...victim, namespace: `${victim.namespace}/alias` },
+    { ...victim, extra: "field" },
+  ]) {
+    await assert.rejects(subject.adapter.executePlugin(invocation(alias)), /identity|canonical|fields/i);
+  }
+  assert.equal(subject.hostExecutions.length, 0);
+});
+
+test("confinement proof and execution share one captured entry and stop fences before disposal", async () => {
+  const proof = Promise.withResolvers();
+  const execution = Promise.withResolvers();
+  let disposeAllowed = false;
+  const subject = createAdapterHarness({
+    assertCurrent: () => proof.promise,
+    execute: () => execution.promise,
+    beforeDispose: async () => { assert.equal(disposeAllowed, true); },
+  });
+  const instanceIdentity = identity("race");
+  await subject.adapter.lifecycleEffects.start({ identity: instanceIdentity });
+  const pendingProof = subject.adapter.executePlugin(invocation(instanceIdentity));
+  const drain = subject.adapter.lifecycleEffects.drain({ identity: instanceIdentity });
+  proof.resolve();
+  await assert.rejects(pendingProof, /changed|accepting|aborted/i);
+  await drain;
+  assert.equal(subject.hostExecutions.length, 0, "a fenced proof cannot dispatch");
+
+  await subject.adapter.lifecycleEffects.resume({ identity: instanceIdentity });
+  const pendingExecution = subject.adapter.executePlugin(invocation(instanceIdentity));
+  await new Promise(resolve => setImmediate(resolve));
+  const stopping = subject.adapter.lifecycleEffects.stop({ identity: instanceIdentity });
+  await assert.rejects(subject.adapter.executePlugin(invocation(instanceIdentity)), /not accepting/i);
+  assert.deepEqual(await subject.adapter.lifecycleEffects.resume({ identity: instanceIdentity }), {
+    status: "failed", code: "runtime-unavailable",
+  }, "resume cannot reopen a stopping entry");
+  let stopped = false;
+  stopping.then(() => { stopped = true; });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(stopped, false, "stop waits for the captured in-flight tool");
+  disposeAllowed = true;
+  execution.resolve({ completed: true });
+  assert.deepEqual(await pendingExecution, { completed: true });
+  await stopping;
 });

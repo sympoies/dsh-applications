@@ -89,6 +89,67 @@ export function createOwnerRuntimeKit(overrides = {}) {
       if (Object.keys(descriptor).sort().join("\0") !== expected.join("\0")) throw new TypeError("plugin descriptor has unknown fields");
       return descriptor;
     },
+    assertSecretFree(value, path = "document") {
+      const visit = candidate => {
+        const tokenPrefixes = [["gh", "p_"].join(""), ["github", "_pat_"].join("")];
+        const privateKeyMarker = ["-----BEGIN", "PRIVATE KEY-----"].join(" ");
+        if (typeof candidate === "string"
+          && (tokenPrefixes.some(prefix => candidate.includes(prefix)) || candidate.includes(privateKeyMarker))) {
+          throw new TypeError(`${path} contains secret material`);
+        }
+        if (candidate === null || typeof candidate !== "object") return;
+        for (const [key, child] of Object.entries(candidate)) {
+          if (/(?:secret|password|private.?key|access.?token|api.?token)/iu.test(key)) {
+            throw new TypeError(`${path} contains a secret-shaped field`);
+          }
+          visit(child);
+        }
+      };
+      visit(value);
+      return value;
+    },
+  };
+}
+
+export function admitRunningPlugin(runtimeKit, instanceIdentity, descriptor = pluginDescriptor()) {
+  runtimeKit.store.instances.set(instanceIdentity.namespace, {
+    identity: structuredClone(instanceIdentity),
+    state: "Running",
+    resolvedCompositionDigest: DIGEST,
+    compositionLockReceiptDigest: DIGEST,
+    admissionSealDigest: DIGEST,
+  });
+  return {
+    admissionResolver(query) {
+      assert.deepEqual(query.identity, instanceIdentity);
+      assert.equal(query.pluginId, descriptor.metadata.id);
+      for (const field of ["resolvedCompositionDigest", "compositionLockReceiptDigest", "admissionSealDigest"]) {
+        assert.equal(query[field], DIGEST);
+      }
+      return {
+        descriptor,
+        descriptorDigest: descriptor.metadata.digest,
+        artifactDigest: descriptor.artifact.digest,
+        resolvedCompositionDigest: DIGEST,
+        compositionLockReceiptDigest: DIGEST,
+        admissionSealDigest: DIGEST,
+      };
+    },
+    schemaOwner: {
+      resolve(digest, context) {
+        return {
+          digest,
+          validate(value) {
+            if (context.direction === "input" && value?.schemaInvalid === true) {
+              throw new TypeError("plugin input schema rejected");
+            }
+            if (context.direction === "output" && value?.schemaInvalid === true) {
+              throw new TypeError("plugin output schema rejected");
+            }
+          },
+        };
+      },
+    },
   };
 }
 

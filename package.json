@@ -22,6 +22,7 @@
     "test:manager-faults": "node --test test/manager-faults.test.mjs",
     "test:plugin-sandbox": "node --test test/plugin-sandbox.test.mjs",
     "test:integration": "node --test test/integration.test.mjs",
+    "test:exact-dsh": "node scripts/check-exact-dsh-consumer.mjs && node --test test/exact-dsh-consumer.test.mjs",
     "check:compatibility": "node scripts/check-compatibility.mjs",
     "verify:package-reproducibility": "node scripts/check-package-reproducibility.mjs"
   },

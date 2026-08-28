@@ -1,182 +1,366 @@
-const REQUIRED_AMBIENT_DENIALS = Object.freeze([
+import { isAbsolute } from "node:path";
+
+export const REQUIRED_AMBIENT_DENIALS = Object.freeze([
   "env", "host-socket", "filesystem", "network", "subprocess",
   "credential", "secret", "provider", "clock", "random", "cross-instance",
 ]);
+
+const IDENTITY_FIELDS = Object.freeze([
+  "deploymentId", "profileId", "generationId", "instanceId", "namespace",
+]);
+const PLUGIN_TOOL = "sympoies_plugin_action";
 
 function fail(message) {
   throw new TypeError(message);
 }
 
+function canonicalIdentity(value, label = "instance identity") {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) fail(`${label} is required`);
+  if (Object.keys(value).sort().join("\0") !== [...IDENTITY_FIELDS].sort().join("\0")) {
+    fail(`${label} fields are invalid`);
+  }
+  for (const field of IDENTITY_FIELDS.slice(0, 4)) {
+    if (typeof value[field] !== "string" || value[field].length === 0) fail(`${label}.${field} is required`);
+  }
+  const expected = `${value.deploymentId}/${value.profileId}/${value.generationId}/${value.instanceId}`;
+  if (value.namespace !== expected) fail(`${label}.namespace is not canonical`);
+  return IDENTITY_FIELDS.map(field => value[field]).join("\0");
+}
+
 function namespaceOf(value) {
-  const namespace = value?.identity?.namespace;
-  if (typeof namespace !== "string" || namespace.length === 0) fail("instance identity namespace is required");
-  return namespace;
+  canonicalIdentity(value?.identity);
+  return value.identity.namespace;
 }
 
 function assertRuntime(runtime) {
   if (runtime === null || typeof runtime !== "object") fail("instance runtime is required");
   if (typeof runtime.sessionId !== "string" || runtime.sessionId.length === 0) fail("instance sessionId is required");
-  if (typeof runtime.root !== "string" || runtime.root.length === 0) fail("instance root is required");
+  if (typeof runtime.root !== "string" || !isAbsolute(runtime.root)) fail("instance root must be absolute");
   for (const key of ["memory", "queue", "credentialHandles", "budget", "concurrencyController"]) {
     if (runtime[key] === null || typeof runtime[key] !== "object") fail(`instance ${key} controller is required`);
-  }
-  const sandbox = runtime.sandbox;
-  if (sandbox?.kind !== "dsh-rc2-enforced" || typeof sandbox.execute !== "function"
-    || typeof sandbox.assertCurrentConfinement !== "function") fail("DSH rc2 enforced sandbox is required");
-  if (!Array.isArray(sandbox.deniedAmbient) || REQUIRED_AMBIENT_DENIALS.some(value => !sandbox.deniedAmbient.includes(value))) {
-    fail("DSH sandbox ambient-denial contract is incomplete");
   }
   if (typeof runtime.configureScope !== "function") fail("instance configureScope is required");
   return runtime;
 }
 
-function assertOwnerServices(ctx) {
+function assertOwnerServices(ctx, hostSandbox) {
   for (const [owner, method] of [
     [ctx?.agents, "create"], [ctx?.agents, "resume"], [ctx?.agents, "get"],
     [ctx?.sessions, "flush"], [ctx?.sessionPersistence, "inspect"],
-    [ctx?.sessionPersistence, "list"], [ctx?.tools, "register"],
-    [ctx?.tools, "guard"], [ctx?.tools, "restrict"], [ctx?.tools, "execute"],
   ]) if (typeof owner?.[method] !== "function") fail(`DSH rc2 service ${method} is required`);
+  for (const method of ["bind", "assertCurrent", "execute"]) {
+    if (typeof hostSandbox?.[method] !== "function") fail(`DSH/host sandbox owner ${method} is required`);
+  }
 }
 
-export function createDshRc2Adapter({ ctx, resolveInstanceRuntime }) {
-  assertOwnerServices(ctx);
+function assertAgentTools(agentCtx) {
+  for (const method of ["register", "restrict", "guard", "execute"]) {
+    if (typeof agentCtx?.tools?.[method] !== "function") fail(`DSH agent-scoped tools.${method} is required`);
+  }
+  if (agentCtx.agent === null || typeof agentCtx.agent !== "object") fail("DSH agent-scoped identity is required");
+}
+
+function assertConfinementEvidence(evidence, entry, identity) {
+  if (evidence?.owner !== "DSH/host" || evidence.enforced !== true
+    || !sameIdentity(evidence.identity, identity)
+    || evidence.sessionId !== entry.runtime.sessionId
+    || evidence.root !== entry.runtime.root
+    || evidence.agentId !== entry.handle.agent.id
+    || typeof evidence.scopeRevision !== "string" || evidence.scopeRevision.length === 0
+    || !Array.isArray(evidence.deniedAmbient)
+    || REQUIRED_AMBIENT_DENIALS.some(value => !evidence.deniedAmbient.includes(value))) {
+    fail("DSH/host confinement evidence is missing, stale, or cross-instance");
+  }
+  return evidence;
+}
+
+function sameIdentity(left, right) {
+  try {
+    return canonicalIdentity(left) === canonicalIdentity(right);
+  } catch {
+    return false;
+  }
+}
+
+export function createDshRc2Adapter({ ctx, resolveInstanceRuntime, hostSandbox }) {
+  assertOwnerServices(ctx, hostSandbox);
   if (typeof resolveInstanceRuntime !== "function") fail("resolveInstanceRuntime is required");
   const instances = new Map();
   const resourceOwners = new WeakMap();
   const sessionOwners = new Map();
   const rootOwners = new Map();
+  const preparing = new Set();
+  let invocationSequence = 0;
 
-  function bindUnique(namespace, runtime) {
-    for (const key of ["memory", "queue", "credentialHandles", "budget", "concurrencyController"]) {
-      const previous = resourceOwners.get(runtime[key]);
-      if (previous !== undefined && previous !== namespace) fail(`${key} is shared across instances`);
-      resourceOwners.set(runtime[key], namespace);
-    }
-    for (const [map, value, label] of [[sessionOwners, runtime.sessionId, "session"], [rootOwners, runtime.root, "root"]]) {
+  function reserveUnique(identity, runtime) {
+    const owner = canonicalIdentity(identity);
+    const token = Object.freeze({ owner });
+    const candidates = [
+      ...["memory", "queue", "credentialHandles", "budget", "concurrencyController"]
+        .map(label => ({ map: resourceOwners, value: runtime[label], label })),
+      { map: sessionOwners, value: runtime.sessionId, label: "session" },
+      { map: rootOwners, value: runtime.root, label: "root" },
+    ];
+    for (const { map, value, label } of candidates) {
       const previous = map.get(value);
-      if (previous !== undefined && previous !== namespace) fail(`${label} is shared across instances`);
-      map.set(value, namespace);
+      if (previous !== undefined && previous.owner !== owner) fail(`${label} is shared across instances`);
+    }
+    for (const { map, value } of candidates) map.set(value, token);
+    return Object.freeze({ token, candidates });
+  }
+
+  function rollbackReservation(reservation) {
+    for (const { map, value } of reservation.candidates) {
+      if (map.get(value) === reservation.token) map.delete(value);
     }
   }
 
   async function prepare(request, resume) {
     const namespace = namespaceOf(request);
-    const runtime = assertRuntime(await resolveInstanceRuntime(structuredClone(request.identity)));
-    bindUnique(namespace, runtime);
-    const setup = async agentCtx => {
-      if (typeof agentCtx?.tools?.register !== "function" || typeof agentCtx?.tools?.restrict !== "function"
-        || typeof agentCtx?.tools?.guard !== "function" || typeof agentCtx?.tools?.execute !== "function") {
-        fail("DSH agent-scoped tool services are required");
-      }
-      agentCtx.tools.restrict({ allow: [] });
-      agentCtx.tools.guard(execution => execution?.name === "sympoies_host_action"
-        ? undefined : "plugin ambient tool denied");
-      await runtime.configureScope(agentCtx, runtime);
-    };
-    if (resume) {
-      try {
-        const headers = await ctx.sessionPersistence.list();
-        if (!Array.isArray(headers) || !headers.some(header => header?.id === runtime.sessionId)) {
-          return { status: "failed", code: "runtime-unavailable" };
-        }
-        const inspection = await ctx.sessionPersistence.inspect(runtime.sessionId);
-        if (inspection?.meta?.id !== runtime.sessionId) return { status: "failed", code: "runtime-unavailable" };
-      } catch {
-        return { status: "failed", code: "runtime-unavailable" };
-      }
+    if (instances.has(namespace) || preparing.has(namespace)) {
+      return { status: "failed", code: "runtime-unavailable" };
     }
-    const handle = resume
-      ? await ctx.agents.resume({ resumeSessionId: runtime.sessionId, agentOptions: runtime.agentOptions, setup })
-      : await ctx.agents.create({ sessionId: runtime.sessionId, meta: { cwd: runtime.root }, agentOptions: runtime.agentOptions, setup });
-    instances.set(namespace, { runtime, handle, accepting: true });
-    return { status: "succeeded", sessionIdentity: runtime.sessionId };
+    preparing.add(namespace);
+    let reservation;
+    let scoped;
+    let boundBinding;
+    try {
+      const identity = structuredClone(request.identity);
+      const runtime = assertRuntime(await resolveInstanceRuntime(structuredClone(identity)));
+      reservation = reserveUnique(identity, runtime);
+      if (resume) {
+        const inspection = await ctx.sessionPersistence.inspect(runtime.sessionId);
+        if (inspection?.meta?.id !== runtime.sessionId || inspection.meta.cwd !== runtime.root) {
+          fail("persisted DSH session is not bound to the instance root");
+        }
+      }
+      const setup = async agentCtx => {
+        assertAgentTools(agentCtx);
+        await runtime.configureScope(agentCtx, runtime);
+        const binding = await hostSandbox.bind(Object.freeze({
+          agentCtx,
+          agent: agentCtx.agent,
+          identity: structuredClone(identity),
+          sessionId: runtime.sessionId,
+          root: runtime.root,
+        }));
+        if (binding === null || typeof binding !== "object") {
+          fail("DSH/host sandbox owner returned no scoped binding");
+        }
+        boundBinding = binding;
+        const pending = new Map();
+        agentCtx.tools.register({
+          name: PLUGIN_TOOL,
+          description: "Execute one admitted Sympoies plugin action in the bound host sandbox.",
+          parameters: {
+            type: "object",
+            additionalProperties: false,
+            properties: { invocationId: { type: "string" } },
+            required: ["invocationId"],
+          },
+          output: { schema: {}, render: () => [] },
+          async execute(args, execution) {
+            if (execution.agent !== agentCtx.agent) fail("plugin tool caller is not the bound DSH agent");
+            const row = pending.get(args?.invocationId);
+            if (row === undefined) fail("plugin tool invocation is missing or already consumed");
+            pending.delete(args.invocationId);
+            return hostSandbox.execute(binding, row.invocation, Object.freeze({
+              agent: agentCtx.agent,
+              signal: execution.signal,
+              confinement: row.confinement,
+            }));
+          },
+        });
+        // Visibility is useful for the agent surface but is not confinement evidence.
+        agentCtx.tools.restrict({ allow: [] });
+        agentCtx.tools.guard(execution => execution?.name === PLUGIN_TOOL
+          ? undefined : "plugin ambient tool denied");
+        scoped = Object.freeze({
+          agent: agentCtx.agent,
+          binding,
+          pending,
+          executeTool: agentCtx.tools.execute.bind(agentCtx.tools),
+        });
+      };
+      const handle = resume
+        ? await ctx.agents.resume({ resumeSessionId: runtime.sessionId, agentOptions: runtime.agentOptions, setup })
+        : await ctx.agents.create({
+          sessionId: runtime.sessionId,
+          meta: { cwd: runtime.root },
+          agentOptions: runtime.agentOptions,
+          setup,
+        });
+      if (scoped === undefined || scoped.agent !== handle.agent) {
+        await handle.dispose();
+        fail("DSH setup did not bind the published live agent");
+      }
+      const entry = {
+        identity,
+        runtime,
+        handle,
+        scoped,
+        reservation,
+        accepting: true,
+        retiring: false,
+        inFlight: 0,
+        inFlightDrain: undefined,
+        controllers: new Set(),
+      };
+      instances.set(namespace, entry);
+      return { status: "succeeded", sessionIdentity: runtime.sessionId };
+    } catch {
+      if (reservation !== undefined) rollbackReservation(reservation);
+      if (boundBinding !== undefined && typeof hostSandbox.release === "function") {
+        try { await hostSandbox.release(boundBinding); } catch { /* preparation is already failed */ }
+      }
+      return { status: "failed", code: "runtime-unavailable" };
+    } finally {
+      preparing.delete(namespace);
+    }
   }
 
   function row(request) {
-    return instances.get(namespaceOf(request));
+    const namespace = namespaceOf(request);
+    const entry = instances.get(namespace);
+    if (entry !== undefined && !sameIdentity(entry.identity, request.identity)) {
+      fail("instance identity does not match the captured DSH entry");
+    }
+    return entry;
+  }
+
+  function beginDrain(entry) {
+    if (entry.inFlight === 0) return Promise.resolve();
+    if (entry.inFlightDrain === undefined) entry.inFlightDrain = Promise.withResolvers();
+    return entry.inFlightDrain.promise;
+  }
+
+  function finishInvocation(entry) {
+    entry.inFlight -= 1;
+    if (entry.inFlight === 0 && entry.inFlightDrain !== undefined) {
+      entry.inFlightDrain.resolve();
+      entry.inFlightDrain = undefined;
+    }
+  }
+
+  function fence(entry, reason) {
+    if (entry === undefined) return;
+    entry.accepting = false;
+    for (const controller of entry.controllers) controller.abort(reason);
   }
 
   async function quiesce(entry, cause, options) {
     if (entry === undefined) return { status: "failed", code: "runtime-unavailable" };
     entry.handle.agent.cancel(cause, options);
-    await entry.handle.agent.whenIdle();
+    await Promise.all([entry.handle.agent.whenIdle(), beginDrain(entry)]);
     await ctx.sessions.flush(entry.handle.agent.session);
     return { status: "succeeded" };
   }
 
+  async function retireStale(namespace, entry) {
+    entry.retiring = true;
+    fence(entry, new Error("DSH agent entry was replaced"));
+    await beginDrain(entry);
+    if (typeof hostSandbox.release === "function") await hostSandbox.release(entry.scoped.binding);
+    if (instances.get(namespace) === entry) instances.delete(namespace);
+  }
+
   const lifecycleEffects = Object.freeze({
     start: request => prepare(request, false),
-    resume(request) {
+    async resume(request) {
       const namespace = namespaceOf(request);
       const entry = row(request);
       if (entry !== undefined) {
+        if (entry.retiring === true) return { status: "failed", code: "runtime-unavailable" };
         let live;
-        try {
-          live = ctx.agents.get(entry.runtime.sessionId);
-        } catch {
-          return Promise.resolve({ status: "failed", code: "runtime-unavailable" });
+        try { live = ctx.agents.get(entry.runtime.sessionId); } catch {
+          return { status: "failed", code: "runtime-unavailable" };
         }
-        if (live !== entry.handle.agent) {
-          entry.accepting = false;
-          if (live !== undefined) return Promise.resolve({ status: "failed", code: "runtime-unavailable" });
-          instances.delete(namespace);
-          return prepare(request, true);
+        if (live === entry.handle.agent) {
+          entry.accepting = true;
+          return { status: "succeeded", sessionIdentity: entry.runtime.sessionId };
         }
-        entry.accepting = true;
-        return Promise.resolve({ status: "succeeded", sessionIdentity: entry.runtime.sessionId });
+        if (live !== undefined) {
+          fence(entry, new Error("DSH session identity collision"));
+          return { status: "failed", code: "runtime-unavailable" };
+        }
+        try { await retireStale(namespace, entry); } catch {
+          return { status: "failed", code: "runtime-unavailable" };
+        }
       }
       return prepare(request, true);
     },
     interrupt(request) {
       const entry = row(request);
-      if (entry !== undefined) entry.accepting = false;
+      fence(entry, new Error("plugin instance interrupted"));
       return quiesce(entry, { kind: "user" });
     },
-    async drain(request) {
+    drain(request) {
       const entry = row(request);
-      if (entry !== undefined) entry.accepting = false;
+      fence(entry, new Error("plugin instance draining"));
       return quiesce(entry, { kind: "parent" }, { keepInbox: true });
     },
-    async stop(request) {
-      const namespace = namespaceOf(request);
-      const entry = instances.get(namespace);
-      if (entry === undefined) return { status: "failed", code: "runtime-unavailable" };
-      await entry.handle.dispose();
-      instances.delete(namespace);
-      return { status: "succeeded", retainedStateDisposition: "retained" };
+    stop(request) {
+      const entry = row(request);
+      if (entry === undefined || entry.retiring === true) {
+        return Promise.resolve({ status: "failed", code: "runtime-unavailable" });
+      }
+      entry.retiring = true;
+      fence(entry, new Error("plugin instance stopping"));
+      return (async () => {
+        await beginDrain(entry);
+        const failures = [];
+        if (typeof hostSandbox.release === "function") {
+          try { await hostSandbox.release(entry.scoped.binding); } catch (error) { failures.push(error); }
+        }
+        try { await entry.handle.dispose(); } catch (error) { failures.push(error); }
+        if (instances.get(request.identity.namespace) === entry) {
+          instances.delete(request.identity.namespace);
+        }
+        if (failures.length > 0) throw new AggregateError(failures, "DSH plugin instance disposal failed");
+        return { status: "succeeded", retainedStateDisposition: "retained" };
+      })();
     },
   });
 
   async function executePlugin(invocation) {
-    const namespace = namespaceOf(invocation);
-    const entry = instances.get(namespace);
+    const entry = row(invocation);
     if (entry === undefined || entry.accepting !== true) fail("plugin instance is not accepting work");
-    return entry.runtime.sandbox.execute(Object.freeze({
-      descriptor: invocation.descriptor,
-      actionId: invocation.actionId,
-      identity: invocation.identity,
-      input: invocation.input,
-      hostAction: invocation.hostAction,
-    }));
-  }
-
-  async function assertPluginConfinement(identity) {
-    const namespace = identity?.namespace;
-    const entry = typeof namespace === "string" ? instances.get(namespace) : undefined;
-    if (entry === undefined || entry.accepting !== true) fail("plugin instance has no current DSH confinement");
-    const evidence = await entry.runtime.sandbox.assertCurrentConfinement(structuredClone(identity));
-    if (evidence?.owner !== "DSH" || evidence.enforced !== true
-      || evidence.namespace !== namespace || evidence.generationId !== identity.generationId
-      || typeof evidence.scopeRevision !== "string" || evidence.scopeRevision.length === 0
-      || !Array.isArray(evidence.deniedAmbient)
-      || REQUIRED_AMBIENT_DENIALS.some(value => !evidence.deniedAmbient.includes(value))) {
-      fail("DSH confinement evidence is missing, stale, or cross-instance");
+    const captured = entry;
+    captured.inFlight += 1;
+    const controller = new AbortController();
+    captured.controllers.add(controller);
+    let invocationId;
+    try {
+      const confinement = assertConfinementEvidence(await hostSandbox.assertCurrent(
+        captured.scoped.binding,
+        Object.freeze({
+          agent: captured.handle.agent,
+          identity: structuredClone(invocation.identity),
+          sessionId: captured.runtime.sessionId,
+          root: captured.runtime.root,
+        }),
+      ), captured, invocation.identity);
+      if (instances.get(invocation.identity.namespace) !== captured || captured.accepting !== true) {
+        fail("plugin instance changed while confinement was being established");
+      }
+      invocationSequence += 1;
+      invocationId = `${captured.runtime.sessionId}:${invocationSequence}`;
+      captured.scoped.pending.set(invocationId, Object.freeze({ invocation, confinement }));
+      const result = await captured.scoped.executeTool({
+        callId: `sympoies-plugin-${invocationSequence}`,
+        name: PLUGIN_TOOL,
+        arguments: { invocationId },
+        agent: captured.handle.agent,
+        signal: controller.signal,
+      });
+      if (result?.isError !== false) fail(`DSH plugin tool failed: ${result?.error?.message ?? "unknown failure"}`);
+      return result.value;
+    } finally {
+      if (invocationId !== undefined) captured.scoped.pending.delete(invocationId);
+      captured.controllers.delete(controller);
+      finishInvocation(captured);
     }
-    return Object.freeze(structuredClone(evidence));
   }
 
-  return Object.freeze({ lifecycleEffects, executePlugin, assertPluginConfinement });
+  return Object.freeze({ lifecycleEffects, executePlugin });
 }
-
-export { REQUIRED_AMBIENT_DENIALS };
