@@ -1,0 +1,38 @@
+[
+  {
+    "id": 201,
+    "state": "APPROVED",
+    "submitted_at": "2026-08-27T23:56:00Z",
+    "commit_id": "cccccccccccccccccccccccccccccccccccccccc",
+    "user": {
+      "login": "independent-reviewer"
+    }
+  },
+  {
+    "id": 202,
+    "state": "CHANGES_REQUESTED",
+    "submitted_at": "2026-08-27T23:57:00Z",
+    "commit_id": "cccccccccccccccccccccccccccccccccccccccc",
+    "user": {
+      "login": "independent-reviewer"
+    }
+  },
+  {
+    "id": 203,
+    "state": "APPROVED",
+    "submitted_at": "2026-08-27T23:58:00Z",
+    "commit_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "user": {
+      "login": "stale-reviewer"
+    }
+  },
+  {
+    "id": 204,
+    "state": "APPROVED",
+    "submitted_at": "2026-08-27T23:59:00Z",
+    "commit_id": "cccccccccccccccccccccccccccccccccccccccc",
+    "user": {
+      "login": "pull-author"
+    }
+  }
+]

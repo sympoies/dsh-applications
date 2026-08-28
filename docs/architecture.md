@@ -25,7 +25,7 @@ earlier layer.
 ## Workspace layout
 
 ```text
-packages/       future independently versioned public packages
+packages/       future components of one coordinated public application
 compatibility/  exact accepted dependency identities
 docs/           architecture, ownership, and release contracts
 scripts/        repository and release verification only
@@ -33,10 +33,11 @@ test/           repository-level contract tests
 .github/        read-only CI and reviewed-tag release automation
 ```
 
-The root workspace is private and is never an npm registry product. Releasable
-packages will declare their own names, versions, files, exports, and tests.
-Until those packages exist, the root archive is a reproducibility and supply-
-chain bootstrap artifact only.
+The workspace produces a single coordinated public application artifact. Its
+packages are components, not independently released products: they share the
+root version and are reviewed, tested, tagged, and published together. The
+root workspace remains private at bootstrap version `0.0.0` until Task 3.3
+promotes the first coordinated version. That bootstrap version cannot publish.
 
 ## Compatibility
 
@@ -53,10 +54,12 @@ or mismatched inputs fail closed.
 ## Artifact flow
 
 Pull-request CI is read-only and produces no release. A signed annotated SemVer
-tag on a reviewed `main` commit starts the release workflow. The workflow
-repeats compatibility and repository validation, creates the package archive
-twice, requires byte-identical SHA-256 digests, names the artifact with that
-digest, produces `SHA256SUMS`, creates a GitHub build-provenance attestation,
+tag on an independently approved pull-request commit merged into `main` starts
+the release workflow. A read-only job repeats compatibility and repository
+validation, then packages a fresh clean checkout of the exact tagged revision.
+It names the artifact with its SHA-256 digest and produces a flat
+`SHA256SUMS`. A separate minimal privileged job executes no project code; it
+verifies the fixed build outputs, creates a GitHub build-provenance attestation,
 and creates the release once.
 
 Private deployment systems may fetch the unopened blob by exact digest and

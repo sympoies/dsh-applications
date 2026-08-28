@@ -12,6 +12,10 @@ Private deployment bindings, host and service identity, installation or
 channel identifiers, credentials, ingress, rollout state, and personal
 operator configuration are intentionally outside this repository.
 
+Workspace packages are components of one coordinated application artifact and
+share the root version. The private `0.0.0` root is a bootstrap control surface,
+not a publishable release, until Task 3.3 promotes the coordinated version.
+
 ## Current status
 
 The repository currently contains only its governed workspace bootstrap. The

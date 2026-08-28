@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import test from "node:test";
 
@@ -8,6 +16,7 @@ const root = resolve(import.meta.dirname, "..");
 const expectedRuntimeKitRevision =
   "2cd14d5fdd73e0758d366d8b671f71ee768d857f";
 const expectedDshRevision = "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e";
+const reviewedFixtureCommit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 function read(path) {
   return readFileSync(join(root, path), "utf8");
@@ -76,6 +85,17 @@ test("workspace metadata is exact, private at the root, and release-safe", () =>
   assert.deepEqual(packageLock.packages[""].workspaces, pkg.workspaces);
 });
 
+test("workspace packages are components of one coordinated application artifact", () => {
+  const architecture = read("docs/architecture.md");
+  const releases = read("docs/releases.md");
+  const packages = read("packages/README.md");
+  assert.match(architecture, /single coordinated public application artifact/i);
+  assert.match(releases, /one coordinated version/i);
+  assert.match(packages, /share.*root.*version/i);
+  assert.doesNotMatch(architecture, /independently versioned/i);
+  assert.match(read(".github/workflows/release.yml"), /test "\$package_version" != "0\.0\.0"/);
+});
+
 test("compatibility lock pins the accepted runtime-kit and DSH identities", () => {
   const lock = json("compatibility/dsh-applications-lock.json");
   assert.equal(lock.schema_version, "dsh-applications.compatibility-lock.v1");
@@ -130,6 +150,150 @@ test("tag release publishes digest-addressed, attested immutable assets", () => 
   assert.match(releases, /reviewed.*main/i);
   assert.match(releases, /immutable/i);
   assert.match(releases, /SHA256SUMS/);
+});
+
+test("release verification is read-only and privileged publish runs no project code", () => {
+  const workflow = read(".github/workflows/release.yml");
+  const verifyStart = workflow.indexOf("  verify-build:");
+  const publishStart = workflow.indexOf("  publish:");
+  assert(verifyStart >= 0, "verify-build job is required");
+  assert(publishStart > verifyStart, "publish must follow verify-build");
+  const verifyJob = workflow.slice(verifyStart, publishStart);
+  const publishJob = workflow.slice(publishStart);
+
+  assert.match(verifyJob, /permissions:\n\s+contents: read\n\s+pull-requests: read/);
+  assert.doesNotMatch(verifyJob, /contents: write|id-token: write|attestations: write/);
+  assert.match(verifyJob, /npm test/);
+  assert.match(verifyJob, /Check out fresh exact tagged source/);
+  assert.match(verifyJob, /ref: \$\{\{ steps\.verify-tag\.outputs\.release_commit \}\}/);
+  assert.match(verifyJob, /scripts\/package-release-artifact\.mjs/);
+
+  assert.match(publishJob, /needs: verify-build/);
+  assert.match(publishJob, /permissions:[\s\S]*contents: write[\s\S]*id-token: write[\s\S]*attestations: write/);
+  assert.match(publishJob, /actions\/download-artifact@[0-9a-f]{40}/);
+  assert.match(publishJob, /sha256sum -c SHA256SUMS/);
+  assert.match(publishJob, /attest-build-provenance/);
+  assert.match(publishJob, /gh release create/);
+  assert.doesNotMatch(publishJob, /npm (ci|install|run|test|pack)|node scripts\/|actions\/checkout@/);
+});
+
+test("reviewed release source requires one merged same-repo PR and independent exact-head approval", () => {
+  const checker = join(root, "scripts/check-reviewed-release-source.mjs");
+  const fixtureRoot = join(root, "test/fixtures/release-source");
+  const accepted = JSON.parse(
+    execFileSync(
+      process.execPath,
+      [
+        checker,
+        "--repository",
+        "sympoies/dsh-applications",
+        "--commit",
+        reviewedFixtureCommit,
+        "--associations",
+        join(fixtureRoot, "accepted-associations.json"),
+        "--reviews",
+        join(fixtureRoot, "accepted-reviews.json"),
+      ],
+      { encoding: "utf8" },
+    ),
+  );
+  assert.equal(accepted.ok, true);
+  assert.equal(accepted.pull_request, 7);
+  assert.equal(accepted.reviewed_head, "cccccccccccccccccccccccccccccccccccccccc");
+  assert.equal(accepted.approver, "independent-reviewer");
+
+  for (const [associations, reviews] of [
+    ["direct-main-associations.json", "direct-main-reviews.json"],
+    ["nonmerge-associations.json", "accepted-reviews.json"],
+    ["ambiguous-associations.json", "accepted-reviews.json"],
+    ["accepted-associations.json", "unapproved-reviews.json"],
+  ]) {
+    assert.throws(() =>
+      execFileSync(
+        process.execPath,
+        [
+          checker,
+          "--repository",
+          "sympoies/dsh-applications",
+          "--commit",
+          reviewedFixtureCommit,
+          "--associations",
+          join(fixtureRoot, associations),
+          "--reviews",
+          join(fixtureRoot, reviews),
+        ],
+        { stdio: "pipe" },
+      ),
+    );
+  }
+
+  const workflow = read(".github/workflows/release.yml");
+  assert.match(workflow, /commits\/\$release_commit\/pulls/);
+  assert.match(workflow, /pulls\/\$pr_number\/reviews/);
+  assert.match(workflow, /gh api --paginate --slurp[\s\S]*commits\/\$release_commit\/pulls[\s\S]*jq 'add'/);
+  assert.match(workflow, /gh api --paginate --slurp[\s\S]*pulls\/\$pr_number\/reviews[\s\S]*jq 'add'/);
+  assert.match(workflow, /check-reviewed-release-source\.mjs/);
+});
+
+test("release packaging rejects dirty source and emits a flat verifiable checksum", () => {
+  const temporaryRoot = mkdtempSync(join(tmpdir(), "dsh-applications-release-contract-"));
+  const sourceRoot = join(temporaryRoot, "source");
+  const cleanOutput = join(temporaryRoot, "clean-output");
+  const dirtyOutput = join(temporaryRoot, "dirty-output");
+  try {
+    execFileSync("git", ["clone", "--local", "--no-hardlinks", root, sourceRoot], {
+      stdio: "pipe",
+    });
+    const sourceHead = execFileSync("git", ["-C", sourceRoot, "rev-parse", "HEAD"], {
+      encoding: "utf8",
+    }).trim();
+    const result = JSON.parse(
+      execFileSync(
+        process.execPath,
+        [
+          "scripts/package-release-artifact.mjs",
+          "--source-root",
+          sourceRoot,
+          "--expected-commit",
+          sourceHead,
+          "--out",
+          cleanOutput,
+        ],
+        { cwd: root, encoding: "utf8" },
+      ),
+    );
+    assert.equal(result.ok, true);
+    assert(!result.archive.includes("/"));
+    const checksum = readFileSync(join(cleanOutput, "SHA256SUMS"), "utf8");
+    assert.equal(checksum, `${result.sha256}  ${result.archive}\n`);
+    execFileSync("sha256sum", ["-c", "SHA256SUMS"], {
+      cwd: cleanOutput,
+      stdio: "pipe",
+    });
+
+    writeFileSync(join(sourceRoot, "README.md"), "deterministic mutation\n", {
+      flag: "a",
+    });
+    assert.throws(
+      () =>
+        execFileSync(
+          process.execPath,
+          [
+            "scripts/package-release-artifact.mjs",
+            "--source-root",
+            sourceRoot,
+            "--expected-commit",
+            sourceHead,
+            "--out",
+            dirtyOutput,
+          ],
+          { cwd: root, stdio: "pipe" },
+        ),
+      /source checkout is dirty/,
+    );
+  } finally {
+    rmSync(temporaryRoot, { recursive: true, force: true });
+  }
 });
 
 test("compatibility validator accepts the manifest-only bootstrap contract", () => {

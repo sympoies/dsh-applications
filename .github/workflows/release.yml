@@ -5,19 +5,21 @@ on:
     tags:
       - 'v*'
 
-permissions:
-  contents: write
-  id-token: write
-  attestations: write
+permissions: {}
 
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  release:
+  verify-build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      release_commit: ${{ steps.verify-tag.outputs.release_commit }}
     steps:
       - name: Check out tagged applications source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
@@ -50,13 +52,14 @@ jobs:
         run: |
           npm install --global npm@11.6.2 --ignore-scripts
           test "$(npm --version)" = "11.6.2"
-      - name: Verify signed reviewed tag
+      - name: Verify signed tag and coordinated version
         id: verify-tag
         working-directory: dsh-applications
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
+          set -euo pipefail
           test "$(git cat-file -t "refs/tags/$RELEASE_TAG")" = tag
           tag_object="$(git rev-parse "refs/tags/$RELEASE_TAG")"
           test "$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$tag_object" --jq '.verification.verified')" = true
@@ -65,11 +68,40 @@ jobs:
           release_commit="$(git rev-list -n 1 "refs/tags/$RELEASE_TAG")"
           git merge-base --is-ancestor "$release_commit" origin/main
           package_version="$(node -p "require('./package.json').version")"
+          test "$package_version" != "0.0.0"
           test "$RELEASE_TAG" = "v$package_version"
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             echo "release already exists and is immutable" >&2
             exit 1
           fi
+          echo "release_commit=$release_commit" >> "$GITHUB_OUTPUT"
+      - name: Verify exact reviewed release source
+        working-directory: dsh-applications
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_COMMIT: ${{ steps.verify-tag.outputs.release_commit }}
+        run: |
+          set -euo pipefail
+          release_commit="$RELEASE_COMMIT"
+          associations="$RUNNER_TEMP/release-associations.json"
+          reviews="$RUNNER_TEMP/release-reviews.json"
+          gh api --paginate --slurp \
+            -H "Accept: application/vnd.github+json" \
+            "repos/$GITHUB_REPOSITORY/commits/$release_commit/pulls" \
+            | jq 'add' > "$associations"
+          pr_number="$(node scripts/check-reviewed-release-source.mjs \
+            --repository "$GITHUB_REPOSITORY" \
+            --commit "$release_commit" \
+            --associations "$associations")"
+          gh api --paginate --slurp \
+            -H "Accept: application/vnd.github+json" \
+            "repos/$GITHUB_REPOSITORY/pulls/$pr_number/reviews" \
+            | jq 'add' > "$reviews"
+          node scripts/check-reviewed-release-source.mjs \
+            --repository "$GITHUB_REPOSITORY" \
+            --commit "$release_commit" \
+            --associations "$associations" \
+            --reviews "$reviews"
       - name: Install without lifecycle scripts
         working-directory: dsh-applications
         run: npm ci --ignore-scripts
@@ -81,34 +113,71 @@ jobs:
             --runtime-kit-root ../dsh-runtime-kit \
             --dsh-root ../deepseek-harness
           npm run verify:package-reproducibility
-      - name: Build digest-addressed artifact
-        id: package
-        working-directory: dsh-applications
+      - name: Check out fresh exact tagged source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        with:
+          ref: ${{ steps.verify-tag.outputs.release_commit }}
+          fetch-depth: 1
+          persist-credentials: false
+          path: release-source
+      - name: Build digest-addressed artifact from clean source
+        env:
+          RELEASE_COMMIT: ${{ steps.verify-tag.outputs.release_commit }}
         run: |
-          mkdir -p dist
-          npm pack --ignore-scripts --pack-destination dist
-          archive="$(find dist -maxdepth 1 -type f -name '*.tgz' -print -quit)"
-          digest="$(sha256sum "$archive" | awk '{print $1}')"
-          digest_archive="dist/dsh-applications-${{ github.ref_name }}-sha256-$digest.tgz"
-          mv "$archive" "$digest_archive"
-          sha256sum "$digest_archive" > dist/SHA256SUMS
-          cp compatibility/dsh-applications-lock.json dist/
-          echo "artifact=$digest_archive" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          node release-source/scripts/package-release-artifact.mjs \
+            --source-root "$GITHUB_WORKSPACE/release-source" \
+            --expected-commit "$RELEASE_COMMIT" \
+            --out "$RUNNER_TEMP/release-assets"
+      - name: Store fixed release outputs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-${{ steps.verify-tag.outputs.release_commit }}
+          path: |
+            ${{ runner.temp }}/release-assets/*.tgz
+            ${{ runner.temp }}/release-assets/SHA256SUMS
+            ${{ runner.temp }}/release-assets/dsh-applications-lock.json
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  publish:
+    needs: verify-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download fixed release outputs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-${{ needs.verify-build.outputs.release_commit }}
+          path: release-assets
+      - name: Verify fixed release outputs
+        working-directory: release-assets
+        run: |
+          set -euo pipefail
+          sha256sum -c SHA256SUMS
+          test "$(find . -maxdepth 1 -type f -name '*.tgz' -printf . | wc -c)" = 1
+          test -f dsh-applications-lock.json
       - name: Attest artifact provenance
         uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
         with:
-          subject-path: dsh-applications/${{ steps.package.outputs.artifact }}
+          subject-path: release-assets/*.tgz
       - name: Create immutable release
-        working-directory: dsh-applications
+        working-directory: release-assets
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
-          RELEASE_ARTIFACT: ${{ steps.package.outputs.artifact }}
-        run: >-
-          gh release create "$RELEASE_TAG"
-          "$RELEASE_ARTIFACT"
-          dist/SHA256SUMS
-          dist/dsh-applications-lock.json
-          --verify-tag
-          --title "$RELEASE_TAG"
-          --generate-notes
+        run: |
+          set -euo pipefail
+          archive="$(find . -maxdepth 1 -type f -name '*.tgz' -print)"
+          gh release create "$RELEASE_TAG" \
+            "$archive" \
+            SHA256SUMS \
+            dsh-applications-lock.json \
+            --verify-tag \
+            --title "$RELEASE_TAG" \
+            --generate-notes

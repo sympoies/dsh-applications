@@ -1,0 +1,44 @@
+[
+  {
+    "number": 7,
+    "state": "closed",
+    "merged_at": "2026-08-28T00:00:00Z",
+    "merge_commit_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "user": {
+      "login": "pull-author"
+    },
+    "base": {
+      "ref": "main",
+      "repo": {
+        "full_name": "sympoies/dsh-applications"
+      }
+    },
+    "head": {
+      "sha": "cccccccccccccccccccccccccccccccccccccccc",
+      "repo": {
+        "full_name": "sympoies/dsh-applications"
+      }
+    }
+  },
+  {
+    "number": 8,
+    "state": "closed",
+    "merged_at": "2026-08-28T00:01:00Z",
+    "merge_commit_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "user": {
+      "login": "another-author"
+    },
+    "base": {
+      "ref": "main",
+      "repo": {
+        "full_name": "sympoies/dsh-applications"
+      }
+    },
+    "head": {
+      "sha": "dddddddddddddddddddddddddddddddddddddddd",
+      "repo": {
+        "full_name": "sympoies/dsh-applications"
+      }
+    }
+  }
+]

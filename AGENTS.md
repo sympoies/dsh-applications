@@ -43,12 +43,18 @@ DeepSeek Harness (DSH).
   release notes together.
 - Package code belongs under `packages/<name>/`. A package must declare its
   public owner, API boundary, compatibility, and tests before it becomes a
-  release artifact.
+  release component. All workspace components share the root coordinated
+  version and publish as one application artifact.
 
 ## Releases
 
-- Release only from an independently reviewed commit reachable from `main`
-  through an annotated, cryptographically signed `v<semver>` tag.
+- Release only from a commit associated with exactly one merged same-repository
+  pull request into `main`, whose exact pull-request head has a latest-state
+  independent approval, through an annotated, cryptographically signed
+  `v<semver>` tag.
+- Keep validation and packaging read-only. Grant publication permissions only
+  to a source-free job that verifies fixed build outputs and runs no project
+  code.
 - Tags, GitHub releases, attestations, and release assets are immutable. Never
   replace an asset or reuse a version; publish a new SemVer instead.
 - GitHub Actions and source dependencies use full immutable commit identities,
