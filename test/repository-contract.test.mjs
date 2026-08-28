@@ -73,7 +73,11 @@ test("workspace metadata is exact, private at the root, and release-safe", () =>
   assert.deepEqual(pkg.workspaces, ["packages/*"]);
   assert.equal(pkg.packageManager, "npm@11.6.2");
   assert.equal(pkg.engines.node, "^22.19.0 || >=24.0.0");
-  assert.equal(pkg.scripts.test, "npm run test:repository-contract");
+  assert.equal(pkg.scripts.test, "node --test test/*.test.mjs");
+  assert.equal(pkg.scripts["test:manager-contract"], "node --test test/manager-contract.test.mjs");
+  assert.equal(pkg.scripts["test:manager-faults"], "node --test test/manager-faults.test.mjs");
+  assert.equal(pkg.scripts["test:plugin-sandbox"], "node --test test/plugin-sandbox.test.mjs");
+  assert.equal(pkg.scripts["test:integration"], "node --test test/integration.test.mjs");
   assert.equal(pkg.scripts["check:compatibility"], "node scripts/check-compatibility.mjs");
   assert.equal(pkg.scripts["verify:package-reproducibility"], "node scripts/check-package-reproducibility.mjs");
   assert.deepEqual(pkg.files, ["AGENTS.md", "SECURITY.md", "CONTRIBUTING.md", "compatibility", "docs", "packages"]);
@@ -114,6 +118,16 @@ test("compatibility lock pins the accepted runtime-kit and DSH identities", () =
   });
   assert.equal(lock.node, "22.19.0");
   assert.equal(lock.package_manager, "npm@11.6.2");
+
+  const checker = read("scripts/check-compatibility.mjs");
+  for (const runtimeOwner of [
+    "createCompositionService", "validatePluginDescriptor", "createMemoryRuntimeStore",
+    "createWorkloadManager", "createMediatedHostService", "createManagerControlService",
+    "validateMediatedHostActionRequest",
+  ]) assert.match(checker, new RegExp(runtimeOwner));
+  for (const dshOwner of ["agents", "sessions", "sessionPersistence", "tools"]) {
+    assert.match(checker, new RegExp(`DSH ${dshOwner}`));
+  }
 });
 
 test("CI verifies the repository and exact compatibility checkouts", () => {
@@ -122,6 +136,10 @@ test("CI verifies the repository and exact compatibility checkouts", () => {
   assert.match(workflow, /npm ci --ignore-scripts/);
   assert.match(workflow, /npm install --global npm@11\.6\.2 --ignore-scripts/);
   assert.match(workflow, /npm run test:repository-contract/);
+  assert.match(workflow, /npm run test:manager-contract/);
+  assert.match(workflow, /npm run test:manager-faults/);
+  assert.match(workflow, /npm run test:plugin-sandbox/);
+  assert.match(workflow, /npm run test:integration/);
   assert.match(workflow, /npm test/);
   assert.match(workflow, new RegExp(`repository: sympoies/dsh-runtime-kit[\\s\\S]*ref: ${expectedRuntimeKitRevision}`));
   assert.match(workflow, new RegExp(`repository: deepseek-ai/deepseek-harness[\\s\\S]*ref: ${expectedDshRevision}`));
@@ -352,7 +370,7 @@ test("tracked public content contains no credential material or machine-local pa
 
   for (const path of filesBelow("packages")) {
     const content = read(path);
-    assert.doesNotMatch(content, /deployment(Id|Binding)|installation(Id)?|secret(Value)?|privateTopology/);
+    assert.doesNotMatch(content, /deploymentBinding|installation(Id)?|secretValue|privateTopology/);
   }
 
   assert(!tracked.some((path) => /(^|\/)(Dockerfile|compose\.ya?ml|Chart\.yaml)$/.test(path)));

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const root = resolve(import.meta.dirname, "..");
 const expectedRuntimeKitRevision =
@@ -51,6 +52,18 @@ function normalizeRepository(url) {
   return url.replace(/^git\+/, "").replace(/\.git$/, "").replace(/\/$/, "");
 }
 
+function source(path) {
+  return readFileSync(path, "utf8");
+}
+
+function assertMethods(owner, names, label) {
+  for (const name of names) assert.equal(typeof owner[name], "function", `${label}.${name} is required`);
+}
+
+function assertSourceMethods(contents, patterns, label) {
+  for (const [name, pattern] of Object.entries(patterns)) assert.match(contents, pattern, `${label}.${name} declaration is required`);
+}
+
 const options = parseArguments(process.argv.slice(2));
 const lock = load(resolve(root, "compatibility/dsh-applications-lock.json"));
 
@@ -84,6 +97,13 @@ if (!options.manifestOnly) {
   for (const requiredExport of lock.runtime_kit.required_exports) {
     assert.equal(typeof runtimePackage.exports?.[requiredExport], "string");
   }
+  const runtimeComposition = await import(pathToFileURL(resolve(options.runtimeKitRoot, runtimePackage.exports["./composition"])));
+  const runtimeManager = await import(pathToFileURL(resolve(options.runtimeKitRoot, runtimePackage.exports["./manager"])));
+  assertMethods(runtimeComposition, ["createCompositionService", "validatePluginDescriptor"], "runtime-kit composition");
+  assertMethods(runtimeManager, [
+    "createMemoryRuntimeStore", "createWorkloadManager", "createMediatedHostService",
+    "createManagerControlService", "validateMediatedHostActionRequest",
+  ], "runtime-kit manager");
 
   const runtimeCompatibility = load(
     resolve(options.runtimeKitRoot, lock.runtime_kit.dsh_compatibility_manifest),
@@ -97,6 +117,32 @@ if (!options.manifestOnly) {
   const dshPackage = load(resolve(options.dshRoot, "package.json"));
   assert.equal(dshPackage.name, "@deepseek-ai/dsh-root");
   assert.equal(dshPackage.version, lock.dsh.version);
+  const agentSource = source(resolve(options.dshRoot, "packages/core/agent/src/index.ts"));
+  const agentRuntimeSource = source(resolve(options.dshRoot, "packages/core/agent/src/runtime-types.ts"));
+  const sessionSource = source(resolve(options.dshRoot, "packages/core/session/src/index.ts"));
+  const persistenceSource = source(resolve(options.dshRoot, "packages/session/session-persistence/src/index.ts"));
+  const toolsSource = source(resolve(options.dshRoot, "packages/core/tools/src/index.ts"));
+  assertSourceMethods(agentSource, {
+    create: /\basync\s+create\s*\(/u,
+    resume: /\basync\s+resume\s*\(/u,
+    get: /\bget\s*\(\s*id\s*:\s*SessionId/u,
+    dispose: /\bdispose\s*\(\s*\)\s*:\s*Promise<void>/u,
+  }, "DSH agents");
+  assertSourceMethods(agentRuntimeSource, {
+    cancel: /\bcancel\s*\(\s*cause\s*:\s*AgentCancelCause/u,
+    whenIdle: /\bwhenIdle\s*\(\s*\)\s*:\s*Promise<void>/u,
+  }, "DSH agent handle");
+  assertSourceMethods(sessionSource, { flush: /\bflush\s*\(\s*session\s*:\s*Session/u }, "DSH sessions");
+  assertSourceMethods(persistenceSource, {
+    inspect: /\babstract\s+inspect\s*\(/u,
+    list: /\babstract\s+list\s*\(/u,
+  }, "DSH sessionPersistence");
+  assertSourceMethods(toolsSource, {
+    register: /\bregister\s*\(/u,
+    restrict: /\brestrict\s*\(/u,
+    guard: /\bguard\s*\(/u,
+    execute: /\basync\s+execute\s*\(/u,
+  }, "DSH tools");
 }
 
 process.stdout.write(

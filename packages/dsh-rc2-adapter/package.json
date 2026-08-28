@@ -1,0 +1,16 @@
+{
+  "name": "@sympoies/dsh-rc2-adapter",
+  "version": "0.0.0",
+  "description": "Isolated public adapter for DeepSeek Harness 0.1.1-rc.2 services",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": ["src", "index.d.ts", "README.md"],
+  "engines": { "node": "^22.19.0 || >=24.0.0" },
+  "license": "MIT"
+}
