@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "dsh-applications.profile-catalog.v1",
+  "version": "0.1.0",
+  "runtimeKitRevision": "2cd14d5fdd73e0758d366d8b671f71ee768d857f",
+  "profiles": [
+    {
+      "id": "batch",
+      "path": "profiles/batch/profile.json",
+      "digest": "sha256:671de87304df978e5658632958c85a7f6c0a10349563ecdc38140fdc880de34d"
+    },
+    {
+      "id": "coding",
+      "path": "profiles/coding/profile.json",
+      "digest": "sha256:e09e7b2923d9145438b8dcc34276f6c87d96639c5de995688d53c2afdb95a5d0"
+    },
+    {
+      "id": "conversational",
+      "path": "profiles/conversational/profile.json",
+      "digest": "sha256:923df27898120a8408257db28ba3620aebb10b25dc0a31a5c8d05b168c4c7f37"
+    },
+    {
+      "id": "github-pr-review",
+      "path": "profiles/github-pr-review/profile.json",
+      "digest": "sha256:cff0c65511260d9479788a629b94cca926985f2264c2bcb979e2b8b00a12a29a"
+    }
+  ],
+  "triggerFixtures": [
+    {
+      "id": "channel",
+      "path": "fixtures/triggers/channel.json"
+    },
+    {
+      "id": "github-event",
+      "path": "fixtures/triggers/github-event.json"
+    },
+    {
+      "id": "manual",
+      "path": "fixtures/triggers/manual.json"
+    },
+    {
+      "id": "schedule",
+      "path": "fixtures/triggers/schedule.json"
+    }
+  ]
+}

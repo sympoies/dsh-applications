@@ -99,7 +99,10 @@ if (!options.manifestOnly) {
   }
   const runtimeComposition = await import(pathToFileURL(resolve(options.runtimeKitRoot, runtimePackage.exports["./composition"])));
   const runtimeManager = await import(pathToFileURL(resolve(options.runtimeKitRoot, runtimePackage.exports["./manager"])));
-  assertMethods(runtimeComposition, ["createCompositionService", "validatePluginDescriptor"], "runtime-kit composition");
+  assertMethods(runtimeComposition, [
+    "computeDocumentDigest", "createCompositionService", "parseCanonicalJsonText",
+    "validateBotProfile", "validatePluginDescriptor",
+  ], "runtime-kit composition");
   assertMethods(runtimeManager, [
     "createMemoryRuntimeStore", "createWorkloadManager", "createMediatedHostService",
     "createManagerControlService", "validateMediatedHostActionRequest",

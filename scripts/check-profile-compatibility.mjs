@@ -1,0 +1,101 @@
+import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { readFileSync, statSync } from "node:fs";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import { defineTrigger } from "../packages/plugin-sdk/src/index.js";
+
+const root = resolve(import.meta.dirname, "..");
+
+function load(path) {
+  return JSON.parse(readFileSync(path, "utf8"));
+}
+
+function digestFile(path) {
+  return `sha256:${createHash("sha256").update(readFileSync(path)).digest("hex")}`;
+}
+
+function parseArguments(argv) {
+  if (argv.length !== 2 || argv[0] !== "--runtime-kit-root") {
+    throw new Error("provide --runtime-kit-root PATH");
+  }
+  return resolve(argv[1]);
+}
+
+function assertPublicPath(path, expectedPrefix) {
+  assert.equal(typeof path, "string");
+  assert(path.startsWith(expectedPrefix));
+  assert(!path.startsWith("/"));
+  assert(!path.split("/").some(segment => segment === "" || segment === "." || segment === ".."));
+  assert.equal(statSync(resolve(root, path)).isFile(), true, `${path} must exist`);
+}
+
+const runtimeKitRoot = parseArguments(process.argv.slice(2));
+const lock = load(resolve(root, "compatibility/dsh-applications-lock.json"));
+const workspace = load(resolve(root, "package.json"));
+const catalogPath = resolve(root, lock.profile_catalog.path);
+const catalog = load(catalogPath);
+
+assert.equal(
+  execFileSync("git", ["-C", runtimeKitRoot, "rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
+  lock.runtime_kit.revision,
+  "runtime-kit checkout must equal the compatibility lock",
+);
+assert.equal(workspace.version, lock.application_version);
+assert.equal(catalog.version, workspace.version);
+assert.equal(catalog.runtimeKitRevision, lock.runtime_kit.revision);
+assert.equal(digestFile(catalogPath), lock.profile_catalog.digest);
+
+const runtimePackage = load(resolve(runtimeKitRoot, "package.json"));
+const composition = await import(
+  pathToFileURL(resolve(runtimeKitRoot, runtimePackage.exports["./composition"])).href
+);
+for (const method of ["computeDocumentDigest", "parseCanonicalJsonText", "validateBotProfile"]) {
+  assert.equal(typeof composition[method], "function", `runtime-kit composition.${method} is required`);
+}
+
+const profileIds = catalog.profiles.map(entry => entry.id);
+assert.deepEqual(profileIds, [...new Set(profileIds)].sort());
+for (const entry of catalog.profiles) {
+  assert.equal(entry.path, `profiles/${entry.id}/profile.json`);
+  assertPublicPath(entry.path, "profiles/");
+  const profile = composition.parseCanonicalJsonText(readFileSync(resolve(root, entry.path), "utf8"));
+  assert.equal(composition.validateBotProfile(profile), profile);
+  assert.equal(composition.computeDocumentDigest(profile), entry.digest);
+  assert.equal(profile.metadata.digest, entry.digest);
+  assert.equal(profile.metadata.version, catalog.version);
+  assertPublicPath(profile.artifacts.instructions, `profiles/${entry.id}/`);
+  assert.equal(digestFile(resolve(root, `profiles/${entry.id}/input.schema.json`)), profile.artifacts.inputSchemaDigest);
+  assert.equal(digestFile(resolve(root, `profiles/${entry.id}/output.schema.json`)), profile.artifacts.outputSchemaDigest);
+}
+
+const triggerMappings = new Map();
+for (const entry of catalog.triggerFixtures) {
+  assert.equal(entry.path, `fixtures/triggers/${entry.id}.json`);
+  assertPublicPath(entry.path, "fixtures/triggers/");
+  const fixture = load(resolve(root, entry.path));
+  assert.equal(fixture.id, entry.id);
+  defineTrigger(fixture.descriptor);
+  assertPublicPath(fixture.schema, "fixtures/triggers/schemas/");
+  assert.equal(digestFile(resolve(root, fixture.schema)), fixture.descriptor.inputSchemaDigest);
+  assert(!triggerMappings.has(fixture.profileClass));
+  triggerMappings.set(fixture.profileClass, entry.id);
+}
+assert.deepEqual([...triggerMappings.keys()].sort(), ["manual", "message", "schedule", "webhook"]);
+for (const entry of catalog.profiles) {
+  const profile = load(resolve(root, entry.path));
+  for (const trigger of profile.triggers) assert(triggerMappings.has(trigger.class));
+}
+
+for (const relative of ["packages/plugin-sdk/package.json", "packages/manager/package.json", "packages/dsh-rc2-adapter/package.json"]) {
+  assert.equal(load(resolve(root, relative)).version, workspace.version, `${relative} must share the release version`);
+}
+
+process.stdout.write(`${JSON.stringify({
+  ok: true,
+  version: catalog.version,
+  runtime_kit_revision: lock.runtime_kit.revision,
+  profiles: profileIds,
+  trigger_fixtures: catalog.triggerFixtures.map(entry => entry.id),
+})}\n`);

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Batch input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "jobType",
+    "parameters"
+  ],
+  "properties": {
+    "jobType": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "parameters": {
+      "type": "object",
+      "maxProperties": 64,
+      "additionalProperties": {
+        "type": "string",
+        "maxLength": 4096
+      }
+    }
+  }
+}

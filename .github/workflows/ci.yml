@@ -46,6 +46,7 @@ jobs:
           npm run test:manager-contract
           npm run test:manager-faults
           npm run test:plugin-sandbox
+          npm run test:profiles
           npm run test:integration
       - name: Run aggregate tests
         working-directory: dsh-applications
@@ -115,6 +116,9 @@ jobs:
         env:
           DSH_RUNTIME_KIT_ROOT: ../dsh-runtime-kit
         run: npm run test:integration
+      - name: Validate public profiles with exact runtime-kit
+        working-directory: dsh-applications
+        run: npm run test:profile-compatibility -- --runtime-kit-root ../dsh-runtime-kit
       - name: Compile and run the exact DSH consumer
         working-directory: dsh-applications
         env:

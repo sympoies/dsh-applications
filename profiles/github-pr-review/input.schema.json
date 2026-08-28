@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GitHub pull-request review input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "capsuleDigest"
+  ],
+  "properties": {
+    "capsuleDigest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

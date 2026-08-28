@@ -1,0 +1,72 @@
+{
+  "apiVersion": "runtime.sympoies.dev/v1",
+  "kind": "BotProfile",
+  "metadata": {
+    "id": "conversational",
+    "version": "0.1.0",
+    "digest": "sha256:923df27898120a8408257db28ba3620aebb10b25dc0a31a5c8d05b168c4c7f37",
+    "purpose": "Persistent channel conversation without project or shell authority"
+  },
+  "workload": {
+    "class": "conversational-service",
+    "scopeClass": "non-project"
+  },
+  "plugins": [
+    {
+      "id": "conversation-agent",
+      "range": ">=1.0.0 <2.0.0"
+    }
+  ],
+  "grants": [
+    "conversation.memory",
+    "conversation.reply"
+  ],
+  "requiredHealth": [
+    "conversation-agent.ready"
+  ],
+  "artifacts": {
+    "instructions": "profiles/conversational/instructions.md",
+    "skills": [],
+    "inputSchemaDigest": "sha256:461c77d9bf4928c06b903ffefb2c6278353086869530b166279f398d6bf234de",
+    "outputSchemaDigest": "sha256:f597985710b51a97440b25ab7fa4a691012d9e5759877b8caf21e5f484d892ff"
+  },
+  "modelRouteClass": "conversation-bounded",
+  "state": {
+    "session": "persistent",
+    "memory": "persistent",
+    "workspace": "none",
+    "retentionSeconds": 2592000,
+    "restart": "resume"
+  },
+  "approvals": {
+    "requiredFor": [
+      "destructive",
+      "open-world"
+    ]
+  },
+  "limits": {
+    "actions": 32,
+    "networkClasses": [],
+    "workspaceClasses": [],
+    "budgetUnits": 1000,
+    "ratePerMinute": 60
+  },
+  "triggers": [
+    {
+      "class": "message",
+      "inputSchemaDigest": "sha256:461c77d9bf4928c06b903ffefb2c6278353086869530b166279f398d6bf234de"
+    }
+  ],
+  "execution": {
+    "concurrency": 64,
+    "overlap": "allow",
+    "timeoutMs": 300000,
+    "retry": {
+      "maxAttempts": 3,
+      "backoffMs": 1000
+    },
+    "cancellation": "cooperative",
+    "interrupt": "supported",
+    "drain": "required"
+  }
+}

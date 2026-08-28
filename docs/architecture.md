@@ -4,9 +4,9 @@
 
 `dsh-applications` is the reusable public application layer above
 `dsh-runtime-kit`. It contains public plugin helpers, trigger and output
-contracts, a public per-instance application manager, and one isolated adapter
-for the exact DSH rc2 public services. Declarative bot profiles are the next
-coordinated catalog layer.
+contracts, a public per-instance application manager, one isolated adapter for
+the exact DSH rc2 public services, and the coordinated public bot-profile and
+trigger-fixture catalog.
 
 The dependency direction is one way:
 
@@ -26,6 +26,8 @@ earlier layer.
 
 ```text
 packages/       components of one coordinated public application
+profiles/       least-authority public BotProfile documents and schemas
+fixtures/       reusable non-authorizing public trigger configuration
 compatibility/  exact accepted dependency identities
 docs/           architecture, ownership, and release contracts
 scripts/        repository and release verification only
@@ -35,9 +37,10 @@ test/           repository-level contract tests
 
 The workspace produces a single coordinated public application artifact. Its
 packages are components, not independently released products: they share the
-root version and are reviewed, tested, tagged, and published together. The
-root workspace remains private at bootstrap version `0.0.0` until Task 3.3
-promotes the first coordinated version. That bootstrap version cannot publish.
+root version and are reviewed, tested, tagged, and published together. Version
+`0.1.0` is the first coordinated catalog release. The root remains private to
+prevent registry publication; release consumers use the digest-addressed
+coordinated archive.
 
 ## Manager and execution boundary
 

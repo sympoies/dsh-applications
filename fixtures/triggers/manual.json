@@ -1,0 +1,12 @@
+{
+  "apiVersion": "applications.sympoies.dev/v1",
+  "kind": "TriggerFixture",
+  "id": "manual",
+  "descriptor": {
+    "id": "manual",
+    "class": "manual",
+    "inputSchemaDigest": "sha256:2ce8ea378f0a80ebb5406c32efda50a26aa25ccfef9c5fe3399f31feb17a4fdc"
+  },
+  "profileClass": "manual",
+  "schema": "fixtures/triggers/schemas/manual.schema.json"
+}
