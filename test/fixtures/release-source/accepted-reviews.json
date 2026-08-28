@@ -1,0 +1,11 @@
+[
+  {
+    "id": 101,
+    "state": "APPROVED",
+    "submitted_at": "2026-08-27T23:58:00Z",
+    "commit_id": "cccccccccccccccccccccccccccccccccccccccc",
+    "user": {
+      "login": "independent-reviewer"
+    }
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "schema_version": "dsh-applications.compatibility-lock.v1",
+  "runtime_kit": {
+    "package": "@sympoies/dsh-runtime-kit",
+    "repository": "https://github.com/sympoies/dsh-runtime-kit",
+    "revision": "2cd14d5fdd73e0758d366d8b671f71ee768d857f",
+    "required_exports": [
+      "./composition",
+      "./manager"
+    ],
+    "dsh_compatibility_manifest": "compatibility/dsh.json"
+  },
+  "dsh": {
+    "repository": "https://github.com/deepseek-ai/deepseek-harness",
+    "ref": "refs/tags/dsh-v0.1.1-rc.2",
+    "revision": "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e",
+    "version": "0.1.1-rc.2"
+  },
+  "node": "22.19.0",
+  "package_manager": "npm@11.6.2"
+}

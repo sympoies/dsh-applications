@@ -1,0 +1,33 @@
+{
+  "name": "@sympoies/dsh-applications-workspace",
+  "version": "0.0.0",
+  "description": "Governed public applications and plugins for DeepSeek Harness",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "files": [
+    "AGENTS.md",
+    "SECURITY.md",
+    "CONTRIBUTING.md",
+    "compatibility",
+    "docs",
+    "packages"
+  ],
+  "scripts": {
+    "test": "npm run test:repository-contract",
+    "test:repository-contract": "node --test test/repository-contract.test.mjs",
+    "check:compatibility": "node scripts/check-compatibility.mjs",
+    "verify:package-reproducibility": "node scripts/check-package-reproducibility.mjs"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "packageManager": "npm@11.6.2",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sympoies/dsh-applications.git"
+  }
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "number": 7,
+    "state": "closed",
+    "merged_at": "2026-08-28T00:00:00Z",
+    "merge_commit_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "user": {
+      "login": "pull-author"
+    },
+    "base": {
+      "ref": "main",
+      "repo": {
+        "full_name": "sympoies/dsh-applications"
+      }
+    },
+    "head": {
+      "sha": "cccccccccccccccccccccccccccccccccccccccc",
+      "repo": {
+        "full_name": "sympoies/dsh-applications"
+      }
+    }
+  }
+]
