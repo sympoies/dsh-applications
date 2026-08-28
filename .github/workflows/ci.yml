@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out applications
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        with:
+          persist-credentials: false
+          path: dsh-applications
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.19.0
+          cache: npm
+          cache-dependency-path: dsh-applications/package-lock.json
+      - name: Activate exact npm
+        working-directory: dsh-applications
+        run: |
+          npm install --global npm@11.6.2 --ignore-scripts
+          test "$(npm --version)" = "11.6.2"
+      - name: Install without lifecycle scripts
+        working-directory: dsh-applications
+        run: npm ci --ignore-scripts
+      - name: Run repository contract
+        working-directory: dsh-applications
+        run: npm run test:repository-contract
+      - name: Run aggregate tests
+        working-directory: dsh-applications
+        run: npm test
+      - name: Verify manifest compatibility
+        working-directory: dsh-applications
+        run: npm run check:compatibility -- --manifest-only
+      - name: Verify reproducible package
+        working-directory: dsh-applications
+        run: npm run verify:package-reproducibility
+      - name: Inspect package contents
+        working-directory: dsh-applications
+        run: npm pack --dry-run --ignore-scripts
+
+  exact-compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out applications
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        with:
+          persist-credentials: false
+          path: dsh-applications
+      - name: Check out exact runtime-kit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        with:
+          repository: sympoies/dsh-runtime-kit
+          ref: 2cd14d5fdd73e0758d366d8b671f71ee768d857f
+          persist-credentials: false
+          path: dsh-runtime-kit
+      - name: Check out exact DSH
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        with:
+          repository: deepseek-ai/deepseek-harness
+          ref: b150a551b8d465e31e418e1b2eaf5e79bbb7d28e
+          persist-credentials: false
+          path: deepseek-harness
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.19.0
+      - name: Verify exact dependency identities
+        working-directory: dsh-applications
+        run: >-
+          npm run check:compatibility --
+          --runtime-kit-root ../dsh-runtime-kit
+          --dsh-root ../deepseek-harness
