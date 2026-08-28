@@ -103,10 +103,30 @@ export interface RuntimeKitPluginValidator {
   validatePluginDescriptor(value: unknown): unknown;
 }
 
+type DeepExact<Candidate, Shape> = Candidate extends Shape
+  ? Shape extends JsonPrimitive
+    ? Candidate
+    : Shape extends readonly (infer ShapeItem)[]
+      ? Candidate extends readonly (infer CandidateItem)[]
+        ? Candidate & readonly DeepExact<CandidateItem, ShapeItem>[]
+        : never
+      : Shape extends object
+        ? Candidate extends object
+          ? Exclude<keyof Candidate, keyof Shape> extends never
+            ? Candidate & {
+              readonly [Key in keyof Candidate]: Key extends keyof Shape
+                ? DeepExact<Candidate[Key], Shape[Key]>
+                : never;
+            }
+            : never
+          : never
+        : Candidate
+  : never;
+
 export function defineDigest(input: string): Sha256Digest;
-export function defineTrigger(input: TriggerDescriptor): Readonly<TriggerDescriptor>;
-export function defineOutput(input: OutputDescriptor): Readonly<OutputDescriptor>;
-export function defineConfiguration(input: ConfigurationDescriptor): Readonly<ConfigurationDescriptor>;
-export function defineHealth(input: HealthDescriptor): Readonly<HealthDescriptor>;
-export function defineSandbox(input: SandboxDescriptor): Readonly<SandboxDescriptor>;
-export function definePlugin(runtimeKit: RuntimeKitPluginValidator, input: PluginDescriptor): Readonly<PluginDescriptor>;
+export function defineTrigger<const T>(input: T & DeepExact<T, TriggerDescriptor>): Readonly<T>;
+export function defineOutput<const T>(input: T & DeepExact<T, OutputDescriptor>): Readonly<T>;
+export function defineConfiguration<const T>(input: T & DeepExact<T, ConfigurationDescriptor>): Readonly<T>;
+export function defineHealth<const T>(input: T & DeepExact<T, HealthDescriptor>): Readonly<T>;
+export function defineSandbox<const T>(input: T & DeepExact<T, SandboxDescriptor>): Readonly<T>;
+export function definePlugin<const T>(runtimeKit: RuntimeKitPluginValidator, input: T & DeepExact<T, PluginDescriptor>): Readonly<T>;

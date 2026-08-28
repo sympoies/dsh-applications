@@ -25,7 +25,6 @@ import {
   defineSandbox,
   defineTrigger,
   type PluginActionDescriptor,
-  type PluginDescriptor,
 } from "@sympoies/dsh-plugin-sdk";
 
 declare const ctx: Context;
@@ -56,6 +55,9 @@ const trigger = defineTrigger({
   inputSchemaDigest: DIGEST,
 });
 const output = defineOutput({ id: "result", schemaDigest: DIGEST });
+const manualClass: "manual" = trigger.class;
+const manualId: "manual" = trigger.id;
+const resultId: "result" = output.id;
 
 const descriptor = definePlugin(runtimeKit, {
   apiVersion: "runtime.sympoies.dev/v1",
@@ -97,7 +99,8 @@ const descriptor = definePlugin(runtimeKit, {
     readiness: "required", interrupt: "supported", drain: "required",
     disposal: "required", recovery: "reconcile",
   },
-} satisfies PluginDescriptor);
+});
+const reviewPluginId: "review" = descriptor.metadata.id;
 
 const confinement: DshRc2Confinement = {
   owner: "DSH/host",
@@ -167,3 +170,7 @@ defineSandbox({
 const invalidDigest: import("@sympoies/dsh-plugin-sdk").Sha256Digest = "sha256:short";
 void invalidActionClass;
 void invalidDigest;
+void manualClass;
+void manualId;
+void resultId;
+void reviewPluginId;
