@@ -40,6 +40,13 @@ jobs:
       - name: Run repository contract
         working-directory: dsh-applications
         run: npm run test:repository-contract
+      - name: Run manager and sandbox owner tests
+        working-directory: dsh-applications
+        run: |
+          npm run test:manager-contract
+          npm run test:manager-faults
+          npm run test:plugin-sandbox
+          npm run test:integration
       - name: Run aggregate tests
         working-directory: dsh-applications
         run: npm test
@@ -55,7 +62,7 @@ jobs:
 
   exact-compatibility:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - name: Check out applications
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
@@ -80,9 +87,36 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22.19.0
+      - name: Activate exact npm
+        working-directory: dsh-applications
+        run: |
+          npm install --global npm@11.6.2 --ignore-scripts
+          test "$(npm --version)" = "11.6.2"
+      - name: Install without lifecycle scripts
+        working-directory: dsh-applications
+        run: npm ci --ignore-scripts
+      - name: Activate exact pnpm
+        run: |
+          npm install --global pnpm@11.7.0 --ignore-scripts
+          test "$(pnpm --version)" = "11.7.0"
+      - name: Build exact DSH host libraries
+        working-directory: deepseek-harness
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run build:lib:host
       - name: Verify exact dependency identities
         working-directory: dsh-applications
         run: >-
           npm run check:compatibility --
           --runtime-kit-root ../dsh-runtime-kit
           --dsh-root ../deepseek-harness
+      - name: Run exact runtime-kit manager integration
+        working-directory: dsh-applications
+        env:
+          DSH_RUNTIME_KIT_ROOT: ../dsh-runtime-kit
+        run: npm run test:integration
+      - name: Compile and run the exact DSH consumer
+        working-directory: dsh-applications
+        env:
+          DSH_ROOT: ../deepseek-harness
+        run: npm run test:exact-dsh

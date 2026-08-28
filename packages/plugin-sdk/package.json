@@ -1,0 +1,22 @@
+{
+  "name": "@sympoies/dsh-plugin-sdk",
+  "version": "0.0.0",
+  "description": "Public declaration helpers for governed DSH application plugins",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "index.d.ts",
+    "README.md"
+  ],
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "license": "MIT"
+}

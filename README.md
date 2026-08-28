@@ -18,9 +18,10 @@ not a publishable release, until Task 3.3 promotes the coordinated version.
 
 ## Current status
 
-The repository currently contains only its governed workspace bootstrap. The
-plugin SDK, application manager, adapters, and profile catalog will arrive in
-separately reviewed changes. Empty package namespaces are not runtime APIs.
+The workspace contains the public plugin declaration helpers, the isolated DSH
+`0.1.1-rc.2` adapter, and the generic ten-operation application manager. The
+initial profile catalog and first coordinated release remain separate reviewed
+work. All current packages retain bootstrap version `0.0.0` and cannot publish.
 
 ## Development
 
@@ -28,6 +29,9 @@ Use Node.js 22.19.0 and npm 11.6.2, then run:
 
 ```sh
 npm ci --ignore-scripts
+npm run test:manager-contract
+npm run test:manager-faults
+npm run test:plugin-sandbox
 npm test
 npm run check:compatibility -- --manifest-only
 npm run verify:package-reproducibility

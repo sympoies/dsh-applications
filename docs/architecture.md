@@ -3,10 +3,10 @@
 ## Position
 
 `dsh-applications` is the reusable public application layer above
-`dsh-runtime-kit`. It will contain public plugin helpers, trigger and output
-contracts, a public per-instance application manager, generic adapters, and
-declarative bot profiles. This bootstrap defines only the repository and
-artifact boundary; it does not implement those components.
+`dsh-runtime-kit`. It contains public plugin helpers, trigger and output
+contracts, a public per-instance application manager, and one isolated adapter
+for the exact DSH rc2 public services. Declarative bot profiles are the next
+coordinated catalog layer.
 
 The dependency direction is one way:
 
@@ -25,7 +25,7 @@ earlier layer.
 ## Workspace layout
 
 ```text
-packages/       future components of one coordinated public application
+packages/       components of one coordinated public application
 compatibility/  exact accepted dependency identities
 docs/           architecture, ownership, and release contracts
 scripts/        repository and release verification only
@@ -38,6 +38,33 @@ packages are components, not independently released products: they share the
 root version and are reviewed, tested, tagged, and published together. The
 root workspace remains private at bootstrap version `0.0.0` until Task 3.3
 promotes the first coordinated version. That bootstrap version cannot publish.
+
+## Manager and execution boundary
+
+The manager facade exposes exactly `validate`, `resolve`, `lock`, `start`,
+`resume`, `status`, `interrupt`, `drain`, `stop`, and `doctor`. Runtime-kit owns
+composition validation, lifecycle state, CAS replay, receipts, trust,
+assertions, reconciliation, and mediated host effects. Internal
+`instance.reconcile` is available only through runtime-kit's authenticated
+control service; the public facade cannot assign state.
+
+All direct DSH calls are isolated in the rc2 adapter. Each admitted instance
+uses distinct roots, sessions, memory, queues, credential handles, budgets, and
+concurrency controllers. DSH owns the agent loop, persistence, cancellation,
+tool registry, monotonic guard, restrictions, and enforced sandbox. The
+application layer never claims that a same-process JavaScript wrapper is a
+sandbox. Plugin invocation requires current identity-bound confinement evidence
+from the instance's DSH runtime and cannot cross a runtime-kit lifecycle receipt
+epoch. Invocation-scoped host capabilities are revoked before DSH in-flight
+accounting ends, and every host effect is a bounded, detached, complete
+runtime-kit `MediatedHostActionRequest`.
+
+The plugin SDK does not define a parallel PluginDescriptor schema. It delegates
+the canonical `runtime.sympoies.dev/v1` descriptor, digest, and secret checks to
+the exact runtime-kit validator. The SDK exposes a typed canonical-digest
+constructor and exact descriptor inputs while retaining runtime validation for
+untyped callers. Trigger and output helpers are immutable
+application configuration only; neither can grant or widen authority.
 
 ## Compatibility
 
