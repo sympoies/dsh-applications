@@ -31,6 +31,24 @@ A maintainer creates an annotated cryptographically signed tag named
 workflow verifies the tag signature and ancestry before executing package
 steps. Pull requests and untagged commits cannot publish.
 
+The repository-owned release entrypoint performs the same source and provider
+gates before it creates the tag. Run its read-only mode first, then repeat the
+exact pinned invocation with `--execute`:
+
+```sh
+.agents/scripts/release.sh --dry-run \
+  --version 0.1.0 \
+  --expected-head <full-main-commit> \
+  --repository sympoies/dsh-applications
+.agents/scripts/release.sh --execute \
+  --version 0.1.0 \
+  --expected-head <same-full-main-commit> \
+  --repository sympoies/dsh-applications
+```
+
+`--verify-only` resumes immutable provider read-back after the tag has already
+been published; it never recreates or replaces the tag or release.
+
 ## Immutable artifacts
 
 The read-only verification job validates the repository and exact compatibility
