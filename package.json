@@ -1,6 +1,6 @@
 {
   "name": "@sympoies/dsh-applications-workspace",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Governed public applications and plugins for DeepSeek Harness",
   "private": true,
   "type": "module",
