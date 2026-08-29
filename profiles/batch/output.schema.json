@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Batch result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "resultDigest"
+  ],
+  "properties": {
+    "status": {
+      "enum": [
+        "succeeded",
+        "failed"
+      ]
+    },
+    "resultDigest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

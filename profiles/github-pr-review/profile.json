@@ -1,0 +1,72 @@
+{
+  "apiVersion": "runtime.sympoies.dev/v1",
+  "kind": "BotProfile",
+  "metadata": {
+    "id": "github-pr-review",
+    "version": "0.1.0",
+    "digest": "sha256:cff0c65511260d9479788a629b94cca926985f2264c2bcb979e2b8b00a12a29a",
+    "purpose": "Credential-free review of one broker-admitted pull request capsule"
+  },
+  "workload": {
+    "class": "event-service",
+    "scopeClass": "non-project"
+  },
+  "plugins": [
+    {
+      "id": "github-review",
+      "range": ">=1.0.0 <2.0.0"
+    }
+  ],
+  "grants": [
+    "github.pull-request.read",
+    "github.review.publish"
+  ],
+  "requiredHealth": [
+    "github-review.ready"
+  ],
+  "artifacts": {
+    "instructions": "profiles/github-pr-review/instructions.md",
+    "skills": [],
+    "inputSchemaDigest": "sha256:2d8aa351df22e1435eaf1ae427bc45a96c46f5a31bb29a97813c2b0447c81386",
+    "outputSchemaDigest": "sha256:5974d4617731c88942582aa6647ebde4ac1d9281fdbd345422a032f7d1212dcd"
+  },
+  "modelRouteClass": "review-bounded",
+  "state": {
+    "session": "ephemeral",
+    "memory": "none",
+    "workspace": "none",
+    "retentionSeconds": 3600,
+    "restart": "fresh"
+  },
+  "approvals": {
+    "requiredFor": [
+      "destructive",
+      "open-world"
+    ]
+  },
+  "limits": {
+    "actions": 16,
+    "networkClasses": [],
+    "workspaceClasses": [],
+    "budgetUnits": 500,
+    "ratePerMinute": 16
+  },
+  "triggers": [
+    {
+      "class": "webhook",
+      "inputSchemaDigest": "sha256:2d8aa351df22e1435eaf1ae427bc45a96c46f5a31bb29a97813c2b0447c81386"
+    }
+  ],
+  "execution": {
+    "concurrency": 4,
+    "overlap": "forbid",
+    "timeoutMs": 600000,
+    "retry": {
+      "maxAttempts": 3,
+      "backoffMs": 2000
+    },
+    "cancellation": "cooperative",
+    "interrupt": "supported",
+    "drain": "required"
+  }
+}

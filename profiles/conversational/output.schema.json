@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Conversation reply",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reply"
+  ],
+  "properties": {
+    "reply": {
+      "type": "string",
+      "maxLength": 16384
+    }
+  }
+}

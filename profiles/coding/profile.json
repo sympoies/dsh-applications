@@ -1,0 +1,80 @@
+{
+  "apiVersion": "runtime.sympoies.dev/v1",
+  "kind": "BotProfile",
+  "metadata": {
+    "id": "coding",
+    "version": "0.1.0",
+    "digest": "sha256:e09e7b2923d9145438b8dcc34276f6c87d96639c5de995688d53c2afdb95a5d0",
+    "purpose": "Interactive coding inside one admitted project workspace"
+  },
+  "workload": {
+    "class": "interactive-coding",
+    "scopeClass": "project"
+  },
+  "plugins": [
+    {
+      "id": "coding-agent",
+      "range": ">=1.0.0 <2.0.0"
+    }
+  ],
+  "grants": [
+    "coding.repository.read",
+    "coding.repository.write",
+    "coding.shell",
+    "coding.workspace"
+  ],
+  "requiredHealth": [
+    "coding-agent.ready"
+  ],
+  "artifacts": {
+    "instructions": "profiles/coding/instructions.md",
+    "skills": [],
+    "inputSchemaDigest": "sha256:c1c9cbd8688685ca452db43003e06280d53f7e4887227d4320e21471f56666f9",
+    "outputSchemaDigest": "sha256:89b475e454e78f0cb312dacaf3c805cdebe9effaf0c10e69cb3df6ceae218ba3"
+  },
+  "modelRouteClass": "coding-governed",
+  "state": {
+    "session": "persistent",
+    "memory": "session",
+    "workspace": "project",
+    "retentionSeconds": 604800,
+    "restart": "reconcile"
+  },
+  "approvals": {
+    "requiredFor": [
+      "write",
+      "destructive",
+      "open-world"
+    ]
+  },
+  "limits": {
+    "actions": 512,
+    "networkClasses": [
+      "package-registry",
+      "repository-forge"
+    ],
+    "workspaceClasses": [
+      "project"
+    ],
+    "budgetUnits": 10000,
+    "ratePerMinute": 120
+  },
+  "triggers": [
+    {
+      "class": "manual",
+      "inputSchemaDigest": "sha256:c1c9cbd8688685ca452db43003e06280d53f7e4887227d4320e21471f56666f9"
+    }
+  ],
+  "execution": {
+    "concurrency": 1,
+    "overlap": "forbid",
+    "timeoutMs": 14400000,
+    "retry": {
+      "maxAttempts": 1,
+      "backoffMs": 0
+    },
+    "cancellation": "cooperative",
+    "interrupt": "supported",
+    "drain": "required"
+  }
+}

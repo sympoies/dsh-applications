@@ -10,9 +10,9 @@ patch releases are backward-compatible fixes. After 1.0, breaking public
 behavior requires a new major version. Schema `apiVersion` evolution remains
 explicit and is not inferred from package SemVer.
 
-The private root remains at bootstrap version `0.0.0` until Task 3.3 promotes
-the first coordinated application version. The release workflow rejects
-`0.0.0`, so this bootstrap cannot be published accidentally.
+Version `0.1.0` is the first coordinated application and profile-catalog
+release. The private root prevents registry publication; the release workflow
+also rejects `0.0.0`, so a bootstrap revision cannot be published accidentally.
 
 Workspace dependencies and external compatibility are exact. A dependency
 promotion requires reviewed compatibility evidence and changes every pinned

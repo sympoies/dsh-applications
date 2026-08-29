@@ -1,6 +1,6 @@
 {
   "name": "@sympoies/dsh-applications-workspace",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Governed public applications and plugins for DeepSeek Harness",
   "private": true,
   "type": "module",
@@ -13,6 +13,8 @@
     "CONTRIBUTING.md",
     "compatibility",
     "docs",
+    "fixtures",
+    "profiles",
     "packages"
   ],
   "scripts": {
@@ -21,10 +23,13 @@
     "test:manager-contract": "node --test test/manager-contract.test.mjs",
     "test:manager-faults": "node --test test/manager-faults.test.mjs",
     "test:plugin-sandbox": "node --test test/plugin-sandbox.test.mjs",
+    "test:profiles": "node --test test/profiles.test.mjs",
+    "test:profile-compatibility": "node scripts/check-profile-compatibility.mjs",
     "test:integration": "node --test test/integration.test.mjs",
     "test:exact-dsh": "node scripts/check-exact-dsh-consumer.mjs && node --test test/exact-dsh-consumer.test.mjs",
     "check:compatibility": "node scripts/check-compatibility.mjs",
-    "verify:package-reproducibility": "node scripts/check-package-reproducibility.mjs"
+    "verify:package-reproducibility": "node scripts/check-package-reproducibility.mjs",
+    "test:package": "npm run check:compatibility -- --manifest-only && npm run verify:package-reproducibility && npm pack --dry-run --ignore-scripts"
   },
   "engines": {
     "node": "^22.19.0 || >=24.0.0"

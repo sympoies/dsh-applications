@@ -112,6 +112,8 @@ jobs:
           npm run check:compatibility -- \
             --runtime-kit-root ../dsh-runtime-kit \
             --dsh-root ../deepseek-harness
+          npm run test:profile-compatibility -- \
+            --runtime-kit-root ../dsh-runtime-kit
           npm run verify:package-reproducibility
       - name: Check out fresh exact tagged source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2

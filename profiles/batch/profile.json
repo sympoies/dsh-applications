@@ -1,0 +1,76 @@
+{
+  "apiVersion": "runtime.sympoies.dev/v1",
+  "kind": "BotProfile",
+  "metadata": {
+    "id": "batch",
+    "version": "0.1.0",
+    "digest": "sha256:671de87304df978e5658632958c85a7f6c0a10349563ecdc38140fdc880de34d",
+    "purpose": "Bounded one-shot work shared by manual and scheduled invocation"
+  },
+  "workload": {
+    "class": "batch",
+    "scopeClass": "non-project"
+  },
+  "plugins": [
+    {
+      "id": "batch-agent",
+      "range": ">=1.0.0 <2.0.0"
+    }
+  ],
+  "grants": [
+    "batch.input.read",
+    "batch.output.write"
+  ],
+  "requiredHealth": [
+    "batch-agent.ready"
+  ],
+  "artifacts": {
+    "instructions": "profiles/batch/instructions.md",
+    "skills": [],
+    "inputSchemaDigest": "sha256:424c628d759fcf2a7da44b251efa7030f5678e295be4de468a07c3148ee30c36",
+    "outputSchemaDigest": "sha256:fdb4d1fa061c9fa6feea1a68e48fa5a7ba5da2be9db3a9498ffeb03aaebf0729"
+  },
+  "modelRouteClass": "batch-bounded",
+  "state": {
+    "session": "ephemeral",
+    "memory": "none",
+    "workspace": "none",
+    "retentionSeconds": 86400,
+    "restart": "fresh"
+  },
+  "approvals": {
+    "requiredFor": [
+      "destructive",
+      "open-world"
+    ]
+  },
+  "limits": {
+    "actions": 64,
+    "networkClasses": [],
+    "workspaceClasses": [],
+    "budgetUnits": 2000,
+    "ratePerMinute": 30
+  },
+  "triggers": [
+    {
+      "class": "manual",
+      "inputSchemaDigest": "sha256:424c628d759fcf2a7da44b251efa7030f5678e295be4de468a07c3148ee30c36"
+    },
+    {
+      "class": "schedule",
+      "inputSchemaDigest": "sha256:424c628d759fcf2a7da44b251efa7030f5678e295be4de468a07c3148ee30c36"
+    }
+  ],
+  "execution": {
+    "concurrency": 1,
+    "overlap": "forbid",
+    "timeoutMs": 3600000,
+    "retry": {
+      "maxAttempts": 3,
+      "backoffMs": 5000
+    },
+    "cancellation": "cooperative",
+    "interrupt": "supported",
+    "drain": "required"
+  }
+}

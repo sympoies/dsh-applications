@@ -68,7 +68,7 @@ test("repository carries its public governance boundary", () => {
 test("workspace metadata is exact, private at the root, and release-safe", () => {
   const pkg = json("package.json");
   assert.equal(pkg.name, "@sympoies/dsh-applications-workspace");
-  assert.equal(pkg.version, "0.0.0");
+  assert.equal(pkg.version, "0.1.0");
   assert.equal(pkg.private, true);
   assert.deepEqual(pkg.workspaces, ["packages/*"]);
   assert.equal(pkg.packageManager, "npm@11.6.2");
@@ -77,16 +77,23 @@ test("workspace metadata is exact, private at the root, and release-safe", () =>
   assert.equal(pkg.scripts["test:manager-contract"], "node --test test/manager-contract.test.mjs");
   assert.equal(pkg.scripts["test:manager-faults"], "node --test test/manager-faults.test.mjs");
   assert.equal(pkg.scripts["test:plugin-sandbox"], "node --test test/plugin-sandbox.test.mjs");
+  assert.equal(pkg.scripts["test:profiles"], "node --test test/profiles.test.mjs");
+  assert.equal(pkg.scripts["test:profile-compatibility"], "node scripts/check-profile-compatibility.mjs");
   assert.equal(pkg.scripts["test:integration"], "node --test test/integration.test.mjs");
   assert.equal(pkg.scripts["check:compatibility"], "node scripts/check-compatibility.mjs");
   assert.equal(pkg.scripts["verify:package-reproducibility"], "node scripts/check-package-reproducibility.mjs");
-  assert.deepEqual(pkg.files, ["AGENTS.md", "SECURITY.md", "CONTRIBUTING.md", "compatibility", "docs", "packages"]);
+  assert.equal(pkg.scripts["test:package"], "npm run check:compatibility -- --manifest-only && npm run verify:package-reproducibility && npm pack --dry-run --ignore-scripts");
+  assert.deepEqual(pkg.files, ["AGENTS.md", "SECURITY.md", "CONTRIBUTING.md", "compatibility", "docs", "fixtures", "profiles", "packages"]);
 
   const packageLock = json("package-lock.json");
   assert.equal(packageLock.lockfileVersion, 3);
   assert.equal(packageLock.packages[""].packageManager, undefined);
   assert.equal(packageLock.packages[""].name, pkg.name);
   assert.deepEqual(packageLock.packages[""].workspaces, pkg.workspaces);
+  assert.equal(packageLock.packages[""].version, pkg.version);
+  for (const path of ["packages/plugin-sdk", "packages/manager", "packages/dsh-rc2-adapter"]) {
+    assert.equal(packageLock.packages[path].version, pkg.version);
+  }
 });
 
 test("workspace packages are components of one coordinated application artifact", () => {
@@ -114,6 +121,11 @@ test("installed workspace resolves every actual public package specifier", async
 test("compatibility lock pins the accepted runtime-kit and DSH identities", () => {
   const lock = json("compatibility/dsh-applications-lock.json");
   assert.equal(lock.schema_version, "dsh-applications.compatibility-lock.v1");
+  assert.equal(lock.application_version, "0.1.0");
+  assert.deepEqual(lock.profile_catalog, {
+    path: "profiles/catalog.json",
+    digest: "sha256:4075ec36442d68641e21536e3b638a2265aed57c1af6968e3d9b396299f5251d",
+  });
   assert.deepEqual(lock.runtime_kit, {
     package: "@sympoies/dsh-runtime-kit",
     repository: "https://github.com/sympoies/dsh-runtime-kit",
@@ -150,11 +162,13 @@ test("CI verifies the repository and exact compatibility checkouts", () => {
   assert.match(workflow, /npm run test:manager-contract/);
   assert.match(workflow, /npm run test:manager-faults/);
   assert.match(workflow, /npm run test:plugin-sandbox/);
+  assert.match(workflow, /npm run test:profiles/);
   assert.match(workflow, /npm run test:integration/);
   assert.match(workflow, /npm test/);
   assert.match(workflow, new RegExp(`repository: sympoies/dsh-runtime-kit[\\s\\S]*ref: ${expectedRuntimeKitRevision}`));
   assert.match(workflow, new RegExp(`repository: deepseek-ai/deepseek-harness[\\s\\S]*ref: ${expectedDshRevision}`));
   assert.match(workflow, /npm run check:compatibility --/);
+  assert.match(workflow, /npm run test:profile-compatibility --/);
   assert.doesNotMatch(workflow, /uses:\s+[^\s@]+@(main|master|v\d+)\b/);
 });
 
@@ -332,7 +346,7 @@ test("compatibility validator accepts the manifest-only bootstrap contract", () 
   });
 });
 
-test("the repository package is reproducible and contains only public bootstrap files", () => {
+test("the repository package is reproducible and contains the public coordinated catalog", () => {
   execFileSync(process.execPath, ["scripts/check-package-reproducibility.mjs"], {
     cwd: root,
     stdio: "pipe",
@@ -350,6 +364,13 @@ test("the repository package is reproducible and contains only public bootstrap 
   assert(paths.includes("docs/ownership.md"));
   assert(paths.includes("docs/releases.md"));
   assert(paths.includes("packages/README.md"));
+  assert(paths.includes("profiles/catalog.json"));
+  assert(paths.includes("profiles/batch/profile.json"));
+  assert(paths.includes("profiles/coding/profile.json"));
+  assert(paths.includes("profiles/conversational/profile.json"));
+  assert(paths.includes("profiles/github-pr-review/profile.json"));
+  assert(paths.includes("fixtures/triggers/manual.json"));
+  assert(paths.includes("fixtures/triggers/schedule.json"));
   assert(!paths.some((path) => path.startsWith(".github/")));
   assert(!paths.some((path) => path.startsWith("scripts/")));
   assert(!paths.some((path) => path.startsWith("test/")));

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Channel trigger envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "messageDigest"
+  ],
+  "properties": {
+    "messageDigest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

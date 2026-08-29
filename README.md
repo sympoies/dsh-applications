@@ -13,15 +13,16 @@ channel identifiers, credentials, ingress, rollout state, and personal
 operator configuration are intentionally outside this repository.
 
 Workspace packages are components of one coordinated application artifact and
-share the root version. The private `0.0.0` root is a bootstrap control surface,
-not a publishable release, until Task 3.3 promotes the coordinated version.
+share the root version. The private root prevents registry publication; the
+reviewed, digest-addressed GitHub release is the distribution boundary.
 
 ## Current status
 
 The workspace contains the public plugin declaration helpers, the isolated DSH
-`0.1.1-rc.2` adapter, and the generic ten-operation application manager. The
-initial profile catalog and first coordinated release remain separate reviewed
-work. All current packages retain bootstrap version `0.0.0` and cannot publish.
+`0.1.1-rc.2` adapter, the generic ten-operation application manager, four
+least-authority bot profiles, and reusable manual, GitHub-event, channel, and
+schedule trigger fixtures. Version `0.1.0` is the first coordinated catalog
+release candidate.
 
 ## Development
 
@@ -32,10 +33,10 @@ npm ci --ignore-scripts
 npm run test:manager-contract
 npm run test:manager-faults
 npm run test:plugin-sandbox
+npm run test:profiles
 npm test
 npm run check:compatibility -- --manifest-only
-npm run verify:package-reproducibility
-npm pack --dry-run
+npm run test:package
 ```
 
 See [architecture](docs/architecture.md), [ownership](docs/ownership.md),

@@ -1,0 +1,12 @@
+{
+  "apiVersion": "applications.sympoies.dev/v1",
+  "kind": "TriggerFixture",
+  "id": "schedule",
+  "descriptor": {
+    "id": "schedule",
+    "class": "schedule",
+    "inputSchemaDigest": "sha256:f7932149e7375235ee79b5d73e690ddff4b4047406d2d3eaa811c9c0640b7035"
+  },
+  "profileClass": "schedule",
+  "schema": "fixtures/triggers/schemas/schedule.schema.json"
+}

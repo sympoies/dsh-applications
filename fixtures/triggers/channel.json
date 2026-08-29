@@ -1,0 +1,12 @@
+{
+  "apiVersion": "applications.sympoies.dev/v1",
+  "kind": "TriggerFixture",
+  "id": "channel",
+  "descriptor": {
+    "id": "channel",
+    "class": "channel",
+    "inputSchemaDigest": "sha256:a0515167124fb3f88fc148304dff6da5e795d3723f74699241501bcf85c8f2f2"
+  },
+  "profileClass": "message",
+  "schema": "fixtures/triggers/schemas/channel.schema.json"
+}

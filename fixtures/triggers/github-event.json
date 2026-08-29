@@ -1,0 +1,12 @@
+{
+  "apiVersion": "applications.sympoies.dev/v1",
+  "kind": "TriggerFixture",
+  "id": "github-event",
+  "descriptor": {
+    "id": "github-event",
+    "class": "event",
+    "inputSchemaDigest": "sha256:9da7d12915412988ecc7c4b9b5e953d8150d0eb5a79dd8c2882189612d5f320f"
+  },
+  "profileClass": "webhook",
+  "schema": "fixtures/triggers/schemas/github-event.schema.json"
+}
