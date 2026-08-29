@@ -68,7 +68,7 @@ test("repository carries its public governance boundary", () => {
 test("workspace metadata is exact, private at the root, and release-safe", () => {
   const pkg = json("package.json");
   assert.equal(pkg.name, "@sympoies/dsh-applications-workspace");
-  assert.equal(pkg.version, "0.1.2");
+  assert.equal(pkg.version, "0.1.3");
   assert.equal(pkg.private, true);
   assert.deepEqual(pkg.workspaces, ["packages/*"]);
   assert.equal(pkg.packageManager, "npm@11.6.2");
@@ -121,10 +121,10 @@ test("installed workspace resolves every actual public package specifier", async
 test("compatibility lock pins the accepted runtime-kit and DSH identities", () => {
   const lock = json("compatibility/dsh-applications-lock.json");
   assert.equal(lock.schema_version, "dsh-applications.compatibility-lock.v1");
-  assert.equal(lock.application_version, "0.1.2");
+  assert.equal(lock.application_version, "0.1.3");
   assert.deepEqual(lock.profile_catalog, {
     path: "profiles/catalog.json",
-    digest: "sha256:576dd5277826119cf20f53773ccfde7d4a0c290f5ed182d9dec8d805d6a9b835",
+    digest: "sha256:dbcd979d6a592f65c604d6664e3b7d75943c3e2221d632c4ad83cd552647f8c0",
   });
   assert.deepEqual(lock.runtime_kit, {
     package: "@sympoies/dsh-runtime-kit",
@@ -228,6 +228,11 @@ test("release verification is read-only and privileged publish runs no project c
   assert.match(publishJob, /sha256sum -c SHA256SUMS/);
   assert.match(publishJob, /attest-build-provenance/);
   assert.match(publishJob, /gh release create/);
+  assert.match(
+    publishJob,
+    /gh release create[\s\S]*--repo "\$GITHUB_REPOSITORY"/,
+    "source-free publish must provide repository identity without a git checkout",
+  );
   assert.doesNotMatch(publishJob, /npm (ci|install|run|test|pack)|node scripts\/|actions\/checkout@/);
 });
 

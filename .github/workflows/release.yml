@@ -183,4 +183,5 @@ jobs:
             dsh-applications-lock.json \
             --verify-tag \
             --title "$RELEASE_TAG" \
-            --generate-notes
+            --generate-notes \
+            --repo "$GITHUB_REPOSITORY"
