@@ -10,11 +10,11 @@ patch releases are backward-compatible fixes. After 1.0, breaking public
 behavior requires a new major version. Schema `apiVersion` evolution remains
 explicit and is not inferred from package SemVer.
 
-The immutable `v0.1.0` and `v0.1.1` tags record failed pre-publication workflow
-attempts and have no GitHub Release or consumable artifact. Version `0.1.2` is
-the first published coordinated application and profile-catalog release. The
-private root prevents registry publication; the release workflow also rejects
-`0.0.0`, so a bootstrap revision cannot be published accidentally.
+The immutable `v0.1.0` through `v0.1.2` tags record failed pre-publication
+workflow attempts and have no GitHub Release or consumable artifact. Version
+`0.1.3` is the first published coordinated application and profile-catalog
+release. The private root prevents registry publication; the release workflow
+also rejects `0.0.0`, so a bootstrap revision cannot be published accidentally.
 
 Workspace dependencies and external compatibility are exact. A dependency
 promotion requires reviewed compatibility evidence and changes every pinned
@@ -39,11 +39,11 @@ exact pinned invocation with `--execute`:
 
 ```sh
 .agents/scripts/release.sh --dry-run \
-  --version 0.1.2 \
+  --version 0.1.3 \
   --expected-head <full-main-commit> \
   --repository sympoies/dsh-applications
 .agents/scripts/release.sh --execute \
-  --version 0.1.2 \
+  --version 0.1.3 \
   --expected-head <same-full-main-commit> \
   --repository sympoies/dsh-applications
 ```

@@ -3,8 +3,8 @@
   "kind": "BotProfile",
   "metadata": {
     "id": "coding",
-    "version": "0.1.2",
-    "digest": "sha256:c3ad442600e55ddac94b749f7dd740e94f61a32be8683bbbcc457c828b01c437",
+    "version": "0.1.3",
+    "digest": "sha256:0deec6b17e767c9597271557dbc0574725e46b9bebcdf7c4b66758aa6a47e900",
     "purpose": "Interactive coding inside one admitted project workspace"
   },
   "workload": {
