@@ -1,6 +1,6 @@
 {
   "name": "@sympoies/dsh-plugin-sdk",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Public declaration helpers for governed DSH application plugins",
   "private": true,
   "type": "module",

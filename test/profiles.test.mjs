@@ -157,7 +157,7 @@ test("the compatibility manifest binds the coordinated catalog version and profi
   const workspace = json("package.json");
   const catalog = json("profiles/catalog.json");
   const lock = json("compatibility/dsh-applications-lock.json");
-  assert.equal(workspace.version, "0.1.1");
+  assert.equal(workspace.version, "0.1.2");
   assert.equal(catalog.version, workspace.version);
   assert.equal(lock.application_version, workspace.version);
   assert.equal(lock.profile_catalog.path, "profiles/catalog.json");
