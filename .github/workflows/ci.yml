@@ -23,6 +23,26 @@ jobs:
         with:
           persist-credentials: false
           path: dsh-applications
+      - name: Diagnose immutable v0.1.1 release gate
+        working-directory: dsh-applications
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: v0.1.1
+        run: |
+          set -euxo pipefail
+          git fetch --force --no-tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+          test "$(git cat-file -t "refs/tags/$RELEASE_TAG")" = tag
+          tag_object="$(git rev-parse "refs/tags/$RELEASE_TAG")"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$tag_object" --jq '.verification.verified')" = true
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$tag_object" --jq '.verification.reason')" = valid
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          release_commit="$(git rev-list -n 1 "refs/tags/$RELEASE_TAG")"
+          git merge-base --is-ancestor "$release_commit" origin/main
+          package_version="$(git show "$release_commit:package.json" | jq -r '.version')"
+          test "$RELEASE_TAG" = "v$package_version"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            exit 1
+          fi
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
