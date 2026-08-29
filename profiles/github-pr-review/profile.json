@@ -3,8 +3,8 @@
   "kind": "BotProfile",
   "metadata": {
     "id": "github-pr-review",
-    "version": "0.1.1",
-    "digest": "sha256:dd770ed1bfb0248f49d43db88c7f1bc54deb6a469e48d5de41990ebb6570e4f2",
+    "version": "0.1.2",
+    "digest": "sha256:c642af960a12099eb84ec9973064ad51e2e7685c1034aac869e58f44cceb6322",
     "purpose": "Credential-free review of one broker-admitted pull request capsule"
   },
   "workload": {

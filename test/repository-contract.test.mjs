@@ -68,7 +68,7 @@ test("repository carries its public governance boundary", () => {
 test("workspace metadata is exact, private at the root, and release-safe", () => {
   const pkg = json("package.json");
   assert.equal(pkg.name, "@sympoies/dsh-applications-workspace");
-  assert.equal(pkg.version, "0.1.1");
+  assert.equal(pkg.version, "0.1.2");
   assert.equal(pkg.private, true);
   assert.deepEqual(pkg.workspaces, ["packages/*"]);
   assert.equal(pkg.packageManager, "npm@11.6.2");
@@ -121,10 +121,10 @@ test("installed workspace resolves every actual public package specifier", async
 test("compatibility lock pins the accepted runtime-kit and DSH identities", () => {
   const lock = json("compatibility/dsh-applications-lock.json");
   assert.equal(lock.schema_version, "dsh-applications.compatibility-lock.v1");
-  assert.equal(lock.application_version, "0.1.1");
+  assert.equal(lock.application_version, "0.1.2");
   assert.deepEqual(lock.profile_catalog, {
     path: "profiles/catalog.json",
-    digest: "sha256:e6cb9d3d54edd4c92f6d1eca0fdd093d5b4fb4ffb36ecd01dea3054089fcc685",
+    digest: "sha256:576dd5277826119cf20f53773ccfde7d4a0c290f5ed182d9dec8d805d6a9b835",
   });
   assert.deepEqual(lock.runtime_kit, {
     package: "@sympoies/dsh-runtime-kit",
@@ -177,6 +177,12 @@ test("tag release publishes digest-addressed, attested immutable assets", () => 
   assert.match(workflow, /tags:\n\s+- ['"]v\*['"]/);
   assert.match(workflow, /permissions:[\s\S]*contents: write[\s\S]*id-token: write[\s\S]*attestations: write/);
   assert.match(workflow, /verify-tag/);
+  const restoreTag = workflow.indexOf(
+    'git fetch --force --no-tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"',
+  );
+  const inspectTag = workflow.indexOf('git cat-file -t "refs/tags/$RELEASE_TAG"');
+  assert(restoreTag >= 0, "release must restore the annotated tag ref after checkout");
+  assert(restoreTag < inspectTag, "annotated tag restoration must precede object-type verification");
   assert.match(workflow, /git\/tags\/\$tag_object/);
   assert.match(workflow, /\.verification\.verified/);
   assert.match(workflow, /\.verification\.reason/);
