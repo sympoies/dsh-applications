@@ -39,11 +39,11 @@ exact pinned invocation with `--execute`:
 
 ```sh
 .agents/scripts/release.sh --dry-run \
-  --version 0.1.3 \
+  --version 0.2.0 \
   --expected-head <full-main-commit> \
   --repository sympoies/dsh-applications
 .agents/scripts/release.sh --execute \
-  --version 0.1.3 \
+  --version 0.2.0 \
   --expected-head <same-full-main-commit> \
   --repository sympoies/dsh-applications
 ```

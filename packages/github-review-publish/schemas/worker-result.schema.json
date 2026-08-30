@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Credential-free GitHub review worker result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "apiVersion", "kind", "digest", "capsuleDigest", "requestId", "target",
+    "headSha", "pathSetDigest", "generation", "instance", "outputSchemaDigest",
+    "outputMediaType", "outputByteLength", "output", "outputDigest",
+    "admissionId", "publisherEpoch"
+  ],
+  "properties": {
+    "apiVersion": { "const": "runtime.sympoies.dev/v1" },
+    "kind": { "const": "GitHubReviewWorkerResult" },
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "capsuleDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "requestId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "target": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "headSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "pathSetDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "generation": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "instance": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "outputSchemaDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "outputMediaType": { "const": "application/vnd.sympoies.github-review+json" },
+    "outputByteLength": { "type": "integer", "minimum": 1, "maximum": 65536 },
+    "output": { "$ref": "../../../profiles/github-pr-review/output.schema.json" },
+    "outputDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "admissionId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "publisherEpoch": { "type": "string", "pattern": "^(0|[1-9][0-9]{0,19})$" }
+  }
+}

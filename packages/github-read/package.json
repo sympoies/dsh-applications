@@ -1,0 +1,17 @@
+{
+  "name": "@sympoies/dsh-github-read",
+  "version": "0.2.0",
+  "description": "Model-safe public GitHub pull-request read bundle contracts",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": ["src", "schemas", "index.d.ts", "README.md"],
+  "dependencies": { "@sympoies/dsh-plugin-sdk": "0.2.0" },
+  "engines": { "node": "^22.19.0 || >=24.0.0" },
+  "license": "MIT"
+}

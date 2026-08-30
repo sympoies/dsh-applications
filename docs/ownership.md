@@ -15,6 +15,6 @@ missing owner.
 | Secret owners | Credential values, signing keys, tokens, and runtime-only authentication state | Any public manifest, lock, log, receipt, issue, or release asset |
 
 Provider and channel adapters authenticate data at their named boundary. They
-do not own lifecycle or deployment authority. In particular, a future GitHub
-adapter must use the private broker for credentialed writes; public package
-code never contains an App identity or credential.
+do not own lifecycle or deployment authority. The public GitHub read and
+review-result contracts use the private broker for credentialed writes; public
+package code never contains an App identity, credential, or provider client.

@@ -1,7 +1,7 @@
 {
-  "name": "@sympoies/dsh-application-manager",
+  "name": "@sympoies/dsh-github-review-publish",
   "version": "0.2.0",
-  "description": "Public ten-operation manager for governed DSH applications",
+  "description": "Strict non-bearer public GitHub review result contracts",
   "private": true,
   "type": "module",
   "exports": {
@@ -10,8 +10,9 @@
       "import": "./src/index.js"
     }
   },
-  "files": ["src", "index.d.ts", "README.md"],
+  "files": ["src", "schemas", "index.d.ts", "README.md"],
   "dependencies": {
+    "@sympoies/dsh-github-read": "0.2.0",
     "@sympoies/dsh-plugin-sdk": "0.2.0"
   },
   "engines": { "node": "^22.19.0 || >=24.0.0" },

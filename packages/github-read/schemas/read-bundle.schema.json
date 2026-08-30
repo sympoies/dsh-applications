@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Broker-admitted GitHub pull-request read bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "capsuleDigest", "requestId", "target", "headSha", "pathSetDigest",
+    "generation", "instance", "outputSchemaDigest", "admissionId",
+    "publisherEpoch", "trigger", "pullRequest", "files", "threads"
+  ],
+  "properties": {
+    "capsuleDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "requestId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "target": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "headSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "pathSetDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "generation": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "instance": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "outputSchemaDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "admissionId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "publisherEpoch": { "type": "string", "pattern": "^(0|[1-9][0-9]{0,19})$" },
+    "trigger": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind"], "properties": { "kind": { "const": "pull-request-opened" } }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "command"],
+          "properties": {
+            "kind": { "const": "review-command" },
+            "command": { "const": "@mes_bot review" }
+          }
+        }
+      ]
+    },
+    "pullRequest": {
+      "type": "object", "additionalProperties": false,
+      "required": ["title", "body"],
+      "properties": {
+        "title": { "type": "string", "maxLength": 8192 },
+        "body": { "type": "string", "maxLength": 65536 }
+      }
+    },
+    "files": {
+      "type": "array", "maxItems": 512,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["path", "lines"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1, "maxLength": 1024 },
+          "lines": {
+            "type": "array", "maxItems": 10000, "uniqueItems": true,
+            "items": { "type": "integer", "minimum": 1, "maximum": 2147483647 }
+          }
+        }
+      }
+    },
+    "threads": {
+      "type": "array", "maxItems": 512,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["path", "line", "author", "body"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1, "maxLength": 1024 },
+          "line": { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+          "author": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "body": { "type": "string", "maxLength": 16384 }
+        }
+      }
+    }
+  }
+}

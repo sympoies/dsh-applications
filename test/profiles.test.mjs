@@ -157,7 +157,7 @@ test("the compatibility manifest binds the coordinated catalog version and profi
   const workspace = json("package.json");
   const catalog = json("profiles/catalog.json");
   const lock = json("compatibility/dsh-applications-lock.json");
-  assert.equal(workspace.version, "0.1.3");
+  assert.equal(workspace.version, "0.2.0");
   assert.equal(catalog.version, workspace.version);
   assert.equal(lock.application_version, workspace.version);
   assert.equal(lock.profile_catalog.path, "profiles/catalog.json");
@@ -171,4 +171,9 @@ test("the compatibility manifest binds the coordinated catalog version and profi
     assert.equal(entry.path, `profiles/${entry.id}/profile.json`);
     assert.equal(entry.digest, document.metadata?.digest);
   }
+  const reviewOutput = json("profiles/github-pr-review/output.schema.json");
+  assert.deepEqual(reviewOutput.required, ["decision", "reviewReport", "inlineComments"]);
+  assert.equal(reviewOutput.properties?.reviewReport?.properties?.format?.const, "agent-kit.specialist-review-report.v1");
+  assert.equal(reviewOutput.properties?.inlineComments?.maxItems, 50);
+  assert.equal(reviewOutput.properties?.inlineComments?.items?.properties?.line?.minimum, 1);
 });

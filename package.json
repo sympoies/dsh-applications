@@ -1,6 +1,6 @@
 {
   "name": "@sympoies/dsh-applications-workspace",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Governed public applications and plugins for DeepSeek Harness",
   "private": true,
   "type": "module",
@@ -27,6 +27,7 @@
     "test:profile-compatibility": "node scripts/check-profile-compatibility.mjs",
     "test:integration": "node --test test/integration.test.mjs",
     "test:exact-dsh": "node scripts/check-exact-dsh-consumer.mjs && node --test test/exact-dsh-consumer.test.mjs",
+    "test:github-contracts": "node --test test/github-contracts.test.mjs",
     "check:compatibility": "node scripts/check-compatibility.mjs",
     "verify:package-reproducibility": "node scripts/check-package-reproducibility.mjs",
     "test:package": "npm run check:compatibility -- --manifest-only && npm run verify:package-reproducibility && npm pack --dry-run --ignore-scripts"

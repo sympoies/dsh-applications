@@ -38,7 +38,8 @@ test/           repository-level contract tests
 The workspace produces a single coordinated public application artifact. Its
 packages are components, not independently released products: they share the
 root version and are reviewed, tested, tagged, and published together. Version
-`0.1.3` is the first published coordinated catalog release. The root remains private to
+`0.1.3` is the first published coordinated catalog release. Coordinated version
+`0.2.0` adds the public GitHub read and strict review-result contracts. The root remains private to
 prevent registry publication; release consumers use the digest-addressed
 coordinated archive.
 
@@ -68,6 +69,14 @@ the exact runtime-kit validator. The SDK exposes a typed canonical-digest
 constructor and exact descriptor inputs while retaining runtime validation for
 untyped callers. Trigger and output helpers are immutable
 application configuration only; neither can grant or widen authority.
+
+The GitHub packages expose no provider client or bearer material. The read
+contract treats pull-request content as untrusted and echoes only broker-issued
+target/head/path/generation/admission/epoch bindings. The review contract emits
+one strict `GitHubReviewWorkerResult` whose complete Review Report and bounded
+native inline guidance are RFC 8785 canonicalized and domain-digest bound. The
+authenticated supervisor completion envelope and every provider effect remain
+private-infrastructure responsibilities.
 
 ## Compatibility
 

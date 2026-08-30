@@ -68,7 +68,7 @@ test("repository carries its public governance boundary", () => {
 test("workspace metadata is exact, private at the root, and release-safe", () => {
   const pkg = json("package.json");
   assert.equal(pkg.name, "@sympoies/dsh-applications-workspace");
-  assert.equal(pkg.version, "0.1.3");
+  assert.equal(pkg.version, "0.2.0");
   assert.equal(pkg.private, true);
   assert.deepEqual(pkg.workspaces, ["packages/*"]);
   assert.equal(pkg.packageManager, "npm@11.6.2");
@@ -80,6 +80,7 @@ test("workspace metadata is exact, private at the root, and release-safe", () =>
   assert.equal(pkg.scripts["test:profiles"], "node --test test/profiles.test.mjs");
   assert.equal(pkg.scripts["test:profile-compatibility"], "node scripts/check-profile-compatibility.mjs");
   assert.equal(pkg.scripts["test:integration"], "node --test test/integration.test.mjs");
+  assert.equal(pkg.scripts["test:github-contracts"], "node --test test/github-contracts.test.mjs");
   assert.equal(pkg.scripts["check:compatibility"], "node scripts/check-compatibility.mjs");
   assert.equal(pkg.scripts["verify:package-reproducibility"], "node scripts/check-package-reproducibility.mjs");
   assert.equal(pkg.scripts["test:package"], "npm run check:compatibility -- --manifest-only && npm run verify:package-reproducibility && npm pack --dry-run --ignore-scripts");
@@ -91,7 +92,10 @@ test("workspace metadata is exact, private at the root, and release-safe", () =>
   assert.equal(packageLock.packages[""].name, pkg.name);
   assert.deepEqual(packageLock.packages[""].workspaces, pkg.workspaces);
   assert.equal(packageLock.packages[""].version, pkg.version);
-  for (const path of ["packages/plugin-sdk", "packages/manager", "packages/dsh-rc2-adapter"]) {
+  for (const path of [
+    "packages/plugin-sdk", "packages/manager", "packages/dsh-rc2-adapter",
+    "packages/github-read", "packages/github-review-publish",
+  ]) {
     assert.equal(packageLock.packages[path].version, pkg.version);
   }
 });
@@ -112,19 +116,25 @@ test("installed workspace resolves every actual public package specifier", async
     ["@sympoies/dsh-application-manager", "createApplicationManager"],
     ["@sympoies/dsh-plugin-sdk", "definePlugin"],
     ["@sympoies/dsh-rc2-adapter", "createDshRc2Adapter"],
+    ["@sympoies/dsh-github-read", "validateGitHubPullRequestReadBundle"],
+    ["@sympoies/dsh-github-review-publish", "createGitHubReviewWorkerResult"],
   ]) {
     const module = await import(specifier);
     assert.equal(typeof module[exported], "function", `${specifier} must resolve from the installed workspace`);
   }
+  const githubRead = await import("@sympoies/dsh-github-read");
+  const githubPublish = await import("@sympoies/dsh-github-review-publish");
+  assert.equal(typeof githubRead.createGitHubReadPluginDescriptor, "function");
+  assert.equal(typeof githubPublish.createGitHubReviewPublishPluginDescriptor, "function");
 });
 
 test("compatibility lock pins the accepted runtime-kit and DSH identities", () => {
   const lock = json("compatibility/dsh-applications-lock.json");
   assert.equal(lock.schema_version, "dsh-applications.compatibility-lock.v1");
-  assert.equal(lock.application_version, "0.1.3");
+  assert.equal(lock.application_version, "0.2.0");
   assert.deepEqual(lock.profile_catalog, {
     path: "profiles/catalog.json",
-    digest: "sha256:dbcd979d6a592f65c604d6664e3b7d75943c3e2221d632c4ad83cd552647f8c0",
+    digest: "sha256:6a912a1fa9cebf2f9047fe949806c4e811e3e380e8c6664af36570998384a166",
   });
   assert.deepEqual(lock.runtime_kit, {
     package: "@sympoies/dsh-runtime-kit",
@@ -164,6 +174,7 @@ test("CI verifies the repository and exact compatibility checkouts", () => {
   assert.match(workflow, /npm run test:plugin-sandbox/);
   assert.match(workflow, /npm run test:profiles/);
   assert.match(workflow, /npm run test:integration/);
+  assert.match(workflow, /npm run test:github-contracts/);
   assert.match(workflow, /npm test/);
   assert.match(workflow, new RegExp(`repository: sympoies/dsh-runtime-kit[\\s\\S]*ref: ${expectedRuntimeKitRevision}`));
   assert.match(workflow, new RegExp(`repository: deepseek-ai/deepseek-harness[\\s\\S]*ref: ${expectedDshRevision}`));

@@ -88,7 +88,13 @@ for (const entry of catalog.profiles) {
   for (const trigger of profile.triggers) assert(triggerMappings.has(trigger.class));
 }
 
-for (const relative of ["packages/plugin-sdk/package.json", "packages/manager/package.json", "packages/dsh-rc2-adapter/package.json"]) {
+for (const relative of [
+  "packages/plugin-sdk/package.json",
+  "packages/manager/package.json",
+  "packages/dsh-rc2-adapter/package.json",
+  "packages/github-read/package.json",
+  "packages/github-review-publish/package.json",
+]) {
   assert.equal(load(resolve(root, relative)).version, workspace.version, `${relative} must share the release version`);
 }
 
