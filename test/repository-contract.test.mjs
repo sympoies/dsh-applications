@@ -68,11 +68,11 @@ test("repository carries its public governance boundary", () => {
 test("workspace metadata is exact, private at the root, and release-safe", () => {
   const pkg = json("package.json");
   assert.equal(pkg.name, "@sympoies/dsh-applications-workspace");
-  assert.equal(pkg.version, "0.2.0");
+  assert.equal(pkg.version, "0.2.1");
   assert.equal(pkg.private, true);
   assert.deepEqual(pkg.workspaces, ["packages/*"]);
   assert.equal(pkg.packageManager, "npm@11.6.2");
-  assert.equal(pkg.engines.node, "^22.19.0 || >=24.0.0");
+  assert.equal(pkg.engines.node, ">=24.0.0");
   assert.equal(pkg.scripts.test, "node --test test/*.test.mjs");
   assert.equal(pkg.scripts["test:manager-contract"], "node --test test/manager-contract.test.mjs");
   assert.equal(pkg.scripts["test:manager-faults"], "node --test test/manager-faults.test.mjs");
@@ -131,10 +131,10 @@ test("installed workspace resolves every actual public package specifier", async
 test("compatibility lock pins the accepted runtime-kit and DSH identities", () => {
   const lock = json("compatibility/dsh-applications-lock.json");
   assert.equal(lock.schema_version, "dsh-applications.compatibility-lock.v1");
-  assert.equal(lock.application_version, "0.2.0");
+  assert.equal(lock.application_version, "0.2.1");
   assert.deepEqual(lock.profile_catalog, {
     path: "profiles/catalog.json",
-    digest: "sha256:6a912a1fa9cebf2f9047fe949806c4e811e3e380e8c6664af36570998384a166",
+    digest: "sha256:ec827878e7362180f7b09262745f4c80c4a40f5f65e9268361135456fd8142cd",
   });
   assert.deepEqual(lock.runtime_kit, {
     package: "@sympoies/dsh-runtime-kit",
@@ -149,8 +149,12 @@ test("compatibility lock pins the accepted runtime-kit and DSH identities", () =
     revision: expectedDshRevision,
     version: "0.1.1-rc.2",
   });
-  assert.equal(lock.node, "22.19.0");
+  assert.equal(lock.node, "24.16.0");
   assert.equal(lock.package_manager, "npm@11.6.2");
+
+  assert.equal(read(".node-version").trim(), "24.16.0");
+  assert.match(read("README.md"), /fnm use/);
+  assert.match(read("CONTRIBUTING.md"), /fnm use/);
 
   const checker = read("scripts/check-compatibility.mjs");
   for (const runtimeOwner of [
@@ -168,6 +172,7 @@ test("CI verifies the repository and exact compatibility checkouts", () => {
   assert.match(workflow, /permissions:\n\s+contents: read/);
   assert.match(workflow, /npm ci --ignore-scripts/);
   assert.match(workflow, /npm install --global npm@11\.6\.2 --ignore-scripts/);
+  assert.equal((workflow.match(/node-version: 24\.16\.0/g) ?? []).length, 2);
   assert.match(workflow, /npm run test:repository-contract/);
   assert.match(workflow, /npm run test:manager-contract/);
   assert.match(workflow, /npm run test:manager-faults/);
@@ -185,6 +190,7 @@ test("CI verifies the repository and exact compatibility checkouts", () => {
 
 test("tag release publishes digest-addressed, attested immutable assets", () => {
   const workflow = read(".github/workflows/release.yml");
+  assert.match(workflow, /node-version: 24\.16\.0/);
   assert.match(workflow, /tags:\n\s+- ['"]v\*['"]/);
   assert.match(workflow, /permissions:[\s\S]*contents: write[\s\S]*id-token: write[\s\S]*attestations: write/);
   assert.match(workflow, /verify-tag/);

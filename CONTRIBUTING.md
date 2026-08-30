@@ -2,13 +2,15 @@
 
 ## Prerequisites
 
-- Node.js 22.19.0
+- fnm with the repository-pinned Node.js 24 runtime (`fnm use`)
 - npm 11.6.2
 - a clean checkout with no private configuration copied into it
 
 Install without lifecycle scripts:
 
 ```sh
+fnm use
+npm install --global npm@11.6.2 --ignore-scripts
 npm ci --ignore-scripts
 ```
 
