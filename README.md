@@ -23,13 +23,17 @@ The workspace contains the public plugin declaration helpers, the isolated DSH
 GitHub read/review-result contracts, four least-authority bot profiles, and
 reusable manual, GitHub-event, channel, and schedule trigger fixtures. Version
 `0.1.3` is the first published coordinated catalog release; `0.2.0` adds the
-GitHub contracts and complete native review-output schema.
+GitHub contracts and complete native review-output schema. Version `0.2.1`
+raises the supported Node.js floor to 24.
 
 ## Development
 
-Use Node.js 22.19.0 and npm 11.6.2, then run:
+Install Node.js through [fnm](https://github.com/Schniz/fnm), then activate the
+repository-pinned Node.js 24 runtime and exact npm version:
 
 ```sh
+fnm use
+npm install --global npm@11.6.2 --ignore-scripts
 npm ci --ignore-scripts
 npm run test:manager-contract
 npm run test:manager-faults

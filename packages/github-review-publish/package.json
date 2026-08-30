@@ -1,6 +1,6 @@
 {
   "name": "@sympoies/dsh-github-review-publish",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Strict non-bearer public GitHub review result contracts",
   "private": true,
   "type": "module",
@@ -12,9 +12,9 @@
   },
   "files": ["src", "schemas", "index.d.ts", "README.md"],
   "dependencies": {
-    "@sympoies/dsh-github-read": "0.2.0",
-    "@sympoies/dsh-plugin-sdk": "0.2.0"
+    "@sympoies/dsh-github-read": "0.2.1",
+    "@sympoies/dsh-plugin-sdk": "0.2.1"
   },
-  "engines": { "node": "^22.19.0 || >=24.0.0" },
+  "engines": { "node": ">=24.0.0" },
   "license": "MIT"
 }

@@ -39,7 +39,8 @@ The workspace produces a single coordinated public application artifact. Its
 packages are components, not independently released products: they share the
 root version and are reviewed, tested, tagged, and published together. Version
 `0.1.3` is the first published coordinated catalog release. Coordinated version
-`0.2.0` adds the public GitHub read and strict review-result contracts. The root remains private to
+`0.2.0` adds the public GitHub read and strict review-result contracts;
+`0.2.1` raises the supported Node.js floor to 24. The root remains private to
 prevent registry publication; release consumers use the digest-addressed
 coordinated archive.
 

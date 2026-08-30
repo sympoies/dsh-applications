@@ -1,6 +1,6 @@
 {
   "name": "@sympoies/dsh-rc2-adapter",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Isolated public adapter for DeepSeek Harness 0.1.1-rc.2 services",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
   },
   "files": ["src", "index.d.ts", "README.md"],
   "dependencies": {
-    "@sympoies/dsh-plugin-sdk": "0.2.0"
+    "@sympoies/dsh-plugin-sdk": "0.2.1"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "4.0.1",
@@ -28,6 +28,6 @@
     "@deepseek-ai/dsh-session-persistence": { "optional": true },
     "@deepseek-ai/dsh-tools": { "optional": true }
   },
-  "engines": { "node": "^22.19.0 || >=24.0.0" },
+  "engines": { "node": ">=24.0.0" },
   "license": "MIT"
 }
