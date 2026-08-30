@@ -48,6 +48,7 @@ jobs:
           npm run test:plugin-sandbox
           npm run test:profiles
           npm run test:integration
+          npm run test:github-contracts
       - name: Run aggregate tests
         working-directory: dsh-applications
         run: npm test

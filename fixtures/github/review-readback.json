@@ -1,0 +1,36 @@
+{
+  "report_plus_inline": {
+    "repository": "serenvia/sympoies-infra",
+    "pull_request": 321,
+    "review_id": "5050266793",
+    "head_sha": "93c2b69ad1298275e8851126e13875bdcc5e3f28",
+    "report": "<!-- forge-cli:review-run:v1 run=sha256:bfafaf9a9f7f3cd37208f19553fc8326a8f74c3adc3c5f4c636530e52fcbdc5b -->\n<!-- agent-kit:specialist-review-report:v1 -->\n## Review Report\n\n- Reviewable: PR #321\n- Lens: maintainability\n- Lens verdict: findings\n- Scope: executable state-machine completeness and single-candidate ownership\n- Evidence reviewed: exact head `93c2b69ad1298275e8851126e13875bdcc5e3f28`; complete four-document Phase 0 bundle\n\n| Finding | Severity | Confidence | Evidence | Recommendation |\n| --- | --- | --- | --- | --- |\n| Permanent recovery fencing requires a fresh generation, but no executable path creates and admits that generation from RecoveryRequired | high | 0.97 | `phase-0-architecture.md:1935` | Freeze one recovery path: prove and terminalize the fenced candidate, return to `Stable` or `NoDeployment`, then create the next generation through the ordinary `Staging` pipeline; or define an equally complete recovery-restaging submachine. |\n\nThe direct `RecoveryRequired -> Switching` edge skips candidate-pointer replacement, artifact verification, lock, shadow, and canary gates. Implementers would otherwise need to invent a second candidate model or bypass the normal rollout pipeline.",
+    "inline_comments": [
+      {
+        "path": "docs/plans/governed-dsh-applications/phase-0-architecture.md",
+        "line": 1935,
+        "body": "`RecoveryRequired -> Switching` with a fresh generation has no path that archives or terminalizes the fenced candidate, reassigns the sole candidate pointer, or runs artifact verification, lock, shadow, and canary gates.",
+        "suggestion": "Define one complete path, preferably terminalizing the fenced candidate and returning to `Stable`/`NoDeployment` before using the ordinary `Staging` pipeline.",
+        "url": "https://github.com/serenvia/sympoies-infra/pull/321#discussion_r3879894668"
+      }
+    ]
+  },
+  "pre_cutover_personal_attribution": {
+    "repository": "serenvia/sympoies-infra",
+    "pull_request": 361,
+    "review_id": "5055913520",
+    "author": "xsin4880",
+    "head_sha": "a9a51dd59f57cf307baab2fff910a0b254a1745f",
+    "url": "https://github.com/serenvia/sympoies-infra/pull/361#pullrequestreview-5055913520"
+  },
+  "post_cutover": {
+    "required_author_by_owner": {
+      "serenvia": "serenvia-release-reviewer[bot]",
+      "sympoies": "sympoies-dsh-release-reviewer[bot]"
+    },
+    "required_head_binding": "exact-provider-head",
+    "required_decision": "latest-decisive-review",
+    "require_report_body_readback": true,
+    "require_thread_readback": true
+  }
+}

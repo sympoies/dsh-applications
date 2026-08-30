@@ -19,10 +19,11 @@ reviewed, digest-addressed GitHub release is the distribution boundary.
 ## Current status
 
 The workspace contains the public plugin declaration helpers, the isolated DSH
-`0.1.1-rc.2` adapter, the generic ten-operation application manager, four
-least-authority bot profiles, and reusable manual, GitHub-event, channel, and
-schedule trigger fixtures. Version `0.1.3` is the first published coordinated
-catalog release.
+`0.1.1-rc.2` adapter, the generic ten-operation application manager, portable
+GitHub read/review-result contracts, four least-authority bot profiles, and
+reusable manual, GitHub-event, channel, and schedule trigger fixtures. Version
+`0.1.3` is the first published coordinated catalog release; `0.2.0` adds the
+GitHub contracts and complete native review-output schema.
 
 ## Development
 
@@ -34,6 +35,7 @@ npm run test:manager-contract
 npm run test:manager-faults
 npm run test:plugin-sandbox
 npm run test:profiles
+npm run test:github-contracts
 npm test
 npm run check:compatibility -- --manifest-only
 npm run test:package

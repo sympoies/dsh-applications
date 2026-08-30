@@ -10,6 +10,10 @@ released together as one coordinated public application artifact.
   instance-bound DSH confinement.
 - `manager` provides the exact ten-operation facade, authenticated internal
   control construction, and runtime-kit-mediated plugin action gateway.
+- `github-read` validates a bounded, model-safe projection of a broker-admitted
+  pull request without provider access or authority.
+- `github-review-publish` constructs the strict, canonical, non-bearer public
+  review worker result; private broker code owns provider publication.
 
 The coordinated artifact also carries the public `profiles/` catalog and the
 reusable, non-authorizing `fixtures/` trigger configurations. These are not
