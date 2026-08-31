@@ -205,7 +205,6 @@ function validateReviewOutput(value) {
   if (!Array.isArray(output.inlineComments) || output.inlineComments.length > 50) {
     fail("workerResult.output.inlineComments must be a bounded array");
   }
-  const locations = new Set();
   const threadFingerprints = new Set();
   output.inlineComments.forEach((candidate, index) => {
     const comment = record(candidate, `workerResult.output.inlineComments[${index}]`);
@@ -220,9 +219,6 @@ function validateReviewOutput(value) {
     if (comment.suggestion !== undefined) {
       boundedString(comment.suggestion, `workerResult.output.inlineComments[${index}].suggestion`, 16_384);
     }
-    const location = `${comment.path}\0${comment.line ?? "file"}`;
-    if (locations.has(location)) fail("workerResult output inline locations must be unique");
-    locations.add(location);
     if (threadFingerprints.has(comment.fingerprint)) fail("workerResult output thread fingerprints must be unique");
     threadFingerprints.add(comment.fingerprint);
     const finding = findings.get(comment.fingerprint);

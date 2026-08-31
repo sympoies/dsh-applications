@@ -166,6 +166,8 @@ test("github-pr-review resolver rejects pre-v0.3 publishers", { skip: !exactRunt
 
 test("release-bound GitHub packages construct exact runtime-kit PluginDescriptors", { skip: !exactRuntimeKitAvailable }, async () => {
   const runtimeKit = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")));
+  const profile = JSON.parse(readFileSync(resolve(root, "profiles/github-pr-review/profile.json"), "utf8"));
+  const reviewPublisherRange = profile.plugins.find(plugin => plugin.id === "github-review-publish")?.range;
   const revision = "3".repeat(40);
   const artifactIdentity = {
     digest: `sha256:${"4".repeat(64)}`,
@@ -176,6 +178,8 @@ test("release-bound GitHub packages construct exact runtime-kit PluginDescriptor
   const publish = createGitHubReviewPublishPluginDescriptor(runtimeKit, artifactIdentity);
   assert.equal(read.metadata.id, "github-read");
   assert.equal(publish.metadata.id, "github-review-publish");
+  assert.equal(publish.metadata.version, "0.3.0");
+  assert.equal(runtimeKit.versionSatisfies(publish.metadata.version, reviewPublisherRange), true);
   assert.equal(read.metadata.digest, runtimeKit.computeDocumentDigest(read));
   assert.equal(publish.metadata.digest, runtimeKit.computeDocumentDigest(publish));
   assert.deepEqual(read.mediation.network, []);
@@ -190,6 +194,34 @@ test("release-bound GitHub packages construct exact runtime-kit PluginDescriptor
   assert.throws(
     () => createGitHubReadPluginDescriptor(runtimeKit, { ...artifactIdentity, repository: "forbidden" }),
     /unknown/i,
+  );
+
+  const publicPolicy = {
+    digest: `sha256:${"0".repeat(64)}`,
+    grants: [...profile.grants],
+    networkClasses: [],
+    workspaceClasses: [],
+    resourceClasses: ["shared"],
+  };
+  publicPolicy.digest = runtimeKit.computePublicPolicyDigest(publicPolicy);
+  const plugins = [read, publish];
+  const resolved = runtimeKit.resolveComposition({
+    profile,
+    plugins,
+    runtime: {
+      dshVersion: "0.1.1-rc.2",
+      runtimeKitVersion: "0.0.0",
+      pluginApiVersion: "1.0.0",
+      platform: "linux-x64",
+      resolverVersion: "1.0.0",
+    },
+    publicPolicy,
+    catalogSnapshotDigest: runtimeKit.computeCatalogSnapshotDigest(plugins),
+    reason: "initial",
+  });
+  assert.deepEqual(
+    resolved.composition.plugins.map(plugin => [plugin.id, plugin.version]),
+    [["github-read", "0.3.0"], ["github-review-publish", "0.3.0"]],
   );
 });
 
@@ -318,6 +350,32 @@ test("actionable findings map one-to-one to native line or file threads", () => 
       /actionable|fingerprint|mapping|duplicate|path|line|thread/i,
     );
   }
+});
+
+test("distinct actionable fingerprints may share one native thread location", () => {
+  const findings = ["correctness", "security"].map(category => ({
+    fingerprint: `${category}:github-review:collocated-line`,
+    actionable: true,
+    path: "packages/github-read/src/index.js",
+    line: 13,
+  }));
+  const inlineComments = findings.map(finding => ({
+    fingerprint: finding.fingerprint,
+    path: finding.path,
+    line: finding.line,
+    body: `Address the independent ${finding.fingerprint} concern at this line.`,
+  }));
+
+  const workerResult = createGitHubReviewWorkerResult({
+    binding: binding(),
+    output: output({ findings, inlineComments }),
+    readBundle: bundle(),
+  });
+
+  assert.deepEqual(
+    workerResult.output.inlineComments.map(comment => [comment.fingerprint, comment.path, comment.line]),
+    inlineComments.map(comment => [comment.fingerprint, comment.path, comment.line]),
+  );
 });
 
 test("private completion envelope stays outside public plugins and manager", () => {
