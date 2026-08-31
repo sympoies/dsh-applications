@@ -31,7 +31,8 @@
     "check:compatibility": "node scripts/check-compatibility.mjs",
     "verify:package-reproducibility": "node scripts/check-package-reproducibility.mjs",
     "test:package": "npm run check:compatibility -- --manifest-only && npm run verify:package-reproducibility && npm pack --dry-run --ignore-scripts",
-    "test:conversation": "node --test test/conversation.test.mjs"
+    "test:conversation": "node --test test/conversation.test.mjs",
+    "test:batch": "node --test test/batch.test.mjs"
   },
   "engines": {
     "node": ">=24.0.0"

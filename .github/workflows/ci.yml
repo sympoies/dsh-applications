@@ -122,6 +122,11 @@ jobs:
         env:
           DSH_RUNTIME_KIT_ROOT: ../dsh-runtime-kit
         run: npm run test:conversation
+      - name: Prove batch schedule parity
+        working-directory: dsh-applications
+        env:
+          DSH_RUNTIME_KIT_ROOT: ../dsh-runtime-kit
+        run: npm run test:batch
       - name: Validate public profiles with exact runtime-kit
         working-directory: dsh-applications
         run: npm run test:profile-compatibility -- --runtime-kit-root ../dsh-runtime-kit
