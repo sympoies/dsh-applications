@@ -3,8 +3,8 @@
   "kind": "BotProfile",
   "metadata": {
     "id": "github-pr-review",
-    "version": "0.2.1",
-    "digest": "sha256:f8fc47938126cb887990c7c7a0aebb62c7c13564c8286bcc3af4d6588365a151",
+    "version": "0.3.0",
+    "digest": "sha256:dd71026577f7c1212f0354cdd3e193bee217fbed6a94aa8101116b4c4929fd6c",
     "purpose": "Credential-free review of one broker-admitted pull request capsule"
   },
   "workload": {
@@ -33,7 +33,7 @@
     "instructions": "profiles/github-pr-review/instructions.md",
     "skills": [],
     "inputSchemaDigest": "sha256:2d8aa351df22e1435eaf1ae427bc45a96c46f5a31bb29a97813c2b0447c81386",
-    "outputSchemaDigest": "sha256:667c89a3992e6785aa948872df9b3a6c01f37ad9d33b9e91b2de6282fcbcd21b"
+    "outputSchemaDigest": "sha256:6f50d0a3d4b4c221cb553eef5084842926458a8678107c95024efd85fd0667d2"
   },
   "modelRouteClass": "review-bounded",
   "state": {

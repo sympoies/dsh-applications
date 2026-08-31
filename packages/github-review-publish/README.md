@@ -3,7 +3,13 @@
 This public package constructs and validates the Phase-0
 `runtime.sympoies.dev/v1` `GitHubReviewWorkerResult`. The result carries one
 complete structured Review Report plus at most 50 native path/line comments or
-suggestions. The output is validated against the immutable
+suggestions. Structured findings carry an explicit boolean actionability,
+stable fingerprint, and exact line or file location. Before any provider
+effect, the validator requires a one-to-one fingerprint and location match
+between every actionable finding and a native comment; missing, extra,
+duplicate, or mismatched mappings fail closed, while non-actionable findings
+remain report-only. The contract never parses Review Report Markdown or infers
+actionability from severity. The output is validated against the immutable
 `profiles/github-pr-review/output.schema.json`, serialized as UTF-8 RFC 8785
 JCS, limited to 65,536 bytes, and bound by its byte length, schema digest,
 output digest, and complete worker-result digest.

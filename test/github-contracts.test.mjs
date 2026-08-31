@@ -88,7 +88,18 @@ function output(overrides = {}) {
   return {
     decision: "REQUEST_CHANGES",
     reviewReport: { format: "agent-kit.specialist-review-report.v1", body: report },
+    findings: [{
+      fingerprint: "correctness:github-review:bound-diff-line",
+      actionable: true,
+      path: "packages/github-read/src/index.js",
+      line: 13,
+    }, {
+      fingerprint: "maintainability:github-review:report-only-context",
+      actionable: false,
+      path: "packages/github-read/src/index.js",
+    }],
     inlineComments: [{
+      fingerprint: "correctness:github-review:bound-diff-line",
       path: "packages/github-read/src/index.js",
       line: 13,
       body: "The check must fail closed at this line.",
@@ -252,6 +263,43 @@ test("worker result rejects invalid immutable binding, epochs, and diff location
     () => validateGitHubReviewWorkerResult(candidate, { readBundle: bundle() }),
     /request|target|generation|instance|admission|head|epoch|length|digest|path|line/i,
   );
+});
+
+test("actionable findings map one-to-one to native line or file threads", () => {
+  assert.doesNotThrow(() => createGitHubReviewWorkerResult({
+    binding: binding(), output: output(), readBundle: bundle(),
+  }), "a mixed actionable/non-actionable report keeps only the actionable native thread");
+
+  const fileFinding = {
+    fingerprint: "correctness:github-review:bound-diff-file",
+    actionable: true,
+    path: "packages/github-read/src/index.js",
+  };
+  const fileComment = {
+    fingerprint: fileFinding.fingerprint,
+    path: fileFinding.path,
+    body: "This file-level invariant needs a native discussion.",
+  };
+  const valid = output({ findings: [fileFinding], inlineComments: [fileComment] });
+  assert.doesNotThrow(() => createGitHubReviewWorkerResult({ binding: binding(), output: valid, readBundle: bundle() }));
+
+  for (const candidate of [
+    output({ findings: [fileFinding], inlineComments: [] }),
+    output({ findings: [{ ...fileFinding, actionable: false }], inlineComments: [fileComment] }),
+    output({ findings: [fileFinding], inlineComments: [{ ...fileComment, fingerprint: "extra:thread" }] }),
+    output({ findings: [fileFinding], inlineComments: [{ ...fileComment, path: "other.js" }] }),
+    output({ findings: [{ ...fileFinding, line: 13 }], inlineComments: [fileComment] }),
+    output({ findings: [fileFinding, fileFinding], inlineComments: [fileComment] }),
+    output({
+      findings: [fileFinding],
+      inlineComments: [fileComment, { ...fileComment, line: 12 }],
+    }),
+  ]) {
+    assert.throws(
+      () => createGitHubReviewWorkerResult({ binding: binding(), output: candidate, readBundle: bundle() }),
+      /actionable|fingerprint|mapping|duplicate|path|line|thread/i,
+    );
+  }
 });
 
 test("private completion envelope stays outside public plugins and manager", () => {

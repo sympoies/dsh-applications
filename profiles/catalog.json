@@ -1,27 +1,27 @@
 {
   "schemaVersion": "dsh-applications.profile-catalog.v1",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "runtimeKitRevision": "2cd14d5fdd73e0758d366d8b671f71ee768d857f",
   "profiles": [
     {
       "id": "batch",
       "path": "profiles/batch/profile.json",
-      "digest": "sha256:8f3ee391e8cfe62386f7129dad05216efd77cd0c4cfb193e72db214e92debe67"
+      "digest": "sha256:0e40c0b1184da03616158c7150b1b67cf3c6d7f50df640111be362eb61bc4e1b"
     },
     {
       "id": "coding",
       "path": "profiles/coding/profile.json",
-      "digest": "sha256:20b34460cee990a0d17a69fe71bfc0a4e99ba9e870df02125c6bfec0c95b6f61"
+      "digest": "sha256:27ecddbbf331a0103a1c29f0b29d3b938189e9082d1dcde8dc0ac09fb08fcb04"
     },
     {
       "id": "conversational",
       "path": "profiles/conversational/profile.json",
-      "digest": "sha256:868584cc3b9b94994cb4d4c242cb1942526e604c53913f5ad4c758c556d8d5bd"
+      "digest": "sha256:784c8bf092a78551d337e32fe202c6c3c4458f5cbb07d03d31bb6878486bc71a"
     },
     {
       "id": "github-pr-review",
       "path": "profiles/github-pr-review/profile.json",
-      "digest": "sha256:f8fc47938126cb887990c7c7a0aebb62c7c13564c8286bcc3af4d6588365a151"
+      "digest": "sha256:dd71026577f7c1212f0354cdd3e193bee217fbed6a94aa8101116b4c4929fd6c"
     }
   ],
   "triggerFixtures": [
