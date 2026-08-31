@@ -119,21 +119,22 @@ printf 'ignore-scripts=true\n' >"$profile_dir/.npmrc"
 
 # Activation layer: a NEW plugin needs an `insert` row (a bare {id, config}
 # row only patches an entry that already exists). Mount it disabled so the
-# probe proves composition without executing third-party code.
-cat >"$profile_dir/cordis.patch.yml" <<EOF
-[
+# probe proves composition without executing third-party code. The live run
+# starts from an empty patch layer to prove the candidate is fail-closed
+# (installed but absent from the composed tree) before this row activates it.
+activation_patch="[
   {
-    "insert": [
+    \"insert\": [
       {
-        "id": "probe-candidate",
-        "name": "$package",
-        "disabled": true,
-        "config": {}
+        \"id\": \"probe-candidate\",
+        \"name\": \"$package\",
+        \"disabled\": true,
+        \"config\": {}
       }
     ]
   }
-]
-EOF
+]"
+printf '%s\n' "$activation_patch" >"$profile_dir/cordis.patch.yml"
 
 # Keep dependency build scripts blocked but demote the pnpm ignored-builds
 # report from an error to a warning: nothing is ever approved in a probe.
@@ -142,7 +143,8 @@ pnpm_guard="--config.strict-dep-builds=false"
 plan="DSH_HOME=$workdir
 step 1: $dsh_bin plugin --profile probe install $pnpm_guard
 step 2: $dsh_bin plugin --profile probe add $candidate_spec $pnpm_guard
-step 3: $dsh_bin --profile probe --dump-config   # expect the candidate mounted disabled via its insert row
+step 3: $dsh_bin --profile probe --dump-config   # with an empty patch layer: expect the candidate ABSENT (fail-closed)
+step 4: $dsh_bin --profile probe --dump-config   # with the insert row: expect the candidate PRESENT and disabled: true
 note: install scripts stay blocked (.npmrc ignore-scripts + unapproved builds);
 note: a candidate that needs build scripts to compose is an explicit red flag."
 
@@ -155,16 +157,52 @@ command -v "$dsh_bin" >/dev/null 2>&1 || fail "dsh launcher not found: $dsh_bin 
 
 export DSH_HOME="$workdir"
 
+# dump-config renders scoped names YAML-quoted (name: '@scope/pkg'); match
+# both the bare and single-quoted renderings.
+candidate_in_tree() {
+  grep -Eq "name: '?$(printf '%s' "$package" | sed 's/[.[\\*^$]/\\&/g')'?\$"
+}
+
 echo "== install bundle pins =="
 "$dsh_bin" plugin --profile probe install "$pnpm_guard" || fail "bundle install failed"
 
 echo "== add candidate $candidate_spec =="
 "$dsh_bin" plugin --profile probe add "$candidate_spec" "$pnpm_guard" || fail "plugin add failed for $candidate_spec"
 
-echo "== compose (candidate mounted disabled via insert row) =="
-composed="$("$dsh_bin" --profile probe --dump-config)" || fail "dump-config failed after activation row"
-if ! printf '%s' "$composed" | grep -Fq "name: $package"; then
-  fail "candidate $package missing from composed tree despite insert row"
+# `dsh plugin add` auto-registers a bundle-shipping candidate in
+# dsh.profile.bundles, which applies the candidate's own patch layer and can
+# self-mount it (even enabled). Report that behavior as evaluation data, then
+# strip the registration: a governed profile enumerates bundles deliberately
+# and mounts third-party plugins through an explicit insert row instead.
+if node -e '
+  const fs = require("fs");
+  const manifestPath = process.argv[1];
+  const candidate = process.argv[2];
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  const bundles = manifest.dsh.profile.bundles;
+  const registered = bundles.includes(candidate);
+  manifest.dsh.profile.bundles = bundles.filter((b) => b !== candidate);
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+  process.exit(registered ? 0 : 3);
+' "$profile_dir/package.json" "$package"; then
+  echo "OBSERVATION: $package ships its own patch layer; dsh plugin add bundle-registered it (self-mounting). Registration stripped for the governed probe; record its shipped cordis.patch.yml in the evaluation."
 fi
 
-echo "PASS: $candidate_spec installs, composes, and mounts disabled under $workdir"
+echo "== compose with empty patch layer (candidate must be fail-closed) =="
+printf '[]\n' >"$profile_dir/cordis.patch.yml"
+composed="$("$dsh_bin" --profile probe --dump-config)" || fail "dump-config failed before activation row"
+if printf '%s\n' "$composed" | candidate_in_tree; then
+  fail "candidate $package appears in the composed tree WITHOUT an insert row: it self-mounts on install"
+fi
+
+echo "== compose with insert row (candidate mounted disabled) =="
+printf '%s\n' "$activation_patch" >"$profile_dir/cordis.patch.yml"
+composed="$("$dsh_bin" --profile probe --dump-config)" || fail "dump-config failed after activation row"
+if ! printf '%s\n' "$composed" | candidate_in_tree; then
+  fail "candidate $package missing from composed tree despite insert row"
+fi
+if ! printf '%s\n' "$composed" | grep -A4 '^- id: probe-candidate$' | grep -q 'disabled: true'; then
+  fail "probe-candidate entry composed without disabled: true"
+fi
+
+echo "PASS: $candidate_spec installs, stays fail-closed without its insert row, and mounts disabled under $workdir"

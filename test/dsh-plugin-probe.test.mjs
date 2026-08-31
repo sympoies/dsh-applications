@@ -98,7 +98,10 @@ test("probe dry-run renders an isolated probe profile and the command plan", () 
   assert.match(dryRun.stdout, /DSH_HOME=/);
   assert.match(dryRun.stdout, new RegExp(workdir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   assert.match(dryRun.stdout, /plugin --profile probe add dsh-telegram-multiagent@1\.3\.0/);
-  assert.match(dryRun.stdout, /--dump-config/);
+  // Two composition observations: fail-closed before the insert row, then
+  // present and disabled with it.
+  assert.match(dryRun.stdout, /ABSENT \(fail-closed\)/);
+  assert.match(dryRun.stdout, /PRESENT and disabled: true/);
   // The plan warns about blocked build scripts instead of approving them.
   assert.match(dryRun.stdout, /red flag/);
 });
