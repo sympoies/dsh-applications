@@ -153,6 +153,31 @@ test("conversation state, queues, and credential namespaces stay isolated from o
     subject.persisted.get(conversationRuntime.sessionId),
     subject.persisted.get(codingRuntime.sessionId),
   );
+
+  // The isolation is enforced by the production adapter, not by fixture
+  // string shapes: a coding runtime that tries to reuse ANY of the running
+  // conversation instance's reserved controllers is refused before create.
+  for (const field of ["memory", "queue", "credentialHandles", "budget", "concurrencyController", "root", "sessionId"]) {
+    let conversationRuntimeValue;
+    const sharing = createAdapterHarness({
+      runtimeFactory(instanceIdentity, runtimes) {
+        const runtime = sharing.defaultRuntime(instanceIdentity);
+        if (instanceIdentity.profileId === "conversational") conversationRuntimeValue = runtime;
+        if (instanceIdentity.profileId === "coding") runtime[field] = conversationRuntimeValue[field];
+        return runtime;
+      },
+    });
+    assert.equal(
+      (await sharing.adapter.lifecycleEffects.start({ identity: conversationIdentity() })).status,
+      "succeeded", field,
+    );
+    assert.deepEqual(
+      await sharing.adapter.lifecycleEffects.start({ identity: codingIdentity() }),
+      { status: "failed", code: "runtime-unavailable" },
+      `sharing the conversation ${field} across profiles must be refused`,
+    );
+    assert.equal(sharing.created.length, 1, `${field} sharing must fail before agent creation`);
+  }
 });
 
 test("one separately granted read-only action is admitted while undeclared and mismatched actions fail closed", async () => {
@@ -283,6 +308,57 @@ test("one separately granted read-only action is admitted while undeclared and m
       input: { message: "escalate" },
     }),
     /mediated action does not match plugin action/u,
+  );
+
+  // Class escalation with the CORRECT declared actionId also fails closed:
+  // a read-declared action can never carry an effectful host action class.
+  const classEscalatingAdapter = {
+    ...dshAdapter,
+    async executePlugin(invocationValue) {
+      return invocationValue.hostAction({
+        apiVersion: "runtime.sympoies.dev/v1",
+        kind: "MediatedHostActionRequest",
+        requestId: "conversation-class-escalate-1",
+        identity: invocationValue.identity,
+        pluginDescriptorDigest: invocationValue.descriptor.metadata.digest,
+        pluginId: "conversation-agent",
+        actionId: "conversation.lookup",
+        actionClass: "provider-write",
+        inputSchemaDigest: DIGEST,
+        outputSchemaDigest: DIGEST,
+        payload: {},
+        runtimeAssertion: { valid: true },
+        expectedState: "Running",
+        targetScopeDigest: DIGEST,
+        resourceClass: "shared",
+        budgetDebit: { units: "1" },
+        publisherEpoch: "1",
+        actionNonce: "conversation-nonce-3",
+        idempotencyKey: "conversation-key-3",
+        requestDigest: DIGEST,
+        runtimeAssertionDigest: DIGEST,
+      });
+    },
+  };
+  const classEscalatingManager = createApplicationManager({
+    runtimeKit,
+    runtimeStore: runtimeKit.store,
+    dshAdapter: classEscalatingAdapter,
+    composition: {},
+    trustVerifier: {},
+    health: async () => ({ state: "ready", code: "READY" }),
+  });
+  const classEscalatingSandbox = createPluginSandbox({
+    runtimeKit, manager: classEscalatingManager, dshAdapter: classEscalatingAdapter, ...admission,
+  });
+  await assert.rejects(
+    classEscalatingSandbox.invoke({
+      pluginId: "conversation-agent",
+      actionId: "conversation.lookup",
+      identity: channel,
+      input: { message: "class escalate" },
+    }),
+    /escalates past the declared read action/u,
   );
 
   // Conversation outputs stay secret-free.
