@@ -38,4 +38,5 @@ follow-ups.
 
 ## Index
 
-- (none yet)
+- [Telegram channel](telegram-channel.md) — 2026-09-01 — adopt
+  `@ashafizullah/dsh-telegram@0.5.1`
