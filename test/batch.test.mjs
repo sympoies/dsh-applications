@@ -54,6 +54,12 @@ const exactRoot = process.env.DSH_RUNTIME_KIT_ROOT
   ? resolve(process.env.DSH_RUNTIME_KIT_ROOT)
   : resolve(import.meta.dirname, "../../dsh-runtime-kit");
 const exactAvailable = existsSync(join(exactRoot, "src/manager/index.js"));
+// A broken checkout layout must fail, never silently skip, when the exact
+// runtime-kit root was requested explicitly (the CI posture).
+assert(
+  !process.env.DSH_RUNTIME_KIT_ROOT || exactAvailable,
+  `DSH_RUNTIME_KIT_ROOT is set but ${exactRoot} has no runtime-kit manager`,
+);
 
 async function exactHarness() {
   const composition = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")));
@@ -61,7 +67,29 @@ async function exactHarness() {
   const fixtures = await import(pathToFileURL(join(exactRoot, "test/helpers/manager-fixtures.mjs")));
   const runtimeKit = { ...composition, ...runtimeManager };
 
-  const resolved = fixtures.composition("non-project");
+  // The admitted composition's authority is DERIVED FROM THE BATCH PROFILE
+  // document, so a drift in the profile's grants or limits fails these
+  // runtime proofs, not just the static literal assertions above.
+  const resolved = fixtures.composition("non-project", {
+    profile: {
+      id: profile.metadata.id,
+      version: profile.metadata.version,
+      digest: profile.metadata.digest,
+      workloadClass: profile.workload.class,
+      scopeClass: profile.workload.scopeClass,
+    },
+    authorityCeiling: {
+      capabilities: [...profile.grants].sort(),
+      networkClasses: [...profile.limits.networkClasses],
+      workspaceClasses: [...profile.limits.workspaceClasses],
+    },
+    modelRouteClass: profile.modelRouteClass,
+    isolation: {
+      workspaceClass: profile.state.workspace,
+      sessionClass: profile.state.session,
+      memoryClass: profile.state.memory,
+    },
+  });
   const lock = fixtures.compositionLock(resolved);
   const signing = fixtures.signingFixture();
   const bundle = fixtures.trustBundle(signing);
@@ -117,11 +145,11 @@ async function exactHarness() {
     });
   }
 
-  return { runtimeKit, runtimeManager, fixtures, admitted, startRequest, managerFor };
+  return { runtimeKit, runtimeManager, composition, fixtures, admitted, startRequest, managerFor };
 }
 
 test("manual and scheduled batch instances lock against one identical seal and composition", { skip: !exactAvailable }, async () => {
-  const { runtimeKit, admitted, managerFor } = await exactHarness();
+  const { runtimeKit, composition, admitted, managerFor } = await exactHarness();
   const store = runtimeKit.createMemoryRuntimeStore();
   const manager = managerFor(store, {});
 
@@ -143,6 +171,26 @@ test("manual and scheduled batch instances lock against one identical seal and c
     manualLock.receipt.resolvedCompositionDigest,
     scheduledLock.receipt.resolvedCompositionDigest,
   );
+
+  // The parity is profile-derived, not fixture-trivial: each instance gets
+  // its own seal, both seals bind one effective-authority digest, and that
+  // digest equals a document recomputed independently from the batch
+  // profile's grants and limits. A grant or limit drift in
+  // profiles/batch/profile.json fails this runtime proof.
+  const expectedAuthority = {
+    capabilities: [...profile.grants].sort(),
+    networkClasses: [...profile.limits.networkClasses],
+    workspaceClasses: [...profile.limits.workspaceClasses],
+    resourceClasses: ["shared"],
+  };
+  const expectedDigest = composition.domainSeparatedDigest(
+    "sympoies/private-effective-authority/v1", expectedAuthority,
+  );
+  assert.notEqual(manual.seal.metadata.digest, scheduled.seal.metadata.digest);
+  assert.equal(manual.seal.effectiveAuthorityDigest, expectedDigest);
+  assert.equal(scheduled.seal.effectiveAuthorityDigest, expectedDigest);
+  assert.deepEqual(manual.seal.effectiveAuthority, expectedAuthority);
+  assert.deepEqual(scheduled.seal.effectiveAuthority, expectedAuthority);
 });
 
 test("a schedule tick has one stable identity: replays are exact and overlap is forbidden", { skip: !exactAvailable }, async () => {
@@ -195,6 +243,9 @@ test("a retryable tick failure keeps its exact terminal result and a fresh attem
 
   // A bounded retry is a NEW attempt with its own idempotency key; the
   // failed attempt's terminal result stays pinned to its key forever.
+  // The attempt CEILING (execution.retry.maxAttempts) is scheduler-side
+  // trigger configuration: the runtime pins per-attempt terminal results
+  // and the static profile assertion pins the declared bound.
   const secondAttempt = startRequest(tick, locked.receipt.digest, "tick-20260831-0400-attempt-2");
   const retried = await manager.start(secondAttempt);
   assert.equal(retried.kind, "StartInstanceSucceeded");
@@ -256,7 +307,14 @@ test("a schedule trigger peer can observe but never drive lifecycle operations",
   const startPayload = startRequest(tick, locked.receipt.digest, "trigger-start-attempt");
   await assert.rejects(
     control.handle(frame(startPayload, "2"), { peerIdentity: "schedule-trigger" }),
-    /not allowed/u,
+    error => {
+      // The refusal must come from the peer-OPERATIONS gate, never the
+      // namespace gate, so granting the trigger start can never hide
+      // behind a drifted namespace prefix.
+      assert.match(error.message, /operation is not allowed for this peer/u);
+      assert.equal(error.code, "unauthorized");
+      return true;
+    },
     "a schedule trigger can never drive lifecycle",
   );
 
