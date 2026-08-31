@@ -82,7 +82,7 @@ Follow-ups:
 - Public: a conversational Telegram profile in this repository composing the
   adopted plugin with the least-authority conversation contract (no tools;
   session memory only), version-pinned and mounted disabled until admitted.
-- Private (sympoies-infra): ingress/credential binding — Telegram bot token
+- Private (the private deployment repository): ingress/credential binding — Telegram bot token
   provisioned into the harness credential seam, deployment identity, and
   rollout.
 - LINE channel: no ecosystem candidate exists; a future record will decide
