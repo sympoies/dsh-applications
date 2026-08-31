@@ -144,3 +144,6 @@ vite.config.ts.timestamp-*
 
 # Project-local Claude directory (skills live in .agents/skills/)
 .claude/
+
+# Agent-session evidence and runtime output; never public repository content
+agent-out/
