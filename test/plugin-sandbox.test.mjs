@@ -98,27 +98,58 @@ function invokeRequest(instanceIdentity, input, overrides = {}) {
 }
 
 test("locked plugin execution receives no ambient manager capability and every mediated class crosses runtime-kit", async () => {
-  const mediatedClasses = [
-    "filesystem-read", "filesystem-write", "network-connect", "subprocess-template",
-    "credential-use", "provider-read", "provider-write", "clock-read", "random-read",
+  // Effectful classes may only ride a write-declared action; the sandbox
+  // refuses them for a read-declared action before any host execution.
+  const readClasses = ["filesystem-read", "provider-read", "clock-read", "random-read"];
+  const effectfulClasses = [
+    "filesystem-write", "network-connect", "subprocess-template",
+    "credential-use", "provider-write",
   ];
-  const instanceIdentity = identity();
-  const { runtimeKit, sandbox } = setupSandbox(async invocation => {
+  const executePlugin = async invocation => {
     assert.deepEqual(Object.keys(invocation).sort(), ["actionId", "descriptor", "hostAction", "identity", "input"]);
     for (const ambient of ["process", "fs", "network", "subprocess", "credentials", "provider", "clock", "random"]) {
       assert.equal(invocation[ambient], undefined);
     }
     return invocation.hostAction(invocation.input);
-  });
-  for (const actionClass of mediatedClasses) {
+  };
+  const instanceIdentity = identity();
+  const { runtimeKit, sandbox } = setupSandbox(executePlugin);
+  for (const actionClass of readClasses) {
     const result = await sandbox.invoke(invokeRequest(
       instanceIdentity,
       hostAction(instanceIdentity, { actionClass, requestId: `request-${actionClass}` }),
     ));
     assert.equal(result.kind, "MediatedHostActionSucceeded");
   }
-  assert.equal(runtimeKit.calls.filter(call => call.operation === "validate-host-request").length, mediatedClasses.length);
-  assert.equal(runtimeKit.calls.filter(call => call.owner === "host" && call.operation === "execute").length, mediatedClasses.length);
+  for (const actionClass of effectfulClasses) {
+    await assert.rejects(
+      sandbox.invoke(invokeRequest(
+        instanceIdentity,
+        hostAction(instanceIdentity, { actionClass, requestId: `request-${actionClass}` }),
+      )),
+      /escalates past the declared read action/u,
+      actionClass,
+    );
+  }
+  assert.equal(runtimeKit.calls.filter(call => call.operation === "validate-host-request").length, readClasses.length);
+  assert.equal(runtimeKit.calls.filter(call => call.owner === "host" && call.operation === "execute").length, readClasses.length);
+
+  const writeDescriptor = pluginDescriptor();
+  writeDescriptor.actions[0].class = "write";
+  writeDescriptor.actions[0].sideEffect = "idempotent";
+  const writeIdentity = identity("instance-write");
+  const writeSandbox = setupSandbox(executePlugin, { descriptor: writeDescriptor, identity: writeIdentity });
+  for (const actionClass of effectfulClasses) {
+    const result = await writeSandbox.sandbox.invoke(invokeRequest(
+      writeIdentity,
+      hostAction(writeIdentity, { actionClass, requestId: `write-request-${actionClass}` }),
+    ));
+    assert.equal(result.kind, "MediatedHostActionSucceeded");
+  }
+  assert.equal(
+    writeSandbox.runtimeKit.calls.filter(call => call.owner === "host" && call.operation === "execute").length,
+    effectfulClasses.length,
+  );
 });
 
 test("caller descriptors and substituted admission proofs fail before DSH execution", async () => {

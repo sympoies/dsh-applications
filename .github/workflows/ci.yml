@@ -117,6 +117,11 @@ jobs:
         env:
           DSH_RUNTIME_KIT_ROOT: ../dsh-runtime-kit
         run: npm run test:integration
+      - name: Prove the conversational profile boundary
+        working-directory: dsh-applications
+        env:
+          DSH_RUNTIME_KIT_ROOT: ../dsh-runtime-kit
+        run: npm run test:conversation
       - name: Validate public profiles with exact runtime-kit
         working-directory: dsh-applications
         run: npm run test:profile-compatibility -- --runtime-kit-root ../dsh-runtime-kit

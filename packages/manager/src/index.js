@@ -5,6 +5,13 @@ export const PUBLIC_MANAGER_OPERATIONS = Object.freeze([
   "interrupt", "drain", "stop", "doctor",
 ]);
 
+// Mirrors the runtime-kit host service's effectful action-class set: a
+// descriptor action declared `read` may never carry one of these classes.
+export const EFFECTFUL_HOST_ACTION_CLASSES = Object.freeze([
+  "filesystem-write", "network-connect", "subprocess-template",
+  "provider-write", "credential-use",
+]);
+
 export const DEFAULT_PLUGIN_PAYLOAD_LIMITS = Object.freeze({
   inputBytes: 1_048_576,
   outputBytes: 1_048_576,
@@ -302,6 +309,9 @@ export function createPluginSandbox({
       if (detachedRequest.pluginDescriptorDigest !== descriptor.metadata.digest) fail("mediated action descriptor digest does not match plugin");
       if (detachedRequest.inputSchemaDigest !== action.inputSchemaDigest || detachedRequest.outputSchemaDigest !== action.outputSchemaDigest) {
         fail("mediated action schemas do not match plugin action");
+      }
+      if (action.class === "read" && EFFECTFUL_HOST_ACTION_CLASSES.includes(detachedRequest.actionClass)) {
+        fail("mediated action class escalates past the declared read action");
       }
       runtimeKit.validateMediatedHostActionRequest(detachedRequest);
       return state.hostService.execute(detachedRequest);
