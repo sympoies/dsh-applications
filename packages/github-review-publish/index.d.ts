@@ -19,9 +19,16 @@ export interface GitHubReviewOutput {
     readonly format: "agent-kit.specialist-review-report.v1";
     readonly body: string;
   };
-  readonly inlineComments: readonly {
+  readonly findings: readonly {
+    readonly fingerprint: string;
+    readonly actionable: boolean;
     readonly path: string;
-    readonly line: number;
+    readonly line?: number;
+  }[];
+  readonly inlineComments: readonly {
+    readonly fingerprint: string;
+    readonly path: string;
+    readonly line?: number;
     readonly body: string;
     readonly suggestion?: string;
   }[];

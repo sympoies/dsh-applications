@@ -88,7 +88,18 @@ function output(overrides = {}) {
   return {
     decision: "REQUEST_CHANGES",
     reviewReport: { format: "agent-kit.specialist-review-report.v1", body: report },
+    findings: [{
+      fingerprint: "correctness:github-review:bound-diff-line",
+      actionable: true,
+      path: "packages/github-read/src/index.js",
+      line: 13,
+    }, {
+      fingerprint: "maintainability:github-review:report-only-context",
+      actionable: false,
+      path: "packages/github-read/src/index.js",
+    }],
     inlineComments: [{
+      fingerprint: "correctness:github-review:bound-diff-line",
       path: "packages/github-read/src/index.js",
       line: 13,
       body: "The check must fail closed at this line.",
@@ -123,6 +134,10 @@ test("public package code contains no App identity or provider client", () => {
 
 test("plugin action schema digests bind the checked-in public contracts", () => {
   const fileDigest = relativePath => `sha256:${createHash("sha256").update(readFileSync(resolve(root, relativePath))).digest("hex")}`;
+  const workerResultSchema = JSON.parse(readFileSync(
+    resolve(root, "packages/github-review-publish/schemas/worker-result.schema.json"),
+    "utf8",
+  ));
   assert.equal(GITHUB_REVIEW_TRIGGER_SCHEMA_DIGEST, fileDigest("profiles/github-pr-review/input.schema.json"));
   assert.equal(
     GITHUB_PULL_REQUEST_READ_BUNDLE_SCHEMA_DIGEST,
@@ -133,10 +148,26 @@ test("plugin action schema digests bind the checked-in public contracts", () => 
     GITHUB_REVIEW_WORKER_RESULT_SCHEMA_DIGEST,
     fileDigest("packages/github-review-publish/schemas/worker-result.schema.json"),
   );
+  assert.equal(
+    workerResultSchema.properties.outputSchemaDigest.const,
+    GITHUB_REVIEW_OUTPUT_SCHEMA_DIGEST,
+    "the worker-result schema identity must transitively bind the exact output schema revision",
+  );
+});
+
+test("github-pr-review resolver rejects pre-v0.3 publishers", { skip: !exactRuntimeKitAvailable }, async () => {
+  const runtimeKit = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")));
+  const profile = JSON.parse(readFileSync(resolve(root, "profiles/github-pr-review/profile.json"), "utf8"));
+  const range = profile.plugins.find(plugin => plugin.id === "github-review-publish")?.range;
+  assert.equal(range, ">=0.3.0 <1.0.0");
+  assert.equal(runtimeKit.versionSatisfies("0.2.999", range), false);
+  assert.equal(runtimeKit.versionSatisfies("0.3.0", range), true);
 });
 
 test("release-bound GitHub packages construct exact runtime-kit PluginDescriptors", { skip: !exactRuntimeKitAvailable }, async () => {
   const runtimeKit = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")));
+  const profile = JSON.parse(readFileSync(resolve(root, "profiles/github-pr-review/profile.json"), "utf8"));
+  const reviewPublisherRange = profile.plugins.find(plugin => plugin.id === "github-review-publish")?.range;
   const revision = "3".repeat(40);
   const artifactIdentity = {
     digest: `sha256:${"4".repeat(64)}`,
@@ -147,6 +178,8 @@ test("release-bound GitHub packages construct exact runtime-kit PluginDescriptor
   const publish = createGitHubReviewPublishPluginDescriptor(runtimeKit, artifactIdentity);
   assert.equal(read.metadata.id, "github-read");
   assert.equal(publish.metadata.id, "github-review-publish");
+  assert.equal(publish.metadata.version, "0.3.0");
+  assert.equal(runtimeKit.versionSatisfies(publish.metadata.version, reviewPublisherRange), true);
   assert.equal(read.metadata.digest, runtimeKit.computeDocumentDigest(read));
   assert.equal(publish.metadata.digest, runtimeKit.computeDocumentDigest(publish));
   assert.deepEqual(read.mediation.network, []);
@@ -161,6 +194,34 @@ test("release-bound GitHub packages construct exact runtime-kit PluginDescriptor
   assert.throws(
     () => createGitHubReadPluginDescriptor(runtimeKit, { ...artifactIdentity, repository: "forbidden" }),
     /unknown/i,
+  );
+
+  const publicPolicy = {
+    digest: `sha256:${"0".repeat(64)}`,
+    grants: [...profile.grants],
+    networkClasses: [],
+    workspaceClasses: [],
+    resourceClasses: ["shared"],
+  };
+  publicPolicy.digest = runtimeKit.computePublicPolicyDigest(publicPolicy);
+  const plugins = [read, publish];
+  const resolved = runtimeKit.resolveComposition({
+    profile,
+    plugins,
+    runtime: {
+      dshVersion: "0.1.1-rc.2",
+      runtimeKitVersion: "0.0.0",
+      pluginApiVersion: "1.0.0",
+      platform: "linux-x64",
+      resolverVersion: "1.0.0",
+    },
+    publicPolicy,
+    catalogSnapshotDigest: runtimeKit.computeCatalogSnapshotDigest(plugins),
+    reason: "initial",
+  });
+  assert.deepEqual(
+    resolved.composition.plugins.map(plugin => [plugin.id, plugin.version]),
+    [["github-read", "0.3.0"], ["github-review-publish", "0.3.0"]],
   );
 });
 
@@ -251,6 +312,69 @@ test("worker result rejects invalid immutable binding, epochs, and diff location
   ]) assert.throws(
     () => validateGitHubReviewWorkerResult(candidate, { readBundle: bundle() }),
     /request|target|generation|instance|admission|head|epoch|length|digest|path|line/i,
+  );
+});
+
+test("actionable findings map one-to-one to native line or file threads", () => {
+  assert.doesNotThrow(() => createGitHubReviewWorkerResult({
+    binding: binding(), output: output(), readBundle: bundle(),
+  }), "a mixed actionable/non-actionable report keeps only the actionable native thread");
+
+  const fileFinding = {
+    fingerprint: "correctness:github-review:bound-diff-file",
+    actionable: true,
+    path: "packages/github-read/src/index.js",
+  };
+  const fileComment = {
+    fingerprint: fileFinding.fingerprint,
+    path: fileFinding.path,
+    body: "This file-level invariant needs a native discussion.",
+  };
+  const valid = output({ findings: [fileFinding], inlineComments: [fileComment] });
+  assert.doesNotThrow(() => createGitHubReviewWorkerResult({ binding: binding(), output: valid, readBundle: bundle() }));
+
+  for (const candidate of [
+    output({ findings: [fileFinding], inlineComments: [] }),
+    output({ findings: [{ ...fileFinding, actionable: false }], inlineComments: [fileComment] }),
+    output({ findings: [fileFinding], inlineComments: [{ ...fileComment, fingerprint: "extra:thread" }] }),
+    output({ findings: [fileFinding], inlineComments: [{ ...fileComment, path: "other.js" }] }),
+    output({ findings: [{ ...fileFinding, line: 13 }], inlineComments: [fileComment] }),
+    output({ findings: [fileFinding, fileFinding], inlineComments: [fileComment] }),
+    output({
+      findings: [fileFinding],
+      inlineComments: [fileComment, { ...fileComment, line: 12 }],
+    }),
+  ]) {
+    assert.throws(
+      () => createGitHubReviewWorkerResult({ binding: binding(), output: candidate, readBundle: bundle() }),
+      /actionable|fingerprint|mapping|duplicate|path|line|thread/i,
+    );
+  }
+});
+
+test("distinct actionable fingerprints may share one native thread location", () => {
+  const findings = ["correctness", "security"].map(category => ({
+    fingerprint: `${category}:github-review:collocated-line`,
+    actionable: true,
+    path: "packages/github-read/src/index.js",
+    line: 13,
+  }));
+  const inlineComments = findings.map(finding => ({
+    fingerprint: finding.fingerprint,
+    path: finding.path,
+    line: finding.line,
+    body: `Address the independent ${finding.fingerprint} concern at this line.`,
+  }));
+
+  const workerResult = createGitHubReviewWorkerResult({
+    binding: binding(),
+    output: output({ findings, inlineComments }),
+    readBundle: bundle(),
+  });
+
+  assert.deepEqual(
+    workerResult.output.inlineComments.map(comment => [comment.fingerprint, comment.path, comment.line]),
+    inlineComments.map(comment => [comment.fingerprint, comment.path, comment.line]),
   );
 });
 

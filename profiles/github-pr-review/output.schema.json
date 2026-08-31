@@ -3,7 +3,7 @@
   "title": "GitHub pull-request review output",
   "type": "object",
   "additionalProperties": false,
-  "required": ["decision", "reviewReport", "inlineComments"],
+  "required": ["decision", "reviewReport", "findings", "inlineComments"],
   "properties": {
     "decision": { "enum": ["APPROVE", "COMMENT", "REQUEST_CHANGES"] },
     "reviewReport": {
@@ -20,14 +20,30 @@
         }
       }
     },
+    "findings": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["fingerprint", "actionable", "path"],
+        "properties": {
+          "fingerprint": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+          "actionable": { "type": "boolean" },
+          "path": { "type": "string", "minLength": 1, "maxLength": 1024 },
+          "line": { "type": "integer", "minimum": 1, "maximum": 2147483647 }
+        }
+      }
+    },
     "inlineComments": {
       "type": "array",
       "maxItems": 50,
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["path", "line", "body"],
+        "required": ["fingerprint", "path", "body"],
         "properties": {
+          "fingerprint": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" },
           "path": { "type": "string", "minLength": 1, "maxLength": 1024 },
           "line": { "type": "integer", "minimum": 1, "maximum": 2147483647 },
           "body": { "type": "string", "minLength": 1, "maxLength": 8192 },

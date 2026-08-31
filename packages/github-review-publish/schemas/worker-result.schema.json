@@ -20,7 +20,7 @@
     "pathSetDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
     "generation": { "type": "string", "minLength": 1, "maxLength": 256 },
     "instance": { "type": "string", "minLength": 1, "maxLength": 256 },
-    "outputSchemaDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "outputSchemaDigest": { "const": "sha256:6f50d0a3d4b4c221cb553eef5084842926458a8678107c95024efd85fd0667d2" },
     "outputMediaType": { "const": "application/vnd.sympoies.github-review+json" },
     "outputByteLength": { "type": "integer", "minimum": 1, "maximum": 65536 },
     "output": { "$ref": "../../../profiles/github-pr-review/output.schema.json" },

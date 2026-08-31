@@ -6,8 +6,8 @@ import { definePlugin } from "@sympoies/dsh-plugin-sdk";
 export const GITHUB_REVIEW_OUTPUT_DIGEST_DOMAIN = "sympoies/github-review-output/v1";
 export const GITHUB_REVIEW_WORKER_RESULT_DIGEST_DOMAIN = "sympoies/github-review-worker-result/v1";
 export const GITHUB_REVIEW_OUTPUT_MEDIA_TYPE = "application/vnd.sympoies.github-review+json";
-export const GITHUB_REVIEW_OUTPUT_SCHEMA_DIGEST = "sha256:667c89a3992e6785aa948872df9b3a6c01f37ad9d33b9e91b2de6282fcbcd21b";
-export const GITHUB_REVIEW_WORKER_RESULT_SCHEMA_DIGEST = "sha256:1fdc38955f502267a09219b2474a50d7b518bc6f93741fb44551331a9f029060";
+export const GITHUB_REVIEW_OUTPUT_SCHEMA_DIGEST = "sha256:6f50d0a3d4b4c221cb553eef5084842926458a8678107c95024efd85fd0667d2";
+export const GITHUB_REVIEW_WORKER_RESULT_SCHEMA_DIGEST = "sha256:4066880e5d22050eefbbd40afdf143e58a055c8ce64bdeaafebfd0fdfc8bdc12";
 export const MAX_GITHUB_REVIEW_WORKER_RESULT_BYTES = 65_536;
 
 const API_VERSION = "runtime.sympoies.dev/v1";
@@ -48,6 +48,11 @@ function boundedString(value, label, maximumBytes) {
   if (typeof value !== "string" || value.length === 0 || Buffer.byteLength(value, "utf8") > maximumBytes) {
     fail(`${label} is invalid or too long`);
   }
+}
+
+function fingerprint(value, label) {
+  boundedString(value, label, 256);
+  if (value.trim().length === 0) fail(`${label} must contain a non-whitespace stable identifier`);
 }
 
 function digest(value, label) {
@@ -157,7 +162,7 @@ export function computeGitHubReviewWorkerResultDigest(result) {
 
 function validateReviewOutput(value) {
   const output = record(value, "workerResult.output");
-  exactKeys(output, ["decision", "reviewReport", "inlineComments"], [], "workerResult.output");
+  exactKeys(output, ["decision", "reviewReport", "findings", "inlineComments"], [], "workerResult.output");
   if (!["APPROVE", "COMMENT", "REQUEST_CHANGES"].includes(output.decision)) {
     fail("workerResult.output.decision is invalid");
   }
@@ -177,25 +182,58 @@ function validateReviewOutput(value) {
   }
   if (!report.body.slice(cursor).includes(output.decision)) fail("workerResult output report decision does not match");
 
+  if (!Array.isArray(output.findings) || output.findings.length > 50) {
+    fail("workerResult.output.findings must be a bounded array");
+  }
+  const findings = new Map();
+  output.findings.forEach((candidate, index) => {
+    const finding = record(candidate, `workerResult.output.findings[${index}]`);
+    exactKeys(finding, ["fingerprint", "actionable", "path"], ["line"], `workerResult.output.findings[${index}]`);
+    fingerprint(finding.fingerprint, `workerResult.output.findings[${index}].fingerprint`);
+    if (typeof finding.actionable !== "boolean") {
+      fail(`workerResult.output.findings[${index}].actionable must be a boolean`);
+    }
+    path(finding.path, `workerResult.output.findings[${index}].path`);
+    if (finding.line !== undefined
+      && (!Number.isSafeInteger(finding.line) || finding.line < 1 || finding.line > 2_147_483_647)) {
+      fail(`workerResult.output.findings[${index}].line is invalid`);
+    }
+    if (findings.has(finding.fingerprint)) fail("workerResult output finding fingerprints must be unique");
+    findings.set(finding.fingerprint, finding);
+  });
+
   if (!Array.isArray(output.inlineComments) || output.inlineComments.length > 50) {
     fail("workerResult.output.inlineComments must be a bounded array");
   }
-  const locations = new Set();
+  const threadFingerprints = new Set();
   output.inlineComments.forEach((candidate, index) => {
     const comment = record(candidate, `workerResult.output.inlineComments[${index}]`);
-    exactKeys(comment, ["path", "line", "body"], ["suggestion"], `workerResult.output.inlineComments[${index}]`);
+    exactKeys(comment, ["fingerprint", "path", "body"], ["line", "suggestion"], `workerResult.output.inlineComments[${index}]`);
+    fingerprint(comment.fingerprint, `workerResult.output.inlineComments[${index}].fingerprint`);
     path(comment.path, `workerResult.output.inlineComments[${index}].path`);
-    if (!Number.isSafeInteger(comment.line) || comment.line < 1 || comment.line > 2_147_483_647) {
+    if (comment.line !== undefined
+      && (!Number.isSafeInteger(comment.line) || comment.line < 1 || comment.line > 2_147_483_647)) {
       fail(`workerResult.output.inlineComments[${index}].line is invalid`);
     }
     boundedString(comment.body, `workerResult.output.inlineComments[${index}].body`, 8192);
     if (comment.suggestion !== undefined) {
       boundedString(comment.suggestion, `workerResult.output.inlineComments[${index}].suggestion`, 16_384);
     }
-    const location = `${comment.path}\0${comment.line}`;
-    if (locations.has(location)) fail("workerResult output inline locations must be unique");
-    locations.add(location);
+    if (threadFingerprints.has(comment.fingerprint)) fail("workerResult output thread fingerprints must be unique");
+    threadFingerprints.add(comment.fingerprint);
+    const finding = findings.get(comment.fingerprint);
+    if (finding === undefined || finding.actionable !== true) {
+      fail(`workerResult.output.inlineComments[${index}] does not map to an actionable finding`);
+    }
+    if (finding.path !== comment.path || finding.line !== comment.line) {
+      fail(`workerResult.output.inlineComments[${index}] location does not match its actionable finding`);
+    }
   });
+  for (const finding of findings.values()) {
+    if (finding.actionable && !threadFingerprints.has(finding.fingerprint)) {
+      fail(`workerResult output actionable finding ${finding.fingerprint} has no native thread mapping`);
+    }
+  }
   return output;
 }
 
@@ -229,8 +267,15 @@ function compareReadBinding(result, input) {
     if (result[field] !== readBundle[field]) fail(`workerResult.${field} does not match the server-bound read bundle`);
   }
   const linesByPath = new Map(readBundle.files.map(file => [file.path, new Set(file.lines)]));
+  result.output.findings.forEach((finding, index) => {
+    if (!linesByPath.has(finding.path)
+      || (finding.line !== undefined && !linesByPath.get(finding.path)?.has(finding.line))) {
+      fail(`workerResult.output.findings[${index}] path and line are not in the server-bound diff`);
+    }
+  });
   result.output.inlineComments.forEach((comment, index) => {
-    if (!linesByPath.get(comment.path)?.has(comment.line)) {
+    if (!linesByPath.has(comment.path)
+      || (comment.line !== undefined && !linesByPath.get(comment.path)?.has(comment.line))) {
       fail(`workerResult.output.inlineComments[${index}] path and line are not in the server-bound diff`);
     }
   });
@@ -304,7 +349,7 @@ export function createGitHubReviewPublishPluginDescriptor(runtimeKit, artifactId
   const descriptor = {
     apiVersion: "runtime.sympoies.dev/v1",
     kind: "PluginDescriptor",
-    metadata: { id: "github-review-publish", version: "0.2.1", digest: `sha256:${"0".repeat(64)}` },
+    metadata: { id: "github-review-publish", version: "0.3.0", digest: `sha256:${"0".repeat(64)}` },
     artifact: {
       package: "@sympoies/dsh-github-review-publish",
       digest: artifact.digest,

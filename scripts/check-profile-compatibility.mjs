@@ -4,6 +4,8 @@ import { createHash } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { createGitHubReadPluginDescriptor } from "../packages/github-read/src/index.js";
+import { createGitHubReviewPublishPluginDescriptor } from "../packages/github-review-publish/src/index.js";
 import { defineTrigger } from "../packages/plugin-sdk/src/index.js";
 
 const root = resolve(import.meta.dirname, "..");
@@ -51,7 +53,10 @@ const runtimePackage = load(resolve(runtimeKitRoot, "package.json"));
 const composition = await import(
   pathToFileURL(resolve(runtimeKitRoot, runtimePackage.exports["./composition"])).href
 );
-for (const method of ["computeDocumentDigest", "parseCanonicalJsonText", "validateBotProfile"]) {
+for (const method of [
+  "computeCatalogSnapshotDigest", "computeDocumentDigest", "computePublicPolicyDigest",
+  "parseCanonicalJsonText", "resolveComposition", "validateBotProfile", "versionSatisfies",
+]) {
   assert.equal(typeof composition[method], "function", `runtime-kit composition.${method} is required`);
 }
 
@@ -69,6 +74,54 @@ for (const entry of catalog.profiles) {
   assert.equal(digestFile(resolve(root, `profiles/${entry.id}/input.schema.json`)), profile.artifacts.inputSchemaDigest);
   assert.equal(digestFile(resolve(root, `profiles/${entry.id}/output.schema.json`)), profile.artifacts.outputSchemaDigest);
 }
+
+const reviewProfile = load(resolve(root, "profiles/github-pr-review/profile.json"));
+const reviewPublisherRange = reviewProfile.plugins.find(plugin => plugin.id === "github-review-publish")?.range;
+assert.equal(reviewPublisherRange, ">=0.3.0 <1.0.0");
+assert.equal(
+  composition.versionSatisfies("0.2.999", reviewPublisherRange),
+  false,
+  "the v0.3 review profile must reject every v0.2 publisher",
+);
+const reviewArtifact = {
+  digest: `sha256:${"4".repeat(64)}`,
+  sourceRevision: "3".repeat(40),
+  attestationIdentity: `https://github.com/sympoies/dsh-applications/actions@${"3".repeat(40)}`,
+};
+const reviewPlugins = [
+  createGitHubReadPluginDescriptor(composition, reviewArtifact),
+  createGitHubReviewPublishPluginDescriptor(composition, reviewArtifact),
+];
+const reviewPublisher = reviewPlugins.find(plugin => plugin.metadata.id === "github-review-publish");
+assert(reviewPublisher, "the actual github-review-publish descriptor is required");
+assert.equal(reviewPublisher.metadata.version, "0.3.0");
+assert.equal(composition.versionSatisfies(reviewPublisher.metadata.version, reviewPublisherRange), true);
+const reviewPolicy = {
+  digest: `sha256:${"0".repeat(64)}`,
+  grants: [...reviewProfile.grants],
+  networkClasses: [],
+  workspaceClasses: [],
+  resourceClasses: ["shared"],
+};
+reviewPolicy.digest = composition.computePublicPolicyDigest(reviewPolicy);
+const resolvedReview = composition.resolveComposition({
+  profile: reviewProfile,
+  plugins: reviewPlugins,
+  runtime: {
+    dshVersion: lock.dsh.version,
+    runtimeKitVersion: "0.0.0",
+    pluginApiVersion: "1.0.0",
+    platform: "linux-x64",
+    resolverVersion: "1.0.0",
+  },
+  publicPolicy: reviewPolicy,
+  catalogSnapshotDigest: composition.computeCatalogSnapshotDigest(reviewPlugins),
+  reason: "initial",
+});
+assert.deepEqual(
+  resolvedReview.composition.plugins.map(plugin => [plugin.id, plugin.version]),
+  [["github-read", "0.3.0"], ["github-review-publish", "0.3.0"]],
+);
 
 const triggerMappings = new Map();
 for (const entry of catalog.triggerFixtures) {
