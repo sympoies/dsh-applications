@@ -47,8 +47,8 @@ npm run test:package
 ```
 
 See [architecture](docs/architecture.md), [ownership](docs/ownership.md),
-[release rules](docs/releases.md), and [contributing](CONTRIBUTING.md) before
-adding a package.
+[release rules](docs/releases.md), [development log](docs/devlog/README.md),
+and [contributing](CONTRIBUTING.md) before adding a package.
 
 ## License
 
