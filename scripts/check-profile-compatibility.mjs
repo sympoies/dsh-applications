@@ -51,7 +51,7 @@ const runtimePackage = load(resolve(runtimeKitRoot, "package.json"));
 const composition = await import(
   pathToFileURL(resolve(runtimeKitRoot, runtimePackage.exports["./composition"])).href
 );
-for (const method of ["computeDocumentDigest", "parseCanonicalJsonText", "validateBotProfile"]) {
+for (const method of ["computeDocumentDigest", "parseCanonicalJsonText", "validateBotProfile", "versionSatisfies"]) {
   assert.equal(typeof composition[method], "function", `runtime-kit composition.${method} is required`);
 }
 
@@ -69,6 +69,16 @@ for (const entry of catalog.profiles) {
   assert.equal(digestFile(resolve(root, `profiles/${entry.id}/input.schema.json`)), profile.artifacts.inputSchemaDigest);
   assert.equal(digestFile(resolve(root, `profiles/${entry.id}/output.schema.json`)), profile.artifacts.outputSchemaDigest);
 }
+
+const reviewProfile = load(resolve(root, "profiles/github-pr-review/profile.json"));
+const reviewPublisherRange = reviewProfile.plugins.find(plugin => plugin.id === "github-review-publish")?.range;
+assert.equal(reviewPublisherRange, ">=0.3.0 <1.0.0");
+assert.equal(
+  composition.versionSatisfies("0.2.999", reviewPublisherRange),
+  false,
+  "the v0.3 review profile must reject every v0.2 publisher",
+);
+assert.equal(composition.versionSatisfies("0.3.0", reviewPublisherRange), true);
 
 const triggerMappings = new Map();
 for (const entry of catalog.triggerFixtures) {

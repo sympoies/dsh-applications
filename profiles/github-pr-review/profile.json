@@ -4,7 +4,7 @@
   "metadata": {
     "id": "github-pr-review",
     "version": "0.3.0",
-    "digest": "sha256:dd71026577f7c1212f0354cdd3e193bee217fbed6a94aa8101116b4c4929fd6c",
+    "digest": "sha256:f29562effdf9127b9a3025da8e9ba5bade950ed1f287a525f0217c3f0e48ae94",
     "purpose": "Credential-free review of one broker-admitted pull request capsule"
   },
   "workload": {
@@ -18,7 +18,7 @@
     },
     {
       "id": "github-review-publish",
-      "range": ">=0.2.0 <1.0.0"
+      "range": ">=0.3.0 <1.0.0"
     }
   ],
   "grants": [

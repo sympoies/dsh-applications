@@ -13,6 +13,9 @@ actionability from severity. The output is validated against the immutable
 `profiles/github-pr-review/output.schema.json`, serialized as UTF-8 RFC 8785
 JCS, limited to 65,536 bytes, and bound by its byte length, schema digest,
 output digest, and complete worker-result digest.
+The worker-result schema constrains `outputSchemaDigest` to that exact output
+schema digest, so revising the referenced output contract necessarily changes
+the worker-result schema identity as well.
 
 The output digest preimage is
 `ASCII("sympoies/github-review-output/v1") || 0x00 || canonical-output-bytes`.

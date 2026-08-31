@@ -134,6 +134,10 @@ test("public package code contains no App identity or provider client", () => {
 
 test("plugin action schema digests bind the checked-in public contracts", () => {
   const fileDigest = relativePath => `sha256:${createHash("sha256").update(readFileSync(resolve(root, relativePath))).digest("hex")}`;
+  const workerResultSchema = JSON.parse(readFileSync(
+    resolve(root, "packages/github-review-publish/schemas/worker-result.schema.json"),
+    "utf8",
+  ));
   assert.equal(GITHUB_REVIEW_TRIGGER_SCHEMA_DIGEST, fileDigest("profiles/github-pr-review/input.schema.json"));
   assert.equal(
     GITHUB_PULL_REQUEST_READ_BUNDLE_SCHEMA_DIGEST,
@@ -144,6 +148,20 @@ test("plugin action schema digests bind the checked-in public contracts", () => 
     GITHUB_REVIEW_WORKER_RESULT_SCHEMA_DIGEST,
     fileDigest("packages/github-review-publish/schemas/worker-result.schema.json"),
   );
+  assert.equal(
+    workerResultSchema.properties.outputSchemaDigest.const,
+    GITHUB_REVIEW_OUTPUT_SCHEMA_DIGEST,
+    "the worker-result schema identity must transitively bind the exact output schema revision",
+  );
+});
+
+test("github-pr-review resolver rejects pre-v0.3 publishers", { skip: !exactRuntimeKitAvailable }, async () => {
+  const runtimeKit = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")));
+  const profile = JSON.parse(readFileSync(resolve(root, "profiles/github-pr-review/profile.json"), "utf8"));
+  const range = profile.plugins.find(plugin => plugin.id === "github-review-publish")?.range;
+  assert.equal(range, ">=0.3.0 <1.0.0");
+  assert.equal(runtimeKit.versionSatisfies("0.2.999", range), false);
+  assert.equal(runtimeKit.versionSatisfies("0.3.0", range), true);
 });
 
 test("release-bound GitHub packages construct exact runtime-kit PluginDescriptors", { skip: !exactRuntimeKitAvailable }, async () => {

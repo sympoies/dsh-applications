@@ -7,7 +7,7 @@ export const GITHUB_REVIEW_OUTPUT_DIGEST_DOMAIN = "sympoies/github-review-output
 export const GITHUB_REVIEW_WORKER_RESULT_DIGEST_DOMAIN = "sympoies/github-review-worker-result/v1";
 export const GITHUB_REVIEW_OUTPUT_MEDIA_TYPE = "application/vnd.sympoies.github-review+json";
 export const GITHUB_REVIEW_OUTPUT_SCHEMA_DIGEST = "sha256:6f50d0a3d4b4c221cb553eef5084842926458a8678107c95024efd85fd0667d2";
-export const GITHUB_REVIEW_WORKER_RESULT_SCHEMA_DIGEST = "sha256:1fdc38955f502267a09219b2474a50d7b518bc6f93741fb44551331a9f029060";
+export const GITHUB_REVIEW_WORKER_RESULT_SCHEMA_DIGEST = "sha256:4066880e5d22050eefbbd40afdf143e58a055c8ce64bdeaafebfd0fdfc8bdc12";
 export const MAX_GITHUB_REVIEW_WORKER_RESULT_BYTES = 65_536;
 
 const API_VERSION = "runtime.sympoies.dev/v1";

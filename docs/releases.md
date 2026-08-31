@@ -21,6 +21,15 @@ promotion requires reviewed compatibility evidence and changes every pinned
 identity that enforces the selection. A release never resolves `latest`, a
 branch name, a tag range, or an unbounded SemVer range.
 
+## Migrating GitHub review producers to v0.3
+
+The v0.3 GitHub review profile requires `github-review-publish` version 0.3.0
+or newer within the pre-1.0 line. A v0.2 publisher is incompatible because it
+does not require structured findings or stable native-thread fingerprints and
+must not be selected for this profile. Producers must emit the v0.3 output
+schema digest, use the corresponding worker-result schema identity, and
+upgrade the publisher before the profile or broker binding advances.
+
 ## Reviewed source gate
 
 The release commit must be reviewed before merge into `main` and equal the merge
