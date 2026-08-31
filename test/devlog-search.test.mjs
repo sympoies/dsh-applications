@@ -26,6 +26,11 @@ test("devlog search enforces its term and YYYY-MM argument contract", () => {
   assert.equal(noMatch.status, 1);
   assert.match(noMatch.stderr, /no matches/);
 
+  const literalMetacharacter = search("[", "2026-08");
+  assert.equal(literalMetacharacter.status, 0);
+  assert.doesNotMatch(literalMetacharacter.stderr, /regular expression/i);
+  assert.match(literalMetacharacter.stdout, /\[Devlog policy and template\]/);
+
   const missingMonth = search("anything", "2026-07");
   assert.equal(missingMonth.status, 1);
   assert.match(missingMonth.stderr, /no devlog month files/);
