@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import test from "node:test";
@@ -24,7 +24,11 @@ const profile = json("profiles/conversational/profile.json");
 const digestFile = path =>
   `sha256:${createHash("sha256").update(readFileSync(resolve(root, path))).digest("hex")}`;
 
-const ref = seed => `ref:${createHash("sha256").update(seed).digest("hex")}`;
+// A conforming ref is a KEYED digest: a bare hash of a low-entropy channel
+// identifier is exhaustively invertible, so the fixture models the required
+// construction rather than normalizing an unsalted one.
+const DEPLOYMENT_SECRET = "test-deployment-secret";
+const ref = seed => `ref:${createHmac("sha256", DEPLOYMENT_SECRET).update(seed).digest("hex")}`;
 
 const turn = (overrides = {}) => ({ message: "hello", ...overrides });
 
@@ -51,10 +55,10 @@ test("a conversation turn refuses every real channel identifier", () => {
   for (const identifier of [
     "-1001234567890",
     "1234567890",
-    "@terrylin",
-    "terrylin",
-    "terry@example.com",
-    "+886912345678",
+    "@example-handle",
+    "example-handle",
+    "someone@example.com",
+    "+15550100000",
     "ref:not-hex",
     `ref:${"a".repeat(63)}`,
     `ref:${"A".repeat(64)}`,
@@ -105,11 +109,54 @@ test("a conversation turn rejects malformed envelopes", () => {
   );
   assert.throws(
     () => validateConversationTurn(turn({
-      channel: { chatRef: ref("c"), senderRef: ref("s"), isGroup: false, displayName: "Terry" },
+      channel: { chatRef: ref("c"), senderRef: ref("s"), isGroup: false, displayName: "Example Name" },
     })),
     TypeError,
     "no personal display name may ride along",
   );
+});
+
+test("an accessor cannot swap a validated ref for a raw identifier", () => {
+  // The returned document must be built from the values that were checked, not
+  // re-read from caller-owned memory, or a getter could pass the ref check and
+  // then place a raw chat id into the result.
+  let reads = 0;
+  const validated = validateConversationTurn({
+    message: "hello",
+    channel: {
+      get chatRef() {
+        reads += 1;
+        return reads === 1 ? ref("chat-1") : "-1001234567890";
+      },
+      senderRef: ref("sender-1"),
+      isGroup: false,
+    },
+  });
+  assert.equal(validated.channel.chatRef, ref("chat-1"));
+
+  let messageReads = 0;
+  const swapped = validateConversationTurn({
+    get message() {
+      messageReads += 1;
+      return messageReads === 1 ? "hello" : "x".repeat(20_000);
+    },
+  });
+  assert.equal(swapped.message, "hello");
+});
+
+test("text bounds count code points, matching the published maxLength", () => {
+  // JSON Schema maxLength counts code points, so text the digest-pinned schema
+  // admits must not be rejected here for being multi-byte.
+  const cjk = "漢";
+  assert.equal(validateConversationTurn({ message: cjk.repeat(6000) }).message.length, 6000);
+  assert.equal(validateConversationReply({ reply: cjk.repeat(6000) }).reply.length, 6000);
+  assert.throws(() => validateConversationTurn({ message: cjk.repeat(16_385) }), TypeError);
+  assert.throws(() => validateConversationReply({ reply: cjk.repeat(16_385) }), TypeError);
+
+  // An astral character is one code point but two UTF-16 units, so a naive
+  // .length bound would reject a conforming payload.
+  assert.equal(validateConversationTurn({ message: "\u{1F600}".repeat(16_384) }).message.length, 32_768);
+  assert.throws(() => validateConversationTurn({ message: "\u{1F600}".repeat(16_385) }), TypeError);
 });
 
 test("a conversation reply carries only bounded reply text", () => {
@@ -149,7 +196,7 @@ test("the descriptor claims no filesystem, network, subprocess, or credential au
   });
 
   assert.equal(descriptor.metadata.id, "conversation-agent");
-  assert.equal(descriptor.artifact.package, "@sympoies/conversation-agent");
+  assert.equal(descriptor.artifact.package, "@sympoies/dsh-conversation-agent");
   assert.equal(descriptor.metadata.digest, runtimeKit.computeDocumentDigest(descriptor));
   assert.equal(Object.isFrozen(descriptor), true);
   for (const field of ["filesystem", "network", "subprocess", "credentialHandleClasses"]) {

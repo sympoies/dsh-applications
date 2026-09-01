@@ -15,7 +15,21 @@ this contract, the model, or session memory. Distinct chats and participants
 stay distinguishable, which is all an agent needs to scope memory per chat and
 tell participants apart in a group. Validation rejects a raw identifier, a
 partial context, and any extra field, so a plaintext identifier cannot ride
-along as an unvalidated property.
+along as an unvalidated property, and a validated turn is assembled from the
+values that were checked so an accessor cannot substitute another afterwards.
+
+**A conforming ref is a keyed digest.** It MUST be computed as
+`HMAC-SHA256(deployment secret, identifier)`, or an equivalent construction
+over a high-entropy deployment-scoped key. A bare digest of a channel
+identifier is non-conforming: numeric chat ids and E.164 phone numbers are
+low-entropy, so an unsalted hash of one is exhaustively invertible and would
+make these refs pseudonymous in name only. This package can check the shape but
+cannot distinguish the constructions, so the obligation belongs to the adapter
+that mints the refs; the privacy guarantee above holds only when it is met.
+
+Text bounds count code points, matching the `maxLength` the published schemas
+declare, so multi-byte text that the digest-pinned schema admits is not
+rejected here.
 
 The channel context is optional because a direct one-to-one message carries no
 group semantics. When it is present, all three fields are required: a partial

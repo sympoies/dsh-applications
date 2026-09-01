@@ -23,11 +23,13 @@
       "properties": {
         "chatRef": {
           "type": "string",
-          "pattern": "^ref:[0-9a-f]{64}$"
+          "pattern": "^ref:[0-9a-f]{64}$",
+          "description": "Opaque deployment-scoped reference to one chat. It MUST be a keyed digest over a deployment secret, such as HMAC-SHA256(deployment secret, identifier). A bare digest of a channel identifier is non-conforming: low-entropy identifiers such as numeric chat ids and phone numbers are exhaustively invertible."
         },
         "senderRef": {
           "type": "string",
-          "pattern": "^ref:[0-9a-f]{64}$"
+          "pattern": "^ref:[0-9a-f]{64}$",
+          "description": "Opaque deployment-scoped reference to one participant, constructed under the same keyed-digest requirement as chatRef."
         },
         "isGroup": {
           "type": "boolean"

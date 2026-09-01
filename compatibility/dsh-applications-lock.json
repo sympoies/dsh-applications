@@ -3,7 +3,7 @@
   "application_version": "0.3.0",
   "profile_catalog": {
     "path": "profiles/catalog.json",
-    "digest": "sha256:580112206bc5921d0a42748d48e5e9a42ff16ea5e21df7746e46a71c06a33fff"
+    "digest": "sha256:019c00fe0503fe8d6426036b4105c33ffd1e7802357d25631a4100c8288a40fa"
   },
   "runtime_kit": {
     "package": "@sympoies/dsh-runtime-kit",

@@ -1,6 +1,6 @@
 import { definePlugin } from "@sympoies/dsh-plugin-sdk";
 
-export const CONVERSATION_TURN_SCHEMA_DIGEST = "sha256:69d1b82718feee19f825937a4e75357f6d0d4dc7bfc3ad27e62c7dde22a523a6";
+export const CONVERSATION_TURN_SCHEMA_DIGEST = "sha256:540e0d8d2c74012ed2a0a091fb45e95852a3106569195ff88fd63797f369a1f3";
 export const CONVERSATION_REPLY_SCHEMA_DIGEST = "sha256:a155a7a633ac342aa6c2dd7411296222e6c38e88d9a6b4cc31dbea5d45b2351f";
 
 const DIGEST = /^sha256:[0-9a-f]{64}$/u;
@@ -11,9 +11,17 @@ const SOURCE_REVISION = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/u;
 // no channel identifier, handle, phone number, or address can reach the public
 // contract, model input, or session memory while chats and participants stay
 // distinguishable enough to scope memory and address a group.
+//
+// The shape is all this package can check. A conforming ref is a KEYED digest
+// over a deployment secret, because a bare digest of a low-entropy identifier
+// such as a numeric chat id or a phone number is exhaustively invertible. The
+// adapter owns that obligation; see the package README.
 const CHANNEL_REF = /^ref:[0-9a-f]{64}$/u;
 
-const MESSAGE_MAX_BYTES = 16_384;
+// JSON Schema maxLength counts code points, so the published schemas and these
+// checks must agree on the unit.
+const MESSAGE_MAX_CHARACTERS = 16_384;
+const ATTESTATION_MAX_CHARACTERS = 1024;
 
 function fail(message) {
   throw new TypeError(message);
@@ -32,9 +40,11 @@ function exactKeys(value, required, optional, label) {
   for (const key of required) if (!(key in value)) fail(`${label}.${key} is required`);
 }
 
-function boundedText(value, label) {
+function boundedText(value, label, maximumCharacters) {
   if (typeof value !== "string" || value.length === 0) fail(`${label} must be a non-empty string`);
-  if (Buffer.byteLength(value, "utf8") > MESSAGE_MAX_BYTES) fail(`${label} is too long`);
+  // Spread counts code points; value.length would count UTF-16 units and would
+  // diverge from the schemas on astral characters.
+  if ([...value].length > maximumCharacters) fail(`${label} is too long`);
 }
 
 function channelRef(value, label) {
@@ -59,25 +69,34 @@ function freezeClone(value) {
   return freeze(clone);
 }
 
+// Every field is read into a local exactly once and the returned document is
+// assembled from those locals. Returning a clone of caller-owned memory would
+// re-read each property, so an accessor could pass the checks and then yield a
+// raw identifier into the result.
 export function validateConversationTurn(input) {
   const value = record(input, "turn");
   exactKeys(value, ["message"], ["channel"], "turn");
-  boundedText(value.message, "turn.message");
-  if ("channel" in value) {
-    const channel = record(value.channel, "turn.channel");
-    exactKeys(channel, ["chatRef", "senderRef", "isGroup"], [], "turn.channel");
-    channelRef(channel.chatRef, "turn.channel.chatRef");
-    channelRef(channel.senderRef, "turn.channel.senderRef");
-    if (typeof channel.isGroup !== "boolean") fail("turn.channel.isGroup must be a boolean");
-  }
-  return freezeClone(value);
+  const message = value.message;
+  boundedText(message, "turn.message", MESSAGE_MAX_CHARACTERS);
+  if (!("channel" in value)) return freezeClone({ message });
+
+  const source = record(value.channel, "turn.channel");
+  exactKeys(source, ["chatRef", "senderRef", "isGroup"], [], "turn.channel");
+  const chatRef = source.chatRef;
+  const senderRef = source.senderRef;
+  const isGroup = source.isGroup;
+  channelRef(chatRef, "turn.channel.chatRef");
+  channelRef(senderRef, "turn.channel.senderRef");
+  if (typeof isGroup !== "boolean") fail("turn.channel.isGroup must be a boolean");
+  return freezeClone({ message, channel: { chatRef, senderRef, isGroup } });
 }
 
 export function validateConversationReply(input) {
   const value = record(input, "reply");
   exactKeys(value, ["reply"], [], "reply");
-  boundedText(value.reply, "reply.reply");
-  return freezeClone(value);
+  const reply = value.reply;
+  boundedText(reply, "reply.reply", MESSAGE_MAX_CHARACTERS);
+  return freezeClone({ reply });
 }
 
 export function createConversationAgentPluginDescriptor(runtimeKit, artifactIdentity) {
@@ -90,14 +109,14 @@ export function createConversationAgentPluginDescriptor(runtimeKit, artifactIden
   if (typeof artifact.sourceRevision !== "string" || !SOURCE_REVISION.test(artifact.sourceRevision)) {
     fail("artifactIdentity.sourceRevision must be an immutable revision");
   }
-  boundedText(artifact.attestationIdentity, "artifactIdentity.attestationIdentity");
+  boundedText(artifact.attestationIdentity, "artifactIdentity.attestationIdentity", ATTESTATION_MAX_CHARACTERS);
 
   const descriptor = {
     apiVersion: "runtime.sympoies.dev/v1",
     kind: "PluginDescriptor",
     metadata: { id: "conversation-agent", version: "0.3.0", digest: `sha256:${"0".repeat(64)}` },
     artifact: {
-      package: "@sympoies/conversation-agent",
+      package: "@sympoies/dsh-conversation-agent",
       digest: artifact.digest,
       entrypoint: "packages/conversation-agent/src/index.js",
       sourceRevision: artifact.sourceRevision,

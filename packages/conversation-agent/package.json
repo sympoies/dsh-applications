@@ -1,5 +1,5 @@
 {
-  "name": "@sympoies/conversation-agent",
+  "name": "@sympoies/dsh-conversation-agent",
   "version": "0.3.0",
   "description": "Least-authority conversation turn and reply contracts for governed DSH channel agents",
   "private": true,
