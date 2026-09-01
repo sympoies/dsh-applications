@@ -16,7 +16,7 @@
     {
       "id": "conversational",
       "path": "profiles/conversational/profile.json",
-      "digest": "sha256:784c8bf092a78551d337e32fe202c6c3c4458f5cbb07d03d31bb6878486bc71a"
+      "digest": "sha256:be29ded2e1ea89d348eff3ee816409afc37f466cb82e9eb4e62659bdcdf67b9a"
     },
     {
       "id": "github-pr-review",

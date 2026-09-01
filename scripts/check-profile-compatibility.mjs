@@ -147,6 +147,7 @@ for (const relative of [
   "packages/dsh-rc2-adapter/package.json",
   "packages/github-read/package.json",
   "packages/github-review-publish/package.json",
+  "packages/conversation-agent/package.json",
 ]) {
   assert.equal(load(resolve(root, relative)).version, workspace.version, `${relative} must share the release version`);
 }

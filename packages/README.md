@@ -14,6 +14,9 @@ released together as one coordinated public application artifact.
   pull request without provider access or authority.
 - `github-review-publish` constructs the strict, canonical, non-bearer public
   review worker result; private broker code owns provider publication.
+- `conversation-agent` validates one conversation turn and reply for the
+  `conversational` profile, admitting channel context only as opaque
+  deployment-scoped refs; channel ingress and delivery stay adapter-owned.
 
 The coordinated artifact also carries the public `profiles/` catalog and the
 reusable, non-authorizing `fixtures/` trigger configurations. These are not
