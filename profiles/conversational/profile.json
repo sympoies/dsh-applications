@@ -4,7 +4,7 @@
   "metadata": {
     "id": "conversational",
     "version": "0.3.0",
-    "digest": "sha256:784c8bf092a78551d337e32fe202c6c3c4458f5cbb07d03d31bb6878486bc71a",
+    "digest": "sha256:3524fdcd8b1522be80019cae58c30abe214ffeaac20bdb5238f6b9f2a7441f61",
     "purpose": "Persistent channel conversation without project or shell authority"
   },
   "workload": {
@@ -14,7 +14,7 @@
   "plugins": [
     {
       "id": "conversation-agent",
-      "range": ">=1.0.0 <2.0.0"
+      "range": ">=0.3.0 <1.0.0"
     }
   ],
   "grants": [
@@ -27,8 +27,8 @@
   "artifacts": {
     "instructions": "profiles/conversational/instructions.md",
     "skills": [],
-    "inputSchemaDigest": "sha256:461c77d9bf4928c06b903ffefb2c6278353086869530b166279f398d6bf234de",
-    "outputSchemaDigest": "sha256:f597985710b51a97440b25ab7fa4a691012d9e5759877b8caf21e5f484d892ff"
+    "inputSchemaDigest": "sha256:33f3cf9bf17134dba954a7c6621c32a913012102ade981729c15d0284c723581",
+    "outputSchemaDigest": "sha256:a155a7a633ac342aa6c2dd7411296222e6c38e88d9a6b4cc31dbea5d45b2351f"
   },
   "modelRouteClass": "conversation-bounded",
   "state": {
@@ -54,7 +54,7 @@
   "triggers": [
     {
       "class": "message",
-      "inputSchemaDigest": "sha256:461c77d9bf4928c06b903ffefb2c6278353086869530b166279f398d6bf234de"
+      "inputSchemaDigest": "sha256:33f3cf9bf17134dba954a7c6621c32a913012102ade981729c15d0284c723581"
     }
   ],
   "execution": {

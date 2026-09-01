@@ -118,6 +118,7 @@ test("installed workspace resolves every actual public package specifier", async
     ["@sympoies/dsh-rc2-adapter", "createDshRc2Adapter"],
     ["@sympoies/dsh-github-read", "validateGitHubPullRequestReadBundle"],
     ["@sympoies/dsh-github-review-publish", "createGitHubReviewWorkerResult"],
+    ["@sympoies/conversation-agent", "validateConversationTurn"],
   ]) {
     const module = await import(specifier);
     assert.equal(typeof module[exported], "function", `${specifier} must resolve from the installed workspace`);
@@ -134,7 +135,7 @@ test("compatibility lock pins the accepted runtime-kit and DSH identities", () =
   assert.equal(lock.application_version, "0.3.0");
   assert.deepEqual(lock.profile_catalog, {
     path: "profiles/catalog.json",
-    digest: "sha256:8aa6a511489f01070c1e848cc6e40f8762db95a1599241cb808e311db5336549",
+    digest: "sha256:580112206bc5921d0a42748d48e5e9a42ff16ea5e21df7746e46a71c06a33fff",
   });
   assert.deepEqual(lock.runtime_kit, {
     package: "@sympoies/dsh-runtime-kit",
