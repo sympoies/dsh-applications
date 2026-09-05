@@ -18,22 +18,22 @@
     "packages"
   ],
   "scripts": {
-    "test": "node --test test/*.test.mjs",
-    "test:repository-contract": "node --test test/repository-contract.test.mjs",
-    "test:manager-contract": "node --test test/manager-contract.test.mjs",
-    "test:manager-faults": "node --test test/manager-faults.test.mjs",
-    "test:plugin-sandbox": "node --test test/plugin-sandbox.test.mjs",
-    "test:profiles": "node --test test/profiles.test.mjs",
-    "test:profile-compatibility": "node scripts/check-profile-compatibility.mjs",
-    "test:integration": "node --test test/integration.test.mjs",
-    "test:exact-dsh": "node scripts/check-exact-dsh-consumer.mjs && node --test test/exact-dsh-consumer.test.mjs",
-    "test:github-contracts": "node --test test/github-contracts.test.mjs",
-    "check:compatibility": "node scripts/check-compatibility.mjs",
-    "verify:package-reproducibility": "node scripts/check-package-reproducibility.mjs",
+    "test": "node --test test/*.test.ts",
+    "test:repository-contract": "node --test test/repository-contract.test.ts",
+    "test:manager-contract": "node --test test/manager-contract.test.ts",
+    "test:manager-faults": "node --test test/manager-faults.test.ts",
+    "test:plugin-sandbox": "node --test test/plugin-sandbox.test.ts",
+    "test:profiles": "node --test test/profiles.test.ts",
+    "test:profile-compatibility": "node scripts/check-profile-compatibility.ts",
+    "test:integration": "node --test test/integration.test.ts",
+    "test:exact-dsh": "node scripts/check-exact-dsh-consumer.ts && node --test test/exact-dsh-consumer.test.ts",
+    "test:github-contracts": "node --test test/github-contracts.test.ts",
+    "check:compatibility": "node scripts/check-compatibility.ts",
+    "verify:package-reproducibility": "node scripts/check-package-reproducibility.ts",
     "test:package": "npm run check:compatibility -- --manifest-only && npm run verify:package-reproducibility && npm pack --dry-run --ignore-scripts",
-    "test:conversation": "node --test test/conversation.test.mjs",
-    "test:batch": "node --test test/batch.test.mjs",
-    "typecheck": "tsc -p tsconfig.json"
+    "test:conversation": "node --test test/conversation.test.ts",
+    "test:batch": "node --test test/batch.test.ts",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.tools.json"
   },
   "engines": {
     "node": ">=24.0.0"

@@ -90,7 +90,7 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             "repos/$GITHUB_REPOSITORY/commits/$release_commit/pulls" \
             | jq 'add' > "$associations"
-          pr_number="$(node scripts/check-reviewed-release-source.mjs \
+          pr_number="$(node scripts/check-reviewed-release-source.ts \
             --repository "$GITHUB_REPOSITORY" \
             --commit "$release_commit" \
             --associations "$associations")"
@@ -98,7 +98,7 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             "repos/$GITHUB_REPOSITORY/pulls/$pr_number/reviews" \
             | jq 'add' > "$reviews"
-          node scripts/check-reviewed-release-source.mjs \
+          node scripts/check-reviewed-release-source.ts \
             --repository "$GITHUB_REPOSITORY" \
             --commit "$release_commit" \
             --associations "$associations" \
@@ -129,7 +129,7 @@ jobs:
           RELEASE_COMMIT: ${{ steps.verify-tag.outputs.release_commit }}
         run: |
           set -euo pipefail
-          node release-source/scripts/package-release-artifact.mjs \
+          node release-source/scripts/package-release-artifact.ts \
             --source-root "$GITHUB_WORKSPACE/release-source" \
             --expected-commit "$RELEASE_COMMIT" \
             --out "$RUNNER_TEMP/release-assets"

@@ -4,15 +4,18 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
 
-import { createApplicationControlService, createApplicationManager, createPluginSandbox } from "../packages/manager/src/index.ts";
-import { definePlugin } from "../packages/plugin-sdk/src/index.ts";
+import * as managerApi from "../packages/manager/src/index.ts";
+import * as pluginSdk from "../packages/plugin-sdk/src/index.ts";
 import {
   admitRunningPlugin,
   createOwnerRuntimeKit,
   hostAction,
   identity,
   pluginDescriptor,
-} from "./helpers/owner-fixtures.mjs";
+} from "./helpers/owner-fixtures.ts";
+
+const { createApplicationControlService, createApplicationManager, createPluginSandbox } = managerApi as any;
+const { definePlugin } = pluginSdk as any;
 
 test("manager and sandbox compose runtime-kit and DSH seams without owning private deployment operations", async () => {
   const runtimeKit = createOwnerRuntimeKit();
@@ -40,8 +43,8 @@ const exactRoot = process.env.DSH_RUNTIME_KIT_ROOT
 const exactAvailable = existsSync(join(exactRoot, "src/manager/index.js"));
 
 test("SDK and manager construct against the exact runtime-kit owner surface", { skip: !exactAvailable }, async () => {
-  const composition = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")));
-  const runtimeManager = await import(pathToFileURL(join(exactRoot, "src/manager/index.js")));
+  const composition = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")).href);
+  const runtimeManager = await import(pathToFileURL(join(exactRoot, "src/manager/index.js")).href);
   const runtimeKit = { ...composition, ...runtimeManager };
   const candidate = pluginDescriptor();
   candidate.metadata.digest = composition.computeDocumentDigest(candidate);
@@ -74,9 +77,9 @@ test("SDK and manager construct against the exact runtime-kit owner surface", { 
 });
 
 test("exact runtime-kit owns restart, replay, lifecycle ordering, and authenticated indeterminate recovery", { skip: !exactAvailable }, async () => {
-  const composition = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")));
-  const runtimeManager = await import(pathToFileURL(join(exactRoot, "src/manager/index.js")));
-  const fixtures = await import(pathToFileURL(join(exactRoot, "test/helpers/manager-fixtures.mjs")));
+  const composition = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")).href);
+  const runtimeManager = await import(pathToFileURL(join(exactRoot, "src/manager/index.js")).href);
+  const fixtures = await import(pathToFileURL(join(exactRoot, "test/helpers/manager-fixtures.mjs")).href);
   const runtimeKit = { ...composition, ...runtimeManager };
 
   function admittedFixture() {

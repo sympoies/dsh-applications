@@ -9,12 +9,18 @@ const expectedRuntimeKitRevision =
   "2cd14d5fdd73e0758d366d8b671f71ee768d857f";
 const expectedDshRevision = "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e";
 
+type CompatibilityOptions = {
+  manifestOnly: boolean;
+  runtimeKitRoot?: string;
+  dshRoot?: string;
+};
+
 function load(path) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
 function parseArguments(argv) {
-  const result = { manifestOnly: false };
+  const result: CompatibilityOptions = { manifestOnly: false };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === "--manifest-only") {
@@ -61,7 +67,9 @@ function assertMethods(owner, names, label) {
 }
 
 function assertSourceMethods(contents, patterns, label) {
-  for (const [name, pattern] of Object.entries(patterns)) assert.match(contents, pattern, `${label}.${name} declaration is required`);
+  for (const [name, pattern] of Object.entries(patterns) as [string, RegExp][]) {
+    assert.match(contents, pattern, `${label}.${name} declaration is required`);
+  }
 }
 
 const options = parseArguments(process.argv.slice(2));
@@ -97,8 +105,8 @@ if (!options.manifestOnly) {
   for (const requiredExport of lock.runtime_kit.required_exports) {
     assert.equal(typeof runtimePackage.exports?.[requiredExport], "string");
   }
-  const runtimeComposition = await import(pathToFileURL(resolve(options.runtimeKitRoot, runtimePackage.exports["./composition"])));
-  const runtimeManager = await import(pathToFileURL(resolve(options.runtimeKitRoot, runtimePackage.exports["./manager"])));
+  const runtimeComposition = await import(pathToFileURL(resolve(options.runtimeKitRoot, runtimePackage.exports["./composition"])).href);
+  const runtimeManager = await import(pathToFileURL(resolve(options.runtimeKitRoot, runtimePackage.exports["./manager"])).href);
   assertMethods(runtimeComposition, [
     "computeDocumentDigest", "createCompositionService", "parseCanonicalJsonText",
     "validateBotProfile", "validatePluginDescriptor",

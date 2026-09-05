@@ -5,10 +5,9 @@ import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import test from "node:test";
 
-import {
-  createDshRc2Adapter,
-  REQUIRED_AMBIENT_DENIALS,
-} from "../packages/dsh-rc2-adapter/src/index.ts";
+import * as adapterApi from "../packages/dsh-rc2-adapter/src/index.ts";
+
+const { createDshRc2Adapter, REQUIRED_AMBIENT_DENIALS } = adapterApi as any;
 
 const dshRoot = process.env.DSH_ROOT === undefined ? undefined : resolve(process.env.DSH_ROOT);
 

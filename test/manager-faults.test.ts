@@ -1,11 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  createApplicationControlService,
-  createApplicationManager,
-} from "../packages/manager/src/index.ts";
-import { createOwnerRuntimeKit, identity } from "./helpers/owner-fixtures.mjs";
+import * as managerApi from "../packages/manager/src/index.ts";
+import { createOwnerRuntimeKit, identity } from "./helpers/owner-fixtures.ts";
+
+const { createApplicationControlService, createApplicationManager } = managerApi as any;
 
 function createManager(runtimeKit) {
   return createApplicationManager({

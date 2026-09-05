@@ -4,7 +4,9 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
 
-import { createApplicationControlService, createApplicationManager } from "../packages/manager/src/index.ts";
+import * as managerApi from "../packages/manager/src/index.ts";
+
+const { createApplicationControlService, createApplicationManager } = managerApi as any;
 
 const profile = JSON.parse(
   readFileSync(new URL("../profiles/batch/profile.json", import.meta.url), "utf8"),
@@ -62,9 +64,9 @@ assert(
 );
 
 async function exactHarness() {
-  const composition = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")));
-  const runtimeManager = await import(pathToFileURL(join(exactRoot, "src/manager/index.js")));
-  const fixtures = await import(pathToFileURL(join(exactRoot, "test/helpers/manager-fixtures.mjs")));
+  const composition = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")).href);
+  const runtimeManager = await import(pathToFileURL(join(exactRoot, "src/manager/index.js")).href);
+  const fixtures = await import(pathToFileURL(join(exactRoot, "test/helpers/manager-fixtures.mjs")).href);
   const runtimeKit = { ...composition, ...runtimeManager };
 
   // The admitted composition's authority is DERIVED FROM THE BATCH PROFILE
@@ -307,7 +309,7 @@ test("a schedule trigger peer can observe but never drive lifecycle operations",
   const startPayload = startRequest(tick, locked.receipt.digest, "trigger-start-attempt");
   await assert.rejects(
     control.handle(frame(startPayload, "2"), { peerIdentity: "schedule-trigger" }),
-    error => {
+    (error: any) => {
       // The refusal must come from the peer-OPERATIONS gate, never the
       // namespace gate, so granting the trigger start can never hide
       // behind a drifted namespace prefix.

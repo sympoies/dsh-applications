@@ -5,13 +5,15 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import {
+import * as conversationAgentApi from "../packages/conversation-agent/src/index.ts";
+
+const {
   CONVERSATION_REPLY_SCHEMA_DIGEST,
   CONVERSATION_TURN_SCHEMA_DIGEST,
   createConversationAgentPluginDescriptor,
   validateConversationReply,
   validateConversationTurn,
-} from "../packages/conversation-agent/src/index.ts";
+} = conversationAgentApi as any;
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const exactRoot = process.env.DSH_RUNTIME_KIT_ROOT
@@ -188,7 +190,7 @@ test("the published schema digests match the schema files on disk", () => {
 test("the descriptor claims no filesystem, network, subprocess, or credential authority", {
   skip: !exactRuntimeKitAvailable,
 }, async () => {
-  const runtimeKit = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")));
+  const runtimeKit = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")).href);
   const descriptor = createConversationAgentPluginDescriptor(runtimeKit, {
     digest: `sha256:${"4".repeat(64)}`,
     sourceRevision: "3".repeat(40),

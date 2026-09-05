@@ -26,6 +26,9 @@ workspace dependencies. Package sources are erasable TypeScript
 `namespace`, parameter properties, or decorators), `exports` point at the
 `.ts` source, exported types live in the source rather than in a hand-written
 declaration file, and `npm run typecheck` must pass alongside `npm test`.
+Repository-owned Node.js scripts and tests also use directly executable `.ts`
+files and are checked through `tsconfig.tools.json`; do not introduce `.js`,
+`.mjs`, or `.cjs` entrypoints under `packages/`, `scripts/`, or `test/`.
 Do not add a build, `prepare`, or `prepack` script. `tsconfig.json` keeps
 `allowImportingTsExtensions` on even though every package is a single file
 today: the moment a package grows a second module, Node requires the relative

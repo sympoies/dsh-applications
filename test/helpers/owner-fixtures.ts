@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 
 export const DIGEST = `sha256:${"1".repeat(64)}`;
 
-export function identity(instanceId = "instance-a") {
+export function identity(instanceId = "instance-a"): any {
   const value = {
     deploymentId: "public-test",
     profileId: "review-bot",
@@ -12,7 +12,7 @@ export function identity(instanceId = "instance-a") {
   return { ...value, namespace: `${value.deploymentId}/${value.profileId}/${value.generationId}/${value.instanceId}` };
 }
 
-export function createOwnerRuntimeKit(overrides = {}) {
+export function createOwnerRuntimeKit(overrides: any = {}): any {
   const calls = [];
   const store = {
     instances: new Map(),
@@ -22,7 +22,7 @@ export function createOwnerRuntimeKit(overrides = {}) {
     receipts: new Map(),
     mutationLocks: new Map(),
   };
-  const rawManager = {};
+  const rawManager: any = {};
   for (const operation of [
     "validate", "resolve", "lock", "start", "resume", "status",
     "interrupt", "drain", "stop", "doctor", "reconcile",
@@ -111,7 +111,7 @@ export function createOwnerRuntimeKit(overrides = {}) {
   };
 }
 
-export function admitRunningPlugin(runtimeKit, instanceIdentity, descriptor = pluginDescriptor()) {
+export function admitRunningPlugin(runtimeKit: any, instanceIdentity: any, descriptor: any = pluginDescriptor()): any {
   runtimeKit.store.instances.set(instanceIdentity.namespace, {
     identity: structuredClone(instanceIdentity),
     state: "Running",
@@ -154,7 +154,7 @@ export function admitRunningPlugin(runtimeKit, instanceIdentity, descriptor = pl
   };
 }
 
-export function pluginDescriptor(pluginId = "review") {
+export function pluginDescriptor(pluginId = "review"): any {
   return {
     apiVersion: "runtime.sympoies.dev/v1",
     kind: "PluginDescriptor",
@@ -175,7 +175,7 @@ export function pluginDescriptor(pluginId = "review") {
   };
 }
 
-export function hostAction(instanceIdentity = identity(), overrides = {}) {
+export function hostAction(instanceIdentity: any = identity(), overrides: any = {}): any {
   return {
     apiVersion: "runtime.sympoies.dev/v1",
     kind: "MediatedHostActionRequest",

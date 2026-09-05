@@ -4,15 +4,17 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
 
-import { createApplicationManager, createPluginSandbox } from "../packages/manager/src/index.ts";
+import * as managerApi from "../packages/manager/src/index.ts";
 import { REQUIRED_AMBIENT_DENIALS } from "../packages/dsh-rc2-adapter/src/index.ts";
-import { createAdapterHarness } from "./helpers/adapter-harness.mjs";
+import { createAdapterHarness } from "./helpers/adapter-harness.ts";
 import {
   DIGEST,
   admitRunningPlugin,
   createOwnerRuntimeKit,
   pluginDescriptor,
-} from "./helpers/owner-fixtures.mjs";
+} from "./helpers/owner-fixtures.ts";
+
+const { createApplicationManager, createPluginSandbox } = managerApi as any;
 
 const profile = JSON.parse(
   readFileSync(new URL("../profiles/conversational/profile.json", import.meta.url), "utf8"),
@@ -95,7 +97,7 @@ test("the conversational profile carries no repository, shell, workspace, or amb
   );
   assert.deepEqual(profile.triggers.map(trigger => trigger.class), ["message"]);
   for (const denial of ["env", "filesystem", "network", "subprocess", "credential", "secret", "cross-instance"]) {
-    assert(REQUIRED_AMBIENT_DENIALS.includes(denial), `ambient ${denial} denial is required`);
+    assert((REQUIRED_AMBIENT_DENIALS as readonly string[]).includes(denial), `ambient ${denial} denial is required`);
   }
 });
 
@@ -374,9 +376,9 @@ const exactRoot = process.env.DSH_RUNTIME_KIT_ROOT
 const exactAvailable = existsSync(join(exactRoot, "src/manager/index.js"));
 
 test("exact runtime-kit retains the conversation instance across manager restarts", { skip: !exactAvailable }, async () => {
-  const composition = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")));
-  const runtimeManager = await import(pathToFileURL(join(exactRoot, "src/manager/index.js")));
-  const fixtures = await import(pathToFileURL(join(exactRoot, "test/helpers/manager-fixtures.mjs")));
+  const composition = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")).href);
+  const runtimeManager = await import(pathToFileURL(join(exactRoot, "src/manager/index.js")).href);
+  const fixtures = await import(pathToFileURL(join(exactRoot, "test/helpers/manager-fixtures.mjs")).href);
   const runtimeKit = { ...composition, ...runtimeManager };
 
   const resolved = fixtures.composition("non-project");

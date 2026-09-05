@@ -5,14 +5,18 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
 
-import {
+import * as githubReadApi from "../packages/github-read/src/index.ts";
+import * as reviewPublish from "../packages/github-review-publish/src/index.ts";
+
+const reviewPublishRuntime: any = reviewPublish;
+
+const {
   GITHUB_PULL_REQUEST_READ_BUNDLE_SCHEMA_DIGEST,
   GITHUB_REVIEW_TRIGGER_SCHEMA_DIGEST,
   createGitHubReadPluginDescriptor,
   isCompatibilityReviewTrigger,
   validateGitHubPullRequestReadBundle,
-} from "../packages/github-read/src/index.ts";
-import * as reviewPublish from "../packages/github-review-publish/src/index.ts";
+} = githubReadApi as any;
 
 const {
   GITHUB_REVIEW_OUTPUT_DIGEST_DOMAIN,
@@ -27,7 +31,7 @@ const {
   createGitHubReviewPublishPluginDescriptor,
   createGitHubReviewWorkerResult,
   validateGitHubReviewWorkerResult,
-} = reviewPublish;
+} = reviewPublishRuntime;
 
 const root = resolve(import.meta.dirname, "..");
 const exactRoot = process.env.DSH_RUNTIME_KIT_ROOT
@@ -156,7 +160,7 @@ test("plugin action schema digests bind the checked-in public contracts", () => 
 });
 
 test("github-pr-review resolver rejects pre-v0.3 publishers", { skip: !exactRuntimeKitAvailable }, async () => {
-  const runtimeKit = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")));
+  const runtimeKit = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")).href);
   const profile = JSON.parse(readFileSync(resolve(root, "profiles/github-pr-review/profile.json"), "utf8"));
   const range = profile.plugins.find(plugin => plugin.id === "github-review-publish")?.range;
   assert.equal(range, ">=0.3.0 <1.0.0");
@@ -165,7 +169,7 @@ test("github-pr-review resolver rejects pre-v0.3 publishers", { skip: !exactRunt
 });
 
 test("release-bound GitHub packages construct exact runtime-kit PluginDescriptors", { skip: !exactRuntimeKitAvailable }, async () => {
-  const runtimeKit = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")));
+  const runtimeKit = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")).href);
   const profile = JSON.parse(readFileSync(resolve(root, "profiles/github-pr-review/profile.json"), "utf8"));
   const reviewPublisherRange = profile.plugins.find(plugin => plugin.id === "github-review-publish")?.range;
   const revision = "3".repeat(40);
@@ -383,8 +387,8 @@ test("distinct actionable fingerprints may share one native thread location", ()
 });
 
 test("private completion envelope stays outside public plugins and manager", () => {
-  assert.equal(reviewPublish.createDshGitHubReviewCompletionEnvelope, undefined);
-  assert.equal(reviewPublish.validateDshGitHubReviewCompletionEnvelope, undefined);
+  assert.equal(reviewPublishRuntime.createDshGitHubReviewCompletionEnvelope, undefined);
+  assert.equal(reviewPublishRuntime.validateDshGitHubReviewCompletionEnvelope, undefined);
   for (const path of [
     "packages/github-read/src/index.ts",
     "packages/github-review-publish/src/index.ts",

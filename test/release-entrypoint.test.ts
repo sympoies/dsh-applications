@@ -32,10 +32,10 @@ function fixture({ reviewState = "APPROVED" } = {}) {
   mkdirSync(bin);
   cpSync(join(root, ".agents/scripts/release.sh"), join(repository, ".agents/scripts/release.sh"));
   cpSync(
-    join(root, "scripts/check-reviewed-release-source.mjs"),
-    join(repository, "scripts/check-reviewed-release-source.mjs"),
+    join(root, "scripts/check-reviewed-release-source.ts"),
+    join(repository, "scripts/check-reviewed-release-source.ts"),
   );
-  writeFileSync(join(repository, "package.json"), '{"version":"0.1.0"}\n');
+  writeFileSync(join(repository, "package.json"), '{"version":"0.1.0","type":"module"}\n');
   git(repository, "init", "--initial-branch=main");
   git(repository, "config", "user.name", "Release Test");
   git(repository, "config", "user.email", "release-test@example.invalid");

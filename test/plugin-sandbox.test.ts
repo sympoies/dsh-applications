@@ -2,10 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import * as pluginSdk from "../packages/plugin-sdk/src/index.ts";
-import {
-  createApplicationManager,
-  createPluginSandbox,
-} from "../packages/manager/src/index.ts";
+import * as managerApi from "../packages/manager/src/index.ts";
 import {
   DIGEST,
   admitRunningPlugin,
@@ -13,18 +10,20 @@ import {
   hostAction,
   identity,
   pluginDescriptor,
-} from "./helpers/owner-fixtures.mjs";
+} from "./helpers/owner-fixtures.ts";
 
-const { defineOutput, definePlugin, defineTrigger } = pluginSdk;
+const pluginSdkRuntime: any = pluginSdk;
+const { defineOutput, definePlugin, defineTrigger } = pluginSdkRuntime;
+const { createApplicationManager, createPluginSandbox } = managerApi as any;
 
 test("SDK exports strict immutable plugin, trigger, output, configuration, health, and sandbox helpers", () => {
   const runtimeKit = createOwnerRuntimeKit();
   const descriptor = definePlugin(runtimeKit, pluginDescriptor());
   const trigger = defineTrigger({ id: "manual.review", class: "manual", inputSchemaDigest: DIGEST });
   const output = defineOutput({ id: "review.result", schemaDigest: DIGEST });
-  const configuration = pluginSdk.defineConfiguration({ schemaDigest: DIGEST, defaults: { mode: "safe" } });
-  const health = pluginSdk.defineHealth({ probes: [{ id: "review.ready", requirement: "required" }] });
-  const sandbox = pluginSdk.defineSandbox({
+  const configuration = pluginSdkRuntime.defineConfiguration({ schemaDigest: DIGEST, defaults: { mode: "safe" } });
+  const health = pluginSdkRuntime.defineHealth({ probes: [{ id: "review.ready", requirement: "required" }] });
+  const sandbox = pluginSdkRuntime.defineSandbox({
     filesystem: [], network: ["github-api"], subprocess: [], credentialHandleClasses: [],
     resources: { cpuClass: "shared", memoryMb: 128, outputBytes: 65_536 },
   });
@@ -38,20 +37,20 @@ test("SDK exports strict immutable plugin, trigger, output, configuration, healt
   assert.throws(() => definePlugin(runtimeKit, { ...pluginDescriptor(), privateBinding: "forbidden" }), /unknown/i);
   assert.throws(() => defineTrigger({ id: "bad", class: "cron", privatePath: "/private" }), /unknown/i);
   assert.throws(() => defineOutput({ id: "bad", schemaDigest: "floating" }), /digest/i);
-  assert.throws(() => pluginSdk.defineConfiguration({ schemaDigest: DIGEST, defaults: {}, privateBinding: true }), /unknown/i);
+  assert.throws(() => pluginSdkRuntime.defineConfiguration({ schemaDigest: DIGEST, defaults: {}, privateBinding: true }), /unknown/i);
   const sparseDefaults = [];
   sparseDefaults[1] = true;
   for (const defaults of [undefined, Number.NaN, -0, { value: undefined }, sparseDefaults]) {
     assert.throws(
-      () => pluginSdk.defineConfiguration({ schemaDigest: DIGEST, defaults }),
+      () => pluginSdkRuntime.defineConfiguration({ schemaDigest: DIGEST, defaults }),
       /JSON/i,
     );
   }
-  assert.throws(() => pluginSdk.defineHealth({ probes: [{ id: "review.ready", requirement: "best-effort" }] }), /unsupported/i);
-  assert.throws(() => pluginSdk.defineSandbox({ ...sandbox, network: ["z", "a"] }), /sorted/i);
+  assert.throws(() => pluginSdkRuntime.defineHealth({ probes: [{ id: "review.ready", requirement: "best-effort" }] }), /unsupported/i);
+  assert.throws(() => pluginSdkRuntime.defineSandbox({ ...sandbox, network: ["z", "a"] }), /sorted/i);
 });
 
-function setupSandbox(executePlugin, options = {}) {
+function setupSandbox(executePlugin: any, options: any = {}) {
   const runtimeKit = options.runtimeKit ?? createOwnerRuntimeKit();
   const instanceIdentity = options.identity ?? identity();
   const descriptor = options.descriptor ?? pluginDescriptor();
@@ -87,7 +86,7 @@ function setupSandbox(executePlugin, options = {}) {
   };
 }
 
-function invokeRequest(instanceIdentity, input, overrides = {}) {
+function invokeRequest(instanceIdentity: any, input: any, overrides: any = {}) {
   return {
     pluginId: "review",
     actionId: "review.pull-request",
@@ -245,7 +244,7 @@ test("a huge sparse array is rejected before length-proportional construction", 
 });
 
 test("plugin invocation bytes are snapshotted before asynchronous admission", async () => {
-  const gate = Promise.withResolvers();
+  const gate = Promise.withResolvers<void>();
   const runtimeKit = createOwnerRuntimeKit();
   const instanceIdentity = identity();
   const admission = admitRunningPlugin(runtimeKit, instanceIdentity);
@@ -265,7 +264,7 @@ test("plugin invocation bytes are snapshotted before asynchronous admission", as
 });
 
 test("admission is revalidated against the current running instance after asynchronous resolution", async () => {
-  const gate = Promise.withResolvers();
+  const gate = Promise.withResolvers<void>();
   let executions = 0;
   const runtimeKit = createOwnerRuntimeKit();
   const instanceIdentity = identity();
@@ -286,7 +285,7 @@ test("admission is revalidated against the current running instance after asynch
 });
 
 test("admission cannot cross a complete lifecycle receipt epoch", async () => {
-  const gate = Promise.withResolvers();
+  const gate = Promise.withResolvers<void>();
   let executions = 0;
   const runtimeKit = createOwnerRuntimeKit();
   const instanceIdentity = identity();
@@ -310,7 +309,7 @@ test("admission cannot cross a complete lifecycle receipt epoch", async () => {
 });
 
 test("mediated host effects receive a detached request snapshot", async () => {
-  const gate = Promise.withResolvers();
+  const gate = Promise.withResolvers<void>();
   const effects = [];
   const instanceIdentity = identity();
   const runtimeKit = createOwnerRuntimeKit({

@@ -1,13 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  PUBLIC_MANAGER_OPERATIONS,
-  createApplicationControlService,
-  createApplicationManager,
-} from "../packages/manager/src/index.ts";
-import { createAdapterHarness, invocation } from "./helpers/adapter-harness.mjs";
-import { createOwnerRuntimeKit, identity } from "./helpers/owner-fixtures.mjs";
+import * as managerApi from "../packages/manager/src/index.ts";
+import { createAdapterHarness, invocation } from "./helpers/adapter-harness.ts";
+import { createOwnerRuntimeKit, identity } from "./helpers/owner-fixtures.ts";
+
+const { PUBLIC_MANAGER_OPERATIONS, createApplicationControlService, createApplicationManager } = managerApi as any;
 
 const expectedOperations = [
   "validate", "resolve", "lock", "start", "resume", "status",
@@ -217,7 +215,7 @@ test("a setup failure after host binding releases the binding and permits an exa
 });
 
 test("concurrent starts for one canonical identity publish at most one DSH agent", async () => {
-  const runtimeReady = Promise.withResolvers();
+  const runtimeReady = Promise.withResolvers<void>();
   let resolutions = 0;
   let subject;
   subject = createAdapterHarness({
@@ -272,8 +270,8 @@ test("full canonical identity is required before selecting a live sandbox", asyn
 });
 
 test("confinement proof and execution share one captured entry and stop fences before disposal", async () => {
-  const proof = Promise.withResolvers();
-  const execution = Promise.withResolvers();
+  const proof = Promise.withResolvers<void>();
+  const execution = Promise.withResolvers<any>();
   let disposeAllowed = false;
   const subject = createAdapterHarness({
     assertCurrent: () => proof.promise,

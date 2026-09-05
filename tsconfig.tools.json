@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "strict": false,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false
+  },
+  "include": [
+    "scripts/**/*.ts",
+    "test/**/*.ts",
+    "packages/dsh-rc2-adapter/types/**/*.d.ts"
+  ],
+  "exclude": ["test/exact-dsh-consumer.ts"]
+}
