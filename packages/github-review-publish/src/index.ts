@@ -1,14 +1,54 @@
 import { createHash } from "node:crypto";
 
-import { validateGitHubPullRequestReadBundle } from "@sympoies/dsh-github-read";
-import { definePlugin } from "@sympoies/dsh-plugin-sdk";
+import {
+  validateGitHubPullRequestReadBundle,
+  type GitHubPullRequestReadBundle,
+  type GitHubReviewBinding,
+  type ImmutableGitHubPluginArtifactIdentity,
+  type RuntimeKitPluginDescriptorOwner,
+} from "@sympoies/dsh-github-read";
+import { definePlugin, type PluginDescriptor } from "@sympoies/dsh-plugin-sdk";
 
 export const GITHUB_REVIEW_OUTPUT_DIGEST_DOMAIN = "sympoies/github-review-output/v1";
 export const GITHUB_REVIEW_WORKER_RESULT_DIGEST_DOMAIN = "sympoies/github-review-worker-result/v1";
 export const GITHUB_REVIEW_OUTPUT_MEDIA_TYPE = "application/vnd.sympoies.github-review+json";
-export const GITHUB_REVIEW_OUTPUT_SCHEMA_DIGEST = "sha256:6f50d0a3d4b4c221cb553eef5084842926458a8678107c95024efd85fd0667d2";
-export const GITHUB_REVIEW_WORKER_RESULT_SCHEMA_DIGEST = "sha256:4066880e5d22050eefbbd40afdf143e58a055c8ce64bdeaafebfd0fdfc8bdc12";
+export const GITHUB_REVIEW_OUTPUT_SCHEMA_DIGEST: `sha256:${string}` = "sha256:6f50d0a3d4b4c221cb553eef5084842926458a8678107c95024efd85fd0667d2";
+export const GITHUB_REVIEW_WORKER_RESULT_SCHEMA_DIGEST: `sha256:${string}` = "sha256:4066880e5d22050eefbbd40afdf143e58a055c8ce64bdeaafebfd0fdfc8bdc12";
 export const MAX_GITHUB_REVIEW_WORKER_RESULT_BYTES = 65_536;
+
+export interface GitHubReviewOutput {
+  readonly decision: "APPROVE" | "COMMENT" | "REQUEST_CHANGES";
+  readonly reviewReport: {
+    readonly format: "agent-kit.specialist-review-report.v1";
+    readonly body: string;
+  };
+  readonly findings: readonly {
+    readonly fingerprint: string;
+    readonly actionable: boolean;
+    readonly path: string;
+    readonly line?: number;
+  }[];
+  readonly inlineComments: readonly {
+    readonly fingerprint: string;
+    readonly path: string;
+    readonly line?: number;
+    readonly body: string;
+    readonly suggestion?: string;
+  }[];
+}
+
+export interface GitHubReviewWorkerResult extends GitHubReviewBinding {
+  readonly apiVersion: "runtime.sympoies.dev/v1";
+  readonly kind: "GitHubReviewWorkerResult";
+  readonly digest: `sha256:${string}`;
+  readonly outputMediaType: "application/vnd.sympoies.github-review+json";
+  readonly outputByteLength: number;
+  readonly output: GitHubReviewOutput;
+  readonly outputDigest: `sha256:${string}`;
+}
+
+/** Untyped caller input after the object-shape check; every field is still validated. */
+type Fields = Record<string, unknown>;
 
 const API_VERSION = "runtime.sympoies.dev/v1";
 const KIND = "GitHubReviewWorkerResult";
@@ -20,52 +60,52 @@ const SOURCE_REVISION = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/u;
 const BINDING_FIELDS = Object.freeze([
   "capsuleDigest", "requestId", "target", "headSha", "pathSetDigest",
   "generation", "instance", "outputSchemaDigest", "admissionId", "publisherEpoch",
-]);
+] as const);
 const RESULT_FIELDS = Object.freeze([
   "apiVersion", "kind", "digest", ...BINDING_FIELDS.slice(0, 7),
   "outputMediaType", "outputByteLength", "output", "outputDigest",
   ...BINDING_FIELDS.slice(7),
 ]);
 
-function fail(message) {
+function fail(message: string): never {
   throw new TypeError(message);
 }
 
-function record(value, label) {
+function record(value: unknown, label: string): Fields {
   if (value === null || typeof value !== "object" || Array.isArray(value)) fail(`${label} must be an object`);
   const prototype = Object.getPrototypeOf(value);
   if (prototype !== Object.prototype && prototype !== null) fail(`${label} must be a plain object`);
-  return value;
+  return value as Fields;
 }
 
-function exactKeys(value, required, optional, label) {
+function exactKeys(value: Fields, required: readonly string[], optional: readonly string[], label: string): void {
   const allowed = new Set([...required, ...optional]);
   for (const key of Object.keys(value)) if (!allowed.has(key)) fail(`${label} has unknown field ${key}`);
   for (const key of required) if (!(key in value)) fail(`${label}.${key} is required`);
 }
 
-function boundedString(value, label, maximumBytes) {
+function boundedString(value: unknown, label: string, maximumBytes: number): asserts value is string {
   if (typeof value !== "string" || value.length === 0 || Buffer.byteLength(value, "utf8") > maximumBytes) {
     fail(`${label} is invalid or too long`);
   }
 }
 
-function fingerprint(value, label) {
+function fingerprint(value: unknown, label: string): asserts value is string {
   boundedString(value, label, 256);
   if (value.trim().length === 0) fail(`${label} must contain a non-whitespace stable identifier`);
 }
 
-function digest(value, label) {
+function digest(value: unknown, label: string): asserts value is `sha256:${string}` {
   if (typeof value !== "string" || !DIGEST.test(value)) fail(`${label} must be a lowercase sha256 digest`);
 }
 
-function uint64(value, label) {
+function uint64(value: unknown, label: string): asserts value is string {
   if (typeof value !== "string" || !UINT64.test(value) || BigInt(value) > UINT64_MAX) {
     fail(`${label} must be a canonical uint64 decimal string`);
   }
 }
 
-function path(value, label) {
+function path(value: unknown, label: string): asserts value is string {
   boundedString(value, label, 1024);
   if (value.startsWith("/") || value.includes("\\") || value.includes("\0")
     || value.split("/").some(segment => segment === "" || segment === "." || segment === "..")) {
@@ -73,7 +113,7 @@ function path(value, label) {
   }
 }
 
-function assertUnicode(value, label) {
+function assertUnicode(value: string, label: string): void {
   for (let index = 0; index < value.length; index += 1) {
     const unit = value.charCodeAt(index);
     if (unit >= 0xd800 && unit <= 0xdbff) {
@@ -86,9 +126,9 @@ function assertUnicode(value, label) {
   }
 }
 
-function assertJsonValue(value, label) {
-  const ancestors = new Set();
-  const visit = (candidate, pathLabel) => {
+function assertJsonValue(value: unknown, label: string): void {
+  const ancestors = new Set<object>();
+  const visit = (candidate: unknown, pathLabel: string): void => {
     if (candidate === null || typeof candidate === "boolean") return;
     if (typeof candidate === "string") {
       assertUnicode(candidate, pathLabel);
@@ -108,7 +148,7 @@ function assertJsonValue(value, label) {
     const keys = Object.keys(descriptors);
     if (isArray) {
       const indexes = keys.filter(key => key !== "length");
-      if (indexes.length !== candidate.length) fail(`${pathLabel} is not a dense JSON array`);
+      if (indexes.length !== (candidate as unknown[]).length) fail(`${pathLabel} is not a dense JSON array`);
       indexes.forEach((key, index) => {
         if (key !== String(index)) fail(`${pathLabel} is not a dense JSON array`);
       });
@@ -117,7 +157,7 @@ function assertJsonValue(value, label) {
     for (const key of keys) {
       if (isArray && key === "length") continue;
       assertUnicode(key, `${pathLabel} key`);
-      const descriptor = descriptors[key];
+      const descriptor = descriptors[key] as PropertyDescriptor;
       if (descriptor.get !== undefined || descriptor.set !== undefined || descriptor.enumerable !== true) {
         fail(`${pathLabel} has a non-data JSON property`);
       }
@@ -128,20 +168,21 @@ function assertJsonValue(value, label) {
   visit(value, label);
 }
 
-function canonicalize(value) {
+function canonicalize(value: unknown): string {
   if (value === null || typeof value === "boolean" || typeof value === "number" || typeof value === "string") {
     return JSON.stringify(value);
   }
   if (Array.isArray(value)) return `[${value.map(canonicalize).join(",")}]`;
-  return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonicalize(value[key])}`).join(",")}}`;
+  const fields = value as Fields;
+  return `{${Object.keys(fields).sort().map(key => `${JSON.stringify(key)}:${canonicalize(fields[key])}`).join(",")}}`;
 }
 
-export function canonicalizeGitHubReviewJson(value) {
+export function canonicalizeGitHubReviewJson(value: unknown): string {
   assertJsonValue(value, "value");
   return canonicalize(value);
 }
 
-function domainDigest(domain, value) {
+function domainDigest(domain: string, value: unknown): `sha256:${string}` {
   const hash = createHash("sha256");
   hash.update(domain, "ascii");
   hash.update(Buffer.from([0]));
@@ -149,21 +190,21 @@ function domainDigest(domain, value) {
   return `sha256:${hash.digest("hex")}`;
 }
 
-export function computeGitHubReviewOutputDigest(output) {
+export function computeGitHubReviewOutputDigest(output: unknown): `sha256:${string}` {
   return domainDigest(GITHUB_REVIEW_OUTPUT_DIGEST_DOMAIN, output);
 }
 
-export function computeGitHubReviewWorkerResultDigest(result) {
+export function computeGitHubReviewWorkerResultDigest(result: unknown): `sha256:${string}` {
   const value = record(result, "workerResult");
-  const projection = {};
+  const projection: Fields = {};
   for (const key of Object.keys(value)) if (key !== "digest") projection[key] = value[key];
   return domainDigest(GITHUB_REVIEW_WORKER_RESULT_DIGEST_DOMAIN, projection);
 }
 
-function validateReviewOutput(value) {
+function validateReviewOutput(value: unknown): Fields {
   const output = record(value, "workerResult.output");
   exactKeys(output, ["decision", "reviewReport", "findings", "inlineComments"], [], "workerResult.output");
-  if (!["APPROVE", "COMMENT", "REQUEST_CHANGES"].includes(output.decision)) {
+  if (!["APPROVE", "COMMENT", "REQUEST_CHANGES"].includes(output.decision as string)) {
     fail("workerResult.output.decision is invalid");
   }
   const report = record(output.reviewReport, "workerResult.output.reviewReport");
@@ -180,12 +221,12 @@ function validateReviewOutput(value) {
     if (next < 0) fail(`workerResult output report is missing ${heading}`);
     cursor = next;
   }
-  if (!report.body.slice(cursor).includes(output.decision)) fail("workerResult output report decision does not match");
+  if (!report.body.slice(cursor).includes(output.decision as string)) fail("workerResult output report decision does not match");
 
   if (!Array.isArray(output.findings) || output.findings.length > 50) {
     fail("workerResult.output.findings must be a bounded array");
   }
-  const findings = new Map();
+  const findings = new Map<string, Fields>();
   output.findings.forEach((candidate, index) => {
     const finding = record(candidate, `workerResult.output.findings[${index}]`);
     exactKeys(finding, ["fingerprint", "actionable", "path"], ["line"], `workerResult.output.findings[${index}]`);
@@ -195,7 +236,8 @@ function validateReviewOutput(value) {
     }
     path(finding.path, `workerResult.output.findings[${index}].path`);
     if (finding.line !== undefined
-      && (!Number.isSafeInteger(finding.line) || finding.line < 1 || finding.line > 2_147_483_647)) {
+      && (typeof finding.line !== "number" || !Number.isSafeInteger(finding.line)
+        || finding.line < 1 || finding.line > 2_147_483_647)) {
       fail(`workerResult.output.findings[${index}].line is invalid`);
     }
     if (findings.has(finding.fingerprint)) fail("workerResult output finding fingerprints must be unique");
@@ -205,14 +247,15 @@ function validateReviewOutput(value) {
   if (!Array.isArray(output.inlineComments) || output.inlineComments.length > 50) {
     fail("workerResult.output.inlineComments must be a bounded array");
   }
-  const threadFingerprints = new Set();
+  const threadFingerprints = new Set<string>();
   output.inlineComments.forEach((candidate, index) => {
     const comment = record(candidate, `workerResult.output.inlineComments[${index}]`);
     exactKeys(comment, ["fingerprint", "path", "body"], ["line", "suggestion"], `workerResult.output.inlineComments[${index}]`);
     fingerprint(comment.fingerprint, `workerResult.output.inlineComments[${index}].fingerprint`);
     path(comment.path, `workerResult.output.inlineComments[${index}].path`);
     if (comment.line !== undefined
-      && (!Number.isSafeInteger(comment.line) || comment.line < 1 || comment.line > 2_147_483_647)) {
+      && (typeof comment.line !== "number" || !Number.isSafeInteger(comment.line)
+        || comment.line < 1 || comment.line > 2_147_483_647)) {
       fail(`workerResult.output.inlineComments[${index}].line is invalid`);
     }
     boundedString(comment.body, `workerResult.output.inlineComments[${index}].body`, 8192);
@@ -230,14 +273,14 @@ function validateReviewOutput(value) {
     }
   });
   for (const finding of findings.values()) {
-    if (finding.actionable && !threadFingerprints.has(finding.fingerprint)) {
+    if (finding.actionable && !threadFingerprints.has(finding.fingerprint as string)) {
       fail(`workerResult output actionable finding ${finding.fingerprint} has no native thread mapping`);
     }
   }
   return output;
 }
 
-function validateBinding(value, label) {
+function validateBinding(value: Fields, label: string): void {
   digest(value.capsuleDigest, `${label}.capsuleDigest`);
   for (const field of ["requestId", "target", "generation", "instance", "admissionId"]) {
     boundedString(value[field], `${label}.${field}`, 256);
@@ -249,9 +292,9 @@ function validateBinding(value, label) {
   uint64(value.publisherEpoch, `${label}.publisherEpoch`);
 }
 
-function freezeClone(value) {
+function freezeClone<T>(value: T): T {
   const clone = structuredClone(value);
-  const freeze = candidate => {
+  const freeze = <Candidate>(candidate: Candidate): Candidate => {
     if (candidate !== null && typeof candidate === "object" && !Object.isFrozen(candidate)) {
       Object.values(candidate).forEach(freeze);
       Object.freeze(candidate);
@@ -261,19 +304,20 @@ function freezeClone(value) {
   return freeze(clone);
 }
 
-function compareReadBinding(result, input) {
+function compareReadBinding(result: Fields, input: unknown): void {
   const readBundle = validateGitHubPullRequestReadBundle(input);
   for (const field of BINDING_FIELDS) {
     if (result[field] !== readBundle[field]) fail(`workerResult.${field} does not match the server-bound read bundle`);
   }
   const linesByPath = new Map(readBundle.files.map(file => [file.path, new Set(file.lines)]));
-  result.output.findings.forEach((finding, index) => {
+  const output = result.output as GitHubReviewOutput;
+  output.findings.forEach((finding, index) => {
     if (!linesByPath.has(finding.path)
       || (finding.line !== undefined && !linesByPath.get(finding.path)?.has(finding.line))) {
       fail(`workerResult.output.findings[${index}] path and line are not in the server-bound diff`);
     }
   });
-  result.output.inlineComments.forEach((comment, index) => {
+  output.inlineComments.forEach((comment, index) => {
     if (!linesByPath.has(comment.path)
       || (comment.line !== undefined && !linesByPath.get(comment.path)?.has(comment.line))) {
       fail(`workerResult.output.inlineComments[${index}] path and line are not in the server-bound diff`);
@@ -281,7 +325,13 @@ function compareReadBinding(result, input) {
   });
 }
 
-export function validateGitHubReviewWorkerResult(input, options = {}) {
+export function validateGitHubReviewWorkerResult(input: unknown, options?: {
+  readonly readBundle?: GitHubPullRequestReadBundle | undefined;
+}): Readonly<GitHubReviewWorkerResult>;
+export function validateGitHubReviewWorkerResult(
+  input: unknown,
+  options: { readonly readBundle?: GitHubPullRequestReadBundle | undefined } = {},
+): unknown {
   const value = record(input, "workerResult");
   exactKeys(value, RESULT_FIELDS, [], "workerResult");
   if (value.apiVersion !== API_VERSION) fail("workerResult.apiVersion is invalid");
@@ -289,7 +339,7 @@ export function validateGitHubReviewWorkerResult(input, options = {}) {
   digest(value.digest, "workerResult.digest");
   validateBinding(value, "workerResult");
   if (value.outputMediaType !== GITHUB_REVIEW_OUTPUT_MEDIA_TYPE) fail("workerResult.outputMediaType is invalid");
-  if (!Number.isSafeInteger(value.outputByteLength)
+  if (typeof value.outputByteLength !== "number" || !Number.isSafeInteger(value.outputByteLength)
     || value.outputByteLength < 0 || value.outputByteLength > MAX_GITHUB_REVIEW_WORKER_RESULT_BYTES) {
     fail("workerResult.outputByteLength is outside the 65,536-byte limit");
   }
@@ -304,7 +354,16 @@ export function validateGitHubReviewWorkerResult(input, options = {}) {
   return freezeClone(value);
 }
 
-export function createGitHubReviewWorkerResult({ binding, output, readBundle } = {}) {
+export function createGitHubReviewWorkerResult(input: {
+  readonly binding: GitHubReviewBinding;
+  readonly output: GitHubReviewOutput;
+  readonly readBundle?: GitHubPullRequestReadBundle | undefined;
+}): Readonly<GitHubReviewWorkerResult>;
+export function createGitHubReviewWorkerResult({ binding, output, readBundle }: {
+  readonly binding?: unknown;
+  readonly output?: unknown;
+  readonly readBundle?: GitHubPullRequestReadBundle | undefined;
+} = {}): unknown {
   const bound = record(binding, "binding");
   exactKeys(bound, BINDING_FIELDS, [], "binding");
   validateBinding(bound, "binding");
@@ -334,7 +393,11 @@ export function createGitHubReviewWorkerResult({ binding, output, readBundle } =
   return validateGitHubReviewWorkerResult(value, { readBundle });
 }
 
-export function createGitHubReviewPublishPluginDescriptor(runtimeKit, artifactIdentity) {
+export function createGitHubReviewPublishPluginDescriptor(
+  runtimeKit: RuntimeKitPluginDescriptorOwner,
+  artifactIdentity: ImmutableGitHubPluginArtifactIdentity,
+): Readonly<PluginDescriptor>;
+export function createGitHubReviewPublishPluginDescriptor(runtimeKit: RuntimeKitPluginDescriptorOwner, artifactIdentity: unknown): unknown {
   if (typeof runtimeKit?.computeDocumentDigest !== "function") {
     fail("runtime-kit computeDocumentDigest owner is required");
   }
@@ -353,7 +416,7 @@ export function createGitHubReviewPublishPluginDescriptor(runtimeKit, artifactId
     artifact: {
       package: "@sympoies/dsh-github-review-publish",
       digest: artifact.digest,
-      entrypoint: "packages/github-review-publish/src/index.js",
+      entrypoint: "packages/github-review-publish/src/index.ts",
       sourceRevision: artifact.sourceRevision,
       attestationIdentity: artifact.attestationIdentity,
     },
@@ -390,5 +453,5 @@ export function createGitHubReviewPublishPluginDescriptor(runtimeKit, artifactId
     },
   };
   descriptor.metadata.digest = runtimeKit.computeDocumentDigest(descriptor);
-  return definePlugin(runtimeKit, descriptor);
+  return definePlugin(runtimeKit, descriptor as unknown as PluginDescriptor);
 }

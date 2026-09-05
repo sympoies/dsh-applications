@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
+  existsSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -109,6 +110,86 @@ test("workspace packages are components of one coordinated application artifact"
   assert.match(packages, /share.*root.*version/i);
   assert.doesNotMatch(architecture, /independently versioned/i);
   assert.match(read(".github/workflows/release.yml"), /test "\$package_version" != "0\.0\.0"/);
+});
+
+test("workspace packages ship erasable TypeScript sources that Node executes without a build", () => {
+  const pkg = json("package.json");
+  assert.equal(pkg.scripts.typecheck, "tsc -p tsconfig.json");
+  for (const script of ["build", "prepare", "prepack", "postinstall"]) {
+    assert.equal(pkg.scripts[script], undefined, `${script} would add a build or install step`);
+  }
+  assert.equal(pkg.devDependencies.typescript, "6.0.3");
+  assert.equal(pkg.devDependencies["@types/node"], "24.13.3");
+
+  const tsconfig = json("tsconfig.json");
+  for (const [option, expected] of Object.entries({
+    strict: true,
+    noEmit: true,
+    erasableSyntaxOnly: true,
+    verbatimModuleSyntax: true,
+    allowImportingTsExtensions: true,
+    noUncheckedIndexedAccess: true,
+    exactOptionalPropertyTypes: true,
+    module: "NodeNext",
+    moduleResolution: "NodeNext",
+  })) {
+    assert.equal(tsconfig.compilerOptions[option], expected, `tsconfig ${option}`);
+  }
+
+  for (const name of [
+    "plugin-sdk", "manager", "dsh-rc2-adapter",
+    "conversation-agent", "github-read", "github-review-publish",
+  ]) {
+    const manifest = json(`packages/${name}/package.json`);
+    assert.deepEqual(manifest.exports["."], { import: "./src/index.ts" }, `${name} must export its TypeScript source`);
+    assert(!manifest.files.includes("index.d.ts"), `${name} must not ship a hand-written declaration file`);
+    assert.equal(statSync(join(root, `packages/${name}/src/index.ts`)).isFile(), true);
+    assert(!existsSync(join(root, `packages/${name}/src/index.js`)), `${name} must not keep a JavaScript entry`);
+    assert(!existsSync(join(root, `packages/${name}/index.d.ts`)), `${name} must fold its types into the source`);
+  }
+
+  const workflow = read(".github/workflows/ci.yml");
+  assert.match(workflow, /npm run typecheck/);
+  assert.match(read(".github/workflows/release.yml"), /npm run typecheck/);
+
+  const adapter = json("packages/dsh-rc2-adapter/package.json");
+  assert(adapter.files.includes("types"), "the adapter ships its DSH peer fallback declarations");
+  assert.equal(statSync(join(root, "packages/dsh-rc2-adapter/types/dsh-peer-fallbacks.d.ts")).isFile(), true);
+});
+
+test("a downstream TypeScript consumer compiles the shipped sources under stricter options without the DSH peers", () => {
+  const temporaryRoot = mkdtempSync(join(tmpdir(), "dsh-applications-consumer-"));
+  try {
+    const configPath = join(temporaryRoot, "tsconfig.json");
+    writeFileSync(configPath, `${JSON.stringify({
+      compilerOptions: {
+        target: "ES2024",
+        lib: ["ES2024"],
+        module: "NodeNext",
+        moduleResolution: "NodeNext",
+        types: ["node"],
+        typeRoots: [join(root, "node_modules", "@types")],
+        strict: true,
+        noEmit: true,
+        skipLibCheck: false,
+        noUncheckedIndexedAccess: true,
+        exactOptionalPropertyTypes: true,
+        noImplicitOverride: true,
+        noFallthroughCasesInSwitch: true,
+      },
+      files: [
+        join(root, "test/fixtures/typescript-consumer/consumer.ts"),
+        join(root, "packages/dsh-rc2-adapter/types/dsh-peer-fallbacks.d.ts"),
+      ],
+    }, null, 2)}\n`);
+    assert.equal(existsSync(join(root, "node_modules", "@deepseek-ai")), false, "the optional DSH peers must stay absent for this consumer");
+    execFileSync(process.execPath, [join(root, "node_modules/typescript/bin/tsc"), "--project", configPath, "--pretty", "false"], {
+      cwd: root,
+      stdio: "pipe",
+    });
+  } finally {
+    rmSync(temporaryRoot, { recursive: true, force: true });
+  }
 });
 
 test("installed workspace resolves every actual public package specifier", async () => {
@@ -405,6 +486,9 @@ test("the repository package is reproducible and contains the public coordinated
   assert(paths.includes("profiles/github-pr-review/profile.json"));
   assert(paths.includes("fixtures/triggers/manual.json"));
   assert(paths.includes("fixtures/triggers/schedule.json"));
+  assert(paths.includes("packages/plugin-sdk/src/index.ts"));
+  assert(!paths.some((path) => /^packages\/[^/]+\/index\.d\.ts$/.test(path) || path.endsWith("/src/index.js")));
+  assert(paths.includes("packages/dsh-rc2-adapter/types/dsh-peer-fallbacks.d.ts"));
   assert(!paths.some((path) => path.startsWith(".github/")));
   assert(!paths.some((path) => path.startsWith("scripts/")));
   assert(!paths.some((path) => path.startsWith("test/")));

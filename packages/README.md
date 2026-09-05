@@ -25,6 +25,9 @@ independently versioned packages.
 The artifact intentionally contains no provider credential boundary, private
 deployment binding, artifact installer, or traffic service.
 
+Every package is erasable TypeScript at `src/index.ts`, executed by Node.js 24
+without a build step and exporting its public types from the same source file.
+
 A package directory is admitted only with its own exact metadata, public API
 boundary, tests, compatibility declaration, and independently reviewed change.
 Admission does not create an independently versioned or published product.

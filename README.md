@@ -50,9 +50,33 @@ npm run test:plugin-sandbox
 npm run test:profiles
 npm run test:github-contracts
 npm test
+npm run typecheck
 npm run check:compatibility -- --manifest-only
 npm run test:package
 ```
+
+The workspace packages are written in erasable TypeScript that Node.js 24
+executes directly through its built-in type stripping. There is no build step:
+`exports` point at the `.ts` sources, the shipped tarball is the reviewed
+source, and `npm run typecheck` (`tsc --noEmit`) is the only compiler
+invocation. Node.js 24 or newer is therefore a runtime requirement, not only a
+development one.
+
+Two consequences follow for anyone consuming the packages outside this
+workspace:
+
+- Node.js does not strip types for files under a `node_modules` directory, so
+  the packages load only from an unpacked artifact root (which is how the
+  release artifact is consumed), never from an `npm install` into a consumer's
+  `node_modules`.
+- A TypeScript consumer compiles these sources with its own compiler options,
+  since no separate declaration file is shipped. The sources compile under
+  `strict`, `noUncheckedIndexedAccess`, and `exactOptionalPropertyTypes` and
+  need `@types/node` in scope. `@sympoies/dsh-rc2-adapter` binds its public
+  types to the optional DSH peer packages; a consumer without those peers adds
+  `packages/dsh-rc2-adapter/types/dsh-peer-fallbacks.d.ts` to its program
+  instead. `test/fixtures/typescript-consumer/consumer.ts` is the checked
+  example of such a consumer.
 
 See [architecture](docs/architecture.md), [ownership](docs/ownership.md),
 [release rules](docs/releases.md), [development log](docs/devlog/README.md),

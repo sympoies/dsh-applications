@@ -32,7 +32,8 @@
     "verify:package-reproducibility": "node scripts/check-package-reproducibility.mjs",
     "test:package": "npm run check:compatibility -- --manifest-only && npm run verify:package-reproducibility && npm pack --dry-run --ignore-scripts",
     "test:conversation": "node --test test/conversation.test.mjs",
-    "test:batch": "node --test test/batch.test.mjs"
+    "test:batch": "node --test test/batch.test.mjs",
+    "typecheck": "tsc -p tsconfig.json"
   },
   "engines": {
     "node": ">=24.0.0"
@@ -42,5 +43,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/sympoies/dsh-applications.git"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "typescript": "6.0.3"
   }
 }

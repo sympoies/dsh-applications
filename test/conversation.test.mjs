@@ -4,8 +4,8 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
 
-import { createApplicationManager, createPluginSandbox } from "../packages/manager/src/index.js";
-import { REQUIRED_AMBIENT_DENIALS } from "../packages/dsh-rc2-adapter/src/index.js";
+import { createApplicationManager, createPluginSandbox } from "../packages/manager/src/index.ts";
+import { REQUIRED_AMBIENT_DENIALS } from "../packages/dsh-rc2-adapter/src/index.ts";
 import { createAdapterHarness } from "./helpers/adapter-harness.mjs";
 import {
   DIGEST,

@@ -2,7 +2,9 @@
 
 ## Prerequisites
 
-- fnm with the repository-pinned Node.js 24 runtime (`fnm use`)
+- fnm with the repository-pinned Node.js 24 runtime (`fnm use`); Node.js 24
+  executes the TypeScript sources directly through built-in type stripping, so
+  it is a runtime requirement as well as a development one
 - npm 11.6.2
 - a clean checkout with no private configuration copied into it
 
@@ -19,7 +21,16 @@ npm ci --ignore-scripts
 Keep changes inside the public ownership boundary described in
 `docs/ownership.md`. New packages live below `packages/<name>/` and must have a
 single public responsibility, strict inputs, tests, documentation, and exact
-workspace dependencies. All components share the root coordinated version and
+workspace dependencies. Package sources are erasable TypeScript
+(`src/index.ts`): only syntax that Node.js can strip is allowed (no `enum`,
+`namespace`, parameter properties, or decorators), `exports` point at the
+`.ts` source, exported types live in the source rather than in a hand-written
+declaration file, and `npm run typecheck` must pass alongside `npm test`.
+Do not add a build, `prepare`, or `prepack` script. `tsconfig.json` keeps
+`allowImportingTsExtensions` on even though every package is a single file
+today: the moment a package grows a second module, Node requires the relative
+import to name the `.ts` file explicitly, and the option makes `tsc` accept
+the same spelling. All components share the root coordinated version and
 release artifact; do not version or publish a workspace independently. Do not
 put deployment manifests, service definitions,
 credential references, environment-specific routes, or operator scripts here.

@@ -5,7 +5,7 @@ import {
   PUBLIC_MANAGER_OPERATIONS,
   createApplicationControlService,
   createApplicationManager,
-} from "../packages/manager/src/index.js";
+} from "../packages/manager/src/index.ts";
 import { createAdapterHarness, invocation } from "./helpers/adapter-harness.mjs";
 import { createOwnerRuntimeKit, identity } from "./helpers/owner-fixtures.mjs";
 
@@ -364,4 +364,18 @@ test("the adapter revokes a retained host capability before in-flight accounting
   await subject.adapter.lifecycleEffects.resume({ identity: instanceIdentity });
   await assert.rejects(retainedHostAction({ later: true }), /active|revoked|settled/i);
   assert.equal(hostEffects, 0);
+});
+
+test("a sandbox owner without release retires an instance and frees its reservation on stop", async () => {
+  const subject = createAdapterHarness({ omitRelease: true });
+  const a = identity("a");
+  assert.equal((await subject.adapter.lifecycleEffects.start({ identity: a })).status, "succeeded");
+  assert.deepEqual(await subject.adapter.lifecycleEffects.stop({ identity: a }), {
+    status: "succeeded",
+    retainedStateDisposition: "retained",
+  });
+  assert.deepEqual(subject.releases, [], "no release owner exists to call");
+  assert.equal(subject.disposeCompletions.length, 1, "the agent handle is still disposed");
+  // The reservation is gone: the same session and root can be claimed again.
+  assert.equal((await subject.adapter.lifecycleEffects.start({ identity: a })).status, "succeeded");
 });

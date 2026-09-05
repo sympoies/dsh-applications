@@ -11,7 +11,7 @@ import {
   createConversationAgentPluginDescriptor,
   validateConversationReply,
   validateConversationTurn,
-} from "../packages/conversation-agent/src/index.js";
+} from "../packages/conversation-agent/src/index.ts";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const exactRoot = process.env.DSH_RUNTIME_KIT_ROOT
@@ -197,6 +197,8 @@ test("the descriptor claims no filesystem, network, subprocess, or credential au
 
   assert.equal(descriptor.metadata.id, "conversation-agent");
   assert.equal(descriptor.artifact.package, "@sympoies/dsh-conversation-agent");
+  assert.equal(descriptor.artifact.entrypoint, "packages/conversation-agent/src/index.ts");
+  assert.equal(existsSync(resolve(root, descriptor.artifact.entrypoint)), true, "the descriptor entrypoint must be a shipped source file");
   assert.equal(descriptor.metadata.digest, runtimeKit.computeDocumentDigest(descriptor));
   assert.equal(Object.isFrozen(descriptor), true);
   for (const field of ["filesystem", "network", "subprocess", "credentialHandleClasses"]) {
