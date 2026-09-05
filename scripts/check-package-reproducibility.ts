@@ -8,13 +8,13 @@ import { join, resolve } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 const temporaryRoot = mkdtempSync(join(tmpdir(), "dsh-applications-pack-"));
 
-function pack(destination) {
+function pack(destination: string) {
   const output = execFileSync(
     "npm",
     ["pack", "--ignore-scripts", "--json", "--pack-destination", destination],
     { cwd: root, encoding: "utf8" },
   );
-  const result = JSON.parse(output)[0];
+  const result: { filename: string; files: Array<{ path: string }> } = JSON.parse(output)[0];
   const bytes = readFileSync(join(destination, result.filename));
   return {
     digest: createHash("sha256").update(bytes).digest("hex"),

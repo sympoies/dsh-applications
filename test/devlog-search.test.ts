@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const projectRoot = fileURLToPath(new URL("..", import.meta.url));
 const scriptPath = join(projectRoot, "scripts", "devlog-search.sh");
 
-const search = (...args) =>
+const search = (...args: string[]) =>
   spawnSync(scriptPath, args, {
     cwd: projectRoot,
     encoding: "utf8",

@@ -14,7 +14,7 @@ import test from "node:test";
 
 const root = resolve(import.meta.dirname, "..");
 
-function git(cwd, ...arguments_) {
+function git(cwd: string, ...arguments_: string[]) {
   return execFileSync("git", arguments_, {
     cwd,
     encoding: "utf8",
@@ -32,10 +32,10 @@ function fixture({ reviewState = "APPROVED" } = {}) {
   mkdirSync(bin);
   cpSync(join(root, ".agents/scripts/release.sh"), join(repository, ".agents/scripts/release.sh"));
   cpSync(
-    join(root, "scripts/check-reviewed-release-source.mjs"),
-    join(repository, "scripts/check-reviewed-release-source.mjs"),
+    join(root, "scripts/check-reviewed-release-source.ts"),
+    join(repository, "scripts/check-reviewed-release-source.ts"),
   );
-  writeFileSync(join(repository, "package.json"), '{"version":"0.1.0"}\n');
+  writeFileSync(join(repository, "package.json"), '{"version":"0.1.0","type":"module"}\n');
   git(repository, "init", "--initial-branch=main");
   git(repository, "config", "user.name", "Release Test");
   git(repository, "config", "user.email", "release-test@example.invalid");

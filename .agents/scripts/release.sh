@@ -186,7 +186,7 @@ gh api --paginate --slurp \
   -H 'Accept: application/vnd.github+json' \
   "repos/$repository/commits/$expected_head/pulls" |
   jq 'add' >"$associations"
-pull_request="$(node scripts/check-reviewed-release-source.mjs \
+pull_request="$(node scripts/check-reviewed-release-source.ts \
   --repository "$repository" \
   --commit "$expected_head" \
   --associations "$associations")"
@@ -194,7 +194,7 @@ gh api --paginate --slurp \
   -H 'Accept: application/vnd.github+json' \
   "repos/$repository/pulls/$pull_request/reviews" |
   jq 'add' >"$reviews"
-review_result="$(node scripts/check-reviewed-release-source.mjs \
+review_result="$(node scripts/check-reviewed-release-source.ts \
   --repository "$repository" \
   --commit "$expected_head" \
   --associations "$associations" \

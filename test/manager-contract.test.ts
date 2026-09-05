@@ -1,20 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  PUBLIC_MANAGER_OPERATIONS,
-  createApplicationControlService,
-  createApplicationManager,
-} from "../packages/manager/src/index.ts";
-import { createAdapterHarness, invocation } from "./helpers/adapter-harness.mjs";
-import { createOwnerRuntimeKit, identity } from "./helpers/owner-fixtures.mjs";
+import { PUBLIC_MANAGER_OPERATIONS, type RuntimeStore } from "../packages/manager/src/index.ts";
+import { createApplicationControlService, createApplicationManager } from "./helpers/typed-manager.ts";
+import { createAdapterHarness, invocation } from "./helpers/adapter-harness.ts";
+import { createOwnerRuntimeKit, identity } from "./helpers/owner-fixtures.ts";
+import type { DshRc2InstanceRuntime } from "../packages/dsh-rc2-adapter/src/index.ts";
 
 const expectedOperations = [
   "validate", "resolve", "lock", "start", "resume", "status",
   "interrupt", "drain", "stop", "doctor",
 ];
 
-function managerOptions(runtimeKit, dshAdapter = { lifecycleEffects: {} }) {
+function managerOptions(runtimeKit: any, dshAdapter = { lifecycleEffects: {} }) {
   return {
     runtimeKit,
     runtimeStore: runtimeKit.store,
@@ -33,7 +31,7 @@ test("public application manager exposes exactly the ten reviewed operations", a
   assert.deepEqual(Object.keys(manager), expectedOperations);
   for (const operation of expectedOperations) {
     assert.equal(typeof manager[operation], "function");
-    assert.deepEqual(await manager[operation]({ operation }), {
+    assert.deepEqual(await manager[operation]!({ operation }), {
       owner: "runtime-kit", operation, request: { operation },
     });
   }
@@ -58,7 +56,7 @@ test("manager requires an explicit owner store and recreation retains shared run
   assert.deepEqual(await replacement.status({ identity: identity() }), {
     retained: { state: "Running", receiptHead: "retained" },
   });
-  assert.equal(await first.status({ identity: identity() }).then(result => result.retained.receiptHead), "retained");
+  assert.equal(await first.status({ identity: identity() }).then((result: any) => result.retained.receiptHead), "retained");
   const creations = runtimeKit.calls.filter(call => call.operation === "create-manager");
   assert.equal(creations.length, 2);
   assert(creations.every(call => call.options.store === runtimeKit.store));
@@ -82,8 +80,8 @@ test("runtime-kit owns composition, lifecycle, the shared store, mediation, and 
   );
   assert.equal(reconciled.owner, "runtime-kit");
   assert.equal(reconciled.operation, "reconcile");
-  const managerCreation = runtimeKit.calls.find(call => call.operation === "create-manager");
-  const hostCreation = runtimeKit.calls.find(call => call.operation === "create-host");
+  const managerCreation = runtimeKit.calls.find(call => call.operation === "create-manager")!;
+  const hostCreation = runtimeKit.calls.find(call => call.operation === "create-host")!;
   assert.equal(managerCreation.options.store, hostCreation.options.store);
   assert.equal(typeof managerCreation.options.compositionService.resolve, "function");
 });
@@ -144,18 +142,18 @@ test("the rc2 adapter binds isolated agents to DSH-owned tool execution and life
   assert.equal((await subject.adapter.lifecycleEffects.start({ identity: a })).sessionIdentity, "session-a");
   assert.equal((await subject.adapter.lifecycleEffects.start({ identity: b })).sessionIdentity, "session-b");
   assert.equal((await subject.adapter.lifecycleEffects.start({ identity: c })).sessionIdentity, "session-c");
-  assert.notEqual(subject.created[0].meta.cwd, subject.created[1].meta.cwd);
-  assert.notEqual(subject.configured[0].runtime.memory, subject.configured[1].runtime.memory);
+  assert.notEqual(subject.created[0]!.meta.cwd, subject.created[1]!.meta.cwd);
+  assert.notEqual(subject.configured[0]!.runtime.memory, subject.configured[1]!.runtime.memory);
   assert.deepEqual(subject.restrictions, [{ allow: [] }, { allow: [] }, { allow: [] }]);
   assert.equal((await subject.adapter.executePlugin(invocation(a))).value, "ok");
   assert.equal(subject.hostExecutions.length, 1, "execution crosses the agent-scoped DSH tool");
   await subject.adapter.lifecycleEffects.interrupt({ identity: a });
-  assert.deepEqual(subject.handles.get("session-a").agent.cancelCalls[0], {
+  assert.deepEqual(subject.handles.get("session-a")!.agent.cancelCalls[0], {
     cause: { kind: "user" }, options: undefined,
   });
   await assert.rejects(subject.adapter.executePlugin(invocation(a)), /not accepting/i);
   await subject.adapter.lifecycleEffects.drain({ identity: b });
-  assert.deepEqual(subject.handles.get("session-b").agent.cancelCalls[0], {
+  assert.deepEqual(subject.handles.get("session-b")!.agent.cancelCalls[0], {
     cause: { kind: "parent" }, options: { keepInbox: true },
   });
   await subject.adapter.lifecycleEffects.stop({ identity: b });
@@ -175,7 +173,7 @@ test("the rc2 adapter binds isolated agents to DSH-owned tool execution and life
 test("every session, root, and controller collision fails before DSH effects and leaves the first instance usable", async () => {
   const fields = ["sessionId", "root", "memory", "queue", "credentialHandles", "budget", "concurrencyController"];
   for (const field of fields) {
-    let firstRuntime;
+    let firstRuntime: any;
     const subject = createAdapterHarness({
       runtimeFactory(instanceIdentity) {
         const runtime = subject.defaultRuntime(instanceIdentity);
@@ -217,9 +215,9 @@ test("a setup failure after host binding releases the binding and permits an exa
 });
 
 test("concurrent starts for one canonical identity publish at most one DSH agent", async () => {
-  const runtimeReady = Promise.withResolvers();
+  const runtimeReady = Promise.withResolvers<void>();
   let resolutions = 0;
-  let subject;
+  let subject: any;
   subject = createAdapterHarness({
     async runtimeFactory(instanceIdentity) {
       resolutions += 1;
@@ -272,8 +270,8 @@ test("full canonical identity is required before selecting a live sandbox", asyn
 });
 
 test("confinement proof and execution share one captured entry and stop fences before disposal", async () => {
-  const proof = Promise.withResolvers();
-  const execution = Promise.withResolvers();
+  const proof = Promise.withResolvers<void>();
+  const execution = Promise.withResolvers<any>();
   let disposeAllowed = false;
   const subject = createAdapterHarness({
     assertCurrent: () => proof.promise,
@@ -345,7 +343,7 @@ test("stale resume retries unfinished retirement before reopening the session", 
 });
 
 test("the adapter revokes a retained host capability before in-flight accounting ends", async () => {
-  let retainedHostAction;
+  let retainedHostAction: any;
   let hostEffects = 0;
   const subject = createAdapterHarness({
     execute(invocation) {

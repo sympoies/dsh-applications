@@ -1,13 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  createApplicationControlService,
-  createApplicationManager,
-} from "../packages/manager/src/index.ts";
-import { createOwnerRuntimeKit, identity } from "./helpers/owner-fixtures.mjs";
+import type { RuntimeStore } from "../packages/manager/src/index.ts";
+import { createApplicationControlService, createApplicationManager } from "./helpers/typed-manager.ts";
+import { createOwnerRuntimeKit, identity } from "./helpers/owner-fixtures.ts";
 
-function createManager(runtimeKit) {
+function createManager(runtimeKit: any) {
   return createApplicationManager({
     runtimeKit,
     runtimeStore: runtimeKit.store,
@@ -19,10 +17,10 @@ function createManager(runtimeKit) {
 }
 
 test("all lifecycle request bytes are forwarded once and application code assigns no state", async () => {
-  const observed = [];
+  const observed: { operation: string; request: any; }[] = [];
   const overrides = Object.fromEntries([
     "lock", "start", "resume", "interrupt", "drain", "stop",
-  ].map(operation => [operation, request => {
+  ].map(operation => [operation, (request: any) => {
     observed.push({ operation, request: structuredClone(request) });
     return { kind: `${operation}-owner-result`, requestDigest: request.requestDigest };
   }]));
@@ -36,7 +34,7 @@ test("all lifecycle request bytes are forwarded once and application code assign
       requestDigest: `${operation}-digest`,
       changedCanonicalField: `${operation}-value`,
     };
-    assert.deepEqual(await manager[operation](request), {
+    assert.deepEqual(await manager[operation]!(request), {
       kind: `${operation}-owner-result`, requestDigest: `${operation}-digest`,
     });
   }
@@ -62,7 +60,7 @@ test("assertion freshness, trust lineage, replay, and state conflicts remain unm
 });
 
 test("the complete reconciliation candidate matrix crosses authenticated control only", async () => {
-  const observed = [];
+  const observed: { request: any; context: any; }[] = [];
   const runtimeKit = createOwnerRuntimeKit({
     reconcile(request, context) {
       observed.push({ request: structuredClone(request), context: structuredClone(context) });
@@ -78,7 +76,7 @@ test("the complete reconciliation candidate matrix crosses authenticated control
     runtimeKit,
     manager,
     peers: { controller: { operations: ["reconcile"], namespacePrefixes: ["public-test"] } },
-    reconcileEvidence: async request => ({ status: request.ownerEvidence }),
+    reconcileEvidence: async (request: any) => ({ status: request.ownerEvidence }),
   });
   const matrix = [
     { operation: "lock", sources: ["Absent"], transient: null, terminal: "Locked" },
@@ -106,7 +104,7 @@ test("the complete reconciliation candidate matrix crosses authenticated control
           kind: "ReconcileInstanceResult", candidate: evidenceState, evidence: "committed",
         });
         const call = runtimeKit.calls.findLast(candidate => candidate.owner === "control");
-        assert.deepEqual(call.frame, frame, "authenticated frame bytes stay unchanged");
+        assert.deepEqual(call!.frame, frame, "authenticated frame bytes stay unchanged");
         expected += 1;
       }
     }

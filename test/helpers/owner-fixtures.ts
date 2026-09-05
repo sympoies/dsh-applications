@@ -1,8 +1,36 @@
 import assert from "node:assert/strict";
+import type {
+  DigestAddressedSchemaOwner,
+  InstanceIdentity,
+  LockedAdmissionQuery,
+  LockedPluginAdmission,
+  PublicManagerOperation,
+  RuntimeKitBoundary,
+  RuntimeStore,
+} from "../../packages/manager/src/index.ts";
+import type { JsonValue, PluginDescriptor, Sha256Digest } from "../../packages/plugin-sdk/src/index.ts";
 
-export const DIGEST = `sha256:${"1".repeat(64)}`;
+export const DIGEST = `sha256:${"1".repeat(64)}` as Sha256Digest;
 
-export function identity(instanceId = "instance-a") {
+type FixtureHandler = (...arguments_: any[]) => any;
+type OwnerOverrides = Record<string, FixtureHandler | undefined>;
+type OwnerCall = {
+  owner: string;
+  operation: string;
+  request?: any;
+  context?: any;
+  options?: any;
+  frame?: any;
+  descriptor?: any;
+};
+type RawManager = Record<PublicManagerOperation | "reconcile", (request: unknown, context?: unknown) => Promise<any>>;
+
+function record(value: unknown): Record<string, any> {
+  assert(value !== null && typeof value === "object");
+  return value as Record<string, any>;
+}
+
+export function identity(instanceId = "instance-a"): InstanceIdentity {
   const value = {
     deploymentId: "public-test",
     profileId: "review-bot",
@@ -12,27 +40,27 @@ export function identity(instanceId = "instance-a") {
   return { ...value, namespace: `${value.deploymentId}/${value.profileId}/${value.generationId}/${value.instanceId}` };
 }
 
-export function createOwnerRuntimeKit(overrides = {}) {
-  const calls = [];
-  const store = {
-    instances: new Map(),
-    namespaces: new Map(),
-    journals: new Map(),
-    reconciliations: new Map(),
-    receipts: new Map(),
-    mutationLocks: new Map(),
+export function createOwnerRuntimeKit(overrides: OwnerOverrides = {}) {
+  const calls: OwnerCall[] = [];
+  const store: RuntimeStore = {
+    instances: new Map<string, unknown>(),
+    namespaces: new Map<string, unknown>(),
+    journals: new Map<string, unknown>(),
+    reconciliations: new Map<string, unknown>(),
+    receipts: new Map<string, unknown>(),
+    mutationLocks: new Map<string, unknown>(),
   };
-  const rawManager = {};
+  const rawManager = {} as RawManager;
   for (const operation of [
     "validate", "resolve", "lock", "start", "resume", "status",
     "interrupt", "drain", "stop", "doctor", "reconcile",
   ]) {
-    rawManager[operation] = async (request, context) => {
+    rawManager[operation as keyof RawManager] = async (request: unknown, context?: unknown) => {
       calls.push({ owner: "manager", operation, request: structuredClone(request), context: structuredClone(context) });
       return overrides[operation]?.(request, context) ?? { owner: "runtime-kit", operation, request };
     };
   }
-  return {
+  const runtimeKit = {
     calls,
     store,
     rawManager,
@@ -40,57 +68,64 @@ export function createOwnerRuntimeKit(overrides = {}) {
       calls.push({ owner: "runtime-kit", operation: "create-store" });
       return store;
     },
-    createCompositionService(options) {
+    createCompositionService(options: unknown) {
       calls.push({ owner: "runtime-kit", operation: "create-composition", options });
       return { validate: rawManager.validate, resolve: rawManager.resolve };
     },
-    createWorkloadManager(options) {
+    createWorkloadManager(options: unknown) {
+      const values = record(options);
       calls.push({ owner: "runtime-kit", operation: "create-manager", options });
-      assert.equal(options.store, store);
+      assert.equal(values.store, store);
       return rawManager;
     },
-    createMediatedHostService(options) {
+    createMediatedHostService(options: unknown) {
+      const values = record(options);
       calls.push({ owner: "runtime-kit", operation: "create-host", options });
-      assert.equal(options.store, store);
+      assert.equal(values.store, store);
       return {
-        journal: options.journal ?? new Map(),
-        async execute(request) {
+        journal: values.journal ?? new Map(),
+        async execute(request: unknown) {
           calls.push({ owner: "host", operation: "execute", request: structuredClone(request) });
           return overrides.host?.(request) ?? { owner: "runtime-kit", kind: "MediatedHostActionSucceeded", request };
         },
       };
     },
-    createManagerControlService(options) {
+    createManagerControlService(options: unknown) {
+      const values = record(options);
       calls.push({ owner: "runtime-kit", operation: "create-control", options });
       return {
-        async handle(frame, context) {
+        async handle(frame: unknown, context: unknown) {
+          const controlFrame = record(frame);
           calls.push({ owner: "control", operation: "handle", frame: structuredClone(frame), context: structuredClone(context) });
-          if (frame.operation === "instance.reconcile") {
-            const evidence = await options.reconcileEvidence(frame.payload, context);
-            return options.manager.reconcile(frame.payload, { authorized: true, evidence });
+          if (controlFrame.operation === "instance.reconcile") {
+            const evidence = await values.reconcileEvidence(controlFrame.payload, context);
+            return values.manager.reconcile(controlFrame.payload, { authorized: true, evidence });
           }
-          const operation = frame.operation.replace(/^instance\./, "");
-          return options.manager[operation](frame.payload);
+          assert.equal(typeof controlFrame.operation, "string");
+          const operation = controlFrame.operation.replace(/^instance\./, "");
+          return values.manager[operation](controlFrame.payload);
         },
       };
     },
-    validateMediatedHostActionRequest(request) {
+    validateMediatedHostActionRequest(request: unknown) {
+      const candidate = record(request);
       calls.push({ owner: "runtime-kit", operation: "validate-host-request", request: structuredClone(request) });
-      if (request?.apiVersion !== "runtime.sympoies.dev/v1" || request?.kind !== "MediatedHostActionRequest") {
+      if (candidate.apiVersion !== "runtime.sympoies.dev/v1" || candidate.kind !== "MediatedHostActionRequest") {
         throw new TypeError("invalid mediated action");
       }
-      if (request.runtimeAssertion?.valid !== true) throw new TypeError("runtime assertion rejected");
+      if (candidate.runtimeAssertion?.valid !== true) throw new TypeError("runtime assertion rejected");
       return request;
     },
-    validatePluginDescriptor(descriptor) {
+    validatePluginDescriptor(descriptor: unknown) {
+      const candidate = record(descriptor);
       calls.push({ owner: "runtime-kit", operation: "validate-plugin-descriptor", descriptor: structuredClone(descriptor) });
       const expected = ["actions", "apiVersion", "artifact", "capabilities", "compatibility", "composition", "configuration", "health", "kind", "lifecycle", "mediation", "metadata"];
-      if (descriptor?.apiVersion !== "runtime.sympoies.dev/v1" || descriptor?.kind !== "PluginDescriptor") throw new TypeError("invalid runtime-kit plugin descriptor");
-      if (Object.keys(descriptor).sort().join("\0") !== expected.join("\0")) throw new TypeError("plugin descriptor has unknown fields");
+      if (candidate.apiVersion !== "runtime.sympoies.dev/v1" || candidate.kind !== "PluginDescriptor") throw new TypeError("invalid runtime-kit plugin descriptor");
+      if (Object.keys(candidate).sort().join("\0") !== expected.join("\0")) throw new TypeError("plugin descriptor has unknown fields");
       return descriptor;
     },
-    assertSecretFree(value, path = "document") {
-      const visit = candidate => {
+    assertSecretFree(value: unknown, path = "document") {
+      const visit = (candidate: unknown): void => {
         const tokenPrefixes = [["gh", "p_"].join(""), ["github", "_pat_"].join("")];
         const privateKeyMarker = ["-----BEGIN", "PRIVATE KEY-----"].join(" ");
         if (typeof candidate === "string"
@@ -109,9 +144,16 @@ export function createOwnerRuntimeKit(overrides = {}) {
       return value;
     },
   };
+  const checkedBoundary: RuntimeKitBoundary = runtimeKit;
+  void checkedBoundary;
+  return runtimeKit;
 }
 
-export function admitRunningPlugin(runtimeKit, instanceIdentity, descriptor = pluginDescriptor()) {
+export function admitRunningPlugin(
+  runtimeKit: ReturnType<typeof createOwnerRuntimeKit>,
+  instanceIdentity: InstanceIdentity,
+  descriptor: PluginDescriptor = pluginDescriptor(),
+): { admissionResolver(query: LockedAdmissionQuery): LockedPluginAdmission; schemaOwner: DigestAddressedSchemaOwner } {
   runtimeKit.store.instances.set(instanceIdentity.namespace, {
     identity: structuredClone(instanceIdentity),
     state: "Running",
@@ -121,10 +163,10 @@ export function admitRunningPlugin(runtimeKit, instanceIdentity, descriptor = pl
     admissionSealDigest: DIGEST,
   });
   return {
-    admissionResolver(query) {
+    admissionResolver(query: LockedAdmissionQuery) {
       assert.deepEqual(query.identity, instanceIdentity);
       assert.equal(query.pluginId, descriptor.metadata.id);
-      for (const field of ["resolvedCompositionDigest", "compositionLockReceiptDigest", "admissionSealDigest"]) {
+      for (const field of ["resolvedCompositionDigest", "compositionLockReceiptDigest", "admissionSealDigest"] as const) {
         assert.equal(query[field], DIGEST);
       }
       return {
@@ -140,11 +182,12 @@ export function admitRunningPlugin(runtimeKit, instanceIdentity, descriptor = pl
       resolve(digest, context) {
         return {
           digest,
-          validate(value) {
-            if (context.direction === "input" && value?.schemaInvalid === true) {
+          validate(value: unknown) {
+            const candidate = value === null || typeof value !== "object" ? {} : value as Record<string, unknown>;
+            if (context.direction === "input" && candidate.schemaInvalid === true) {
               throw new TypeError("plugin input schema rejected");
             }
-            if (context.direction === "output" && value?.schemaInvalid === true) {
+            if (context.direction === "output" && candidate.schemaInvalid === true) {
               throw new TypeError("plugin output schema rejected");
             }
           },
@@ -154,7 +197,7 @@ export function admitRunningPlugin(runtimeKit, instanceIdentity, descriptor = pl
   };
 }
 
-export function pluginDescriptor(pluginId = "review") {
+export function pluginDescriptor(pluginId = "review"): PluginDescriptor {
   return {
     apiVersion: "runtime.sympoies.dev/v1",
     kind: "PluginDescriptor",
@@ -175,7 +218,7 @@ export function pluginDescriptor(pluginId = "review") {
   };
 }
 
-export function hostAction(instanceIdentity = identity(), overrides = {}) {
+export function hostAction(instanceIdentity: InstanceIdentity = identity(), overrides: Record<string, unknown> = {}): Record<string, any> {
   return {
     apiVersion: "runtime.sympoies.dev/v1",
     kind: "MediatedHostActionRequest",

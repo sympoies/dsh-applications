@@ -18,17 +18,17 @@ const exactRoot = process.env.DSH_RUNTIME_KIT_ROOT
   ? resolve(process.env.DSH_RUNTIME_KIT_ROOT)
   : resolve(import.meta.dirname, "../../dsh-runtime-kit");
 const exactRuntimeKitAvailable = existsSync(join(exactRoot, "src/composition/index.js"));
-const json = path => JSON.parse(readFileSync(resolve(root, path), "utf8"));
+const json = (path: string) => JSON.parse(readFileSync(resolve(root, path), "utf8"));
 const profile = json("profiles/conversational/profile.json");
 
-const digestFile = path =>
+const digestFile = (path: string) =>
   `sha256:${createHash("sha256").update(readFileSync(resolve(root, path))).digest("hex")}`;
 
 // A conforming ref is a KEYED digest: a bare hash of a low-entropy channel
 // identifier is exhaustively invertible, so the fixture models the required
 // construction rather than normalizing an unsalted one.
 const DEPLOYMENT_SECRET = "test-deployment-secret";
-const ref = seed => `ref:${createHmac("sha256", DEPLOYMENT_SECRET).update(seed).digest("hex")}`;
+const ref = (seed: string) => `ref:${createHmac("sha256", DEPLOYMENT_SECRET).update(seed).digest("hex")}`;
 
 const turn = (overrides = {}) => ({ message: "hello", ...overrides });
 
@@ -40,6 +40,7 @@ test("a conversation turn carries a message and an optional neutral channel cont
     channel: { chatRef: ref("chat-1"), senderRef: ref("sender-1"), isGroup: true },
   });
   const validated = validateConversationTurn(group);
+  assert(validated.channel !== undefined);
   assert.equal(validated.channel.isGroup, true);
   assert.equal(validated.channel.chatRef, ref("chat-1"));
   assert.equal(Object.isFrozen(validated), true, "a validated turn is immutable");
@@ -132,6 +133,7 @@ test("an accessor cannot swap a validated ref for a raw identifier", () => {
       isGroup: false,
     },
   });
+  assert(validated.channel !== undefined);
   assert.equal(validated.channel.chatRef, ref("chat-1"));
 
   let messageReads = 0;
@@ -188,8 +190,8 @@ test("the published schema digests match the schema files on disk", () => {
 test("the descriptor claims no filesystem, network, subprocess, or credential authority", {
   skip: !exactRuntimeKitAvailable,
 }, async () => {
-  const runtimeKit = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")));
-  const descriptor = createConversationAgentPluginDescriptor(runtimeKit, {
+  const runtimeKit = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")).href);
+  const descriptor: any = createConversationAgentPluginDescriptor(runtimeKit, {
     digest: `sha256:${"4".repeat(64)}`,
     sourceRevision: "3".repeat(40),
     attestationIdentity: `https://github.com/sympoies/dsh-applications/actions@${"3".repeat(40)}`,
@@ -211,7 +213,7 @@ test("the descriptor claims no filesystem, network, subprocess, or credential au
   }
   // The profile's declared health probe and plugin range must be satisfiable.
   assert(profile.requiredHealth.includes(descriptor.health.probes[0].id));
-  const range = profile.plugins.find(plugin => plugin.id === "conversation-agent")?.range;
+  const range = profile.plugins.find((plugin: any) => plugin.id === "conversation-agent")?.range;
   assert.equal(runtimeKit.versionSatisfies(descriptor.metadata.version, range), true,
     `descriptor version ${descriptor.metadata.version} must satisfy the profile range ${range}`);
 });

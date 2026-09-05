@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
-import { defineTrigger } from "../packages/plugin-sdk/src/index.ts";
+import { defineTrigger, type TriggerDescriptor } from "../packages/plugin-sdk/src/index.ts";
 
 const root = resolve(import.meta.dirname, "..");
 const profileIds = ["batch", "coding", "conversational", "github-pr-review"];
 const fixtureIds = ["channel", "github-event", "manual", "schedule"];
 
-function json(path) {
+function json(path: string) {
   try {
     return JSON.parse(readFileSync(resolve(root, path), "utf8"));
   } catch {
@@ -16,15 +16,15 @@ function json(path) {
   }
 }
 
-function profile(id) {
+function profile(id: string) {
   return json(`profiles/${id}/profile.json`);
 }
 
-function fixture(id) {
+function fixture(id: string) {
   return json(`fixtures/triggers/${id}.json`);
 }
 
-function authority(profileDocument) {
+function authority(profileDocument: Record<string, any>) {
   return {
     workload: profileDocument.workload,
     plugins: profileDocument.plugins,
@@ -36,7 +36,7 @@ function authority(profileDocument) {
   };
 }
 
-function visit(value, callback, path = "$") {
+function visit(value: unknown, callback: (key: string, value: unknown, path: string) => void, path = "$") {
   if (value === null || typeof value !== "object") return;
   for (const [key, child] of Object.entries(value)) {
     callback(key, child, `${path}.${key}`);
@@ -82,7 +82,7 @@ test("the catalog declares four distinct least-authority profiles", () => {
   for (const id of ["conversational", "github-pr-review", "batch"]) {
     assert.equal(profiles[id].state?.workspace, "none", `${id} has no project workspace`);
     assert.deepEqual(profiles[id].limits?.workspaceClasses, [], `${id} has no workspace class`);
-    assert(!profiles[id].grants?.some(grant => grant.startsWith("coding.")), `${id} has no coding grant`);
+    assert(!profiles[id].grants?.some((grant: any) => grant.startsWith("coding.")), `${id} has no coding grant`);
   }
   assert.equal(new Set(Object.values(profiles).map(value => JSON.stringify(authority(value)))).size, 4);
 });
@@ -106,7 +106,7 @@ test("public profiles and fixtures contain no private deployment state", () => {
     assert.equal(fixture(id).id, id, `${id} must exist before its public-state boundary can be checked`);
   }
   for (const document of documents) {
-    visit(document, (key, value, path) => {
+    visit(document, (key: string, value: unknown, path: string) => {
       const normalized = key.toLowerCase().replaceAll(/[^a-z0-9]/g, "");
       assert(!forbiddenKeys.has(normalized), `${path} is private deployment state`);
       if (typeof value === "string") {
@@ -129,26 +129,26 @@ test("trigger fixtures are reusable configuration and cannot widen profile autho
     assert.equal(document.kind, "TriggerFixture");
     assert.equal(document.id, id);
     assert.equal(document.profileClass, profileClass);
-    assert.equal(defineTrigger(document.descriptor).class, descriptorClass);
+    assert.equal(defineTrigger(document.descriptor as TriggerDescriptor).class, descriptorClass);
     for (const forbidden of ["grants", "approvals", "limits", "plugins", "workspace", "credentials"] ) {
       assert(!(forbidden in document), `${id} fixture cannot declare ${forbidden}`);
     }
   }
 
-  assert.deepEqual(profile("coding").triggers?.map(item => item.class), ["manual"]);
-  assert.deepEqual(profile("conversational").triggers?.map(item => item.class), ["message"]);
-  assert.deepEqual(profile("github-pr-review").triggers?.map(item => item.class), ["webhook"]);
-  assert.deepEqual(profile("batch").triggers?.map(item => item.class), ["manual", "schedule"]);
+  assert.deepEqual(profile("coding").triggers?.map((item: any) => item.class), ["manual"]);
+  assert.deepEqual(profile("conversational").triggers?.map((item: any) => item.class), ["message"]);
+  assert.deepEqual(profile("github-pr-review").triggers?.map((item: any) => item.class), ["webhook"]);
+  assert.deepEqual(profile("batch").triggers?.map((item: any) => item.class), ["manual", "schedule"]);
 });
 
 test("manual and scheduled batch invocation preserve one authority document", () => {
   const batch = profile("batch");
-  const bindings = batch.triggers?.map(trigger => ({
+  const bindings = batch.triggers?.map((trigger: any) => ({
     trigger,
     authority: authority(batch),
   })) ?? [];
   assert.equal(bindings.length, 2);
-  assert.deepEqual(bindings.map(binding => binding.trigger.class), ["manual", "schedule"]);
+  assert.deepEqual(bindings.map((binding: any) => binding.trigger.class), ["manual", "schedule"]);
   assert.deepEqual(bindings[0].authority, bindings[1].authority);
   assert.equal(bindings[0].trigger.inputSchemaDigest, bindings[1].trigger.inputSchemaDigest);
 });
@@ -163,7 +163,7 @@ test("the compatibility manifest binds the coordinated catalog version and profi
   assert.equal(lock.profile_catalog.path, "profiles/catalog.json");
   assert.match(lock.profile_catalog.digest, /^sha256:[0-9a-f]{64}$/u);
   assert.deepEqual(
-    catalog.profiles.map(item => item.id),
+    catalog.profiles.map((item: any) => item.id),
     profileIds,
   );
   for (const entry of catalog.profiles) {

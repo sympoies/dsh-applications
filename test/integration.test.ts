@@ -4,7 +4,7 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
 
-import { createApplicationControlService, createApplicationManager, createPluginSandbox } from "../packages/manager/src/index.ts";
+import { createApplicationControlService, createApplicationManager, createPluginSandbox } from "./helpers/typed-manager.ts";
 import { definePlugin } from "../packages/plugin-sdk/src/index.ts";
 import {
   admitRunningPlugin,
@@ -12,13 +12,13 @@ import {
   hostAction,
   identity,
   pluginDescriptor,
-} from "./helpers/owner-fixtures.mjs";
+} from "./helpers/owner-fixtures.ts";
 
 test("manager and sandbox compose runtime-kit and DSH seams without owning private deployment operations", async () => {
   const runtimeKit = createOwnerRuntimeKit();
   const dshAdapter = {
     lifecycleEffects: {},
-    async executePlugin(invocation) { return invocation.hostAction(invocation.input); },
+    async executePlugin(invocation: any) { return invocation.hostAction(invocation.input); },
   };
   const instanceIdentity = identity();
   const manager = createApplicationManager({ runtimeKit, runtimeStore: runtimeKit.store, dshAdapter, composition: {}, trustVerifier: {}, health: async () => ({ state: "ready", code: "READY" }), host: { authorize: async () => ({ allowed: true, admissionSealDigest: "seal" }) } });
@@ -40,12 +40,12 @@ const exactRoot = process.env.DSH_RUNTIME_KIT_ROOT
 const exactAvailable = existsSync(join(exactRoot, "src/manager/index.js"));
 
 test("SDK and manager construct against the exact runtime-kit owner surface", { skip: !exactAvailable }, async () => {
-  const composition = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")));
-  const runtimeManager = await import(pathToFileURL(join(exactRoot, "src/manager/index.js")));
+  const composition = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")).href);
+  const runtimeManager = await import(pathToFileURL(join(exactRoot, "src/manager/index.js")).href);
   const runtimeKit = { ...composition, ...runtimeManager };
-  const candidate = pluginDescriptor();
+  const candidate = structuredClone(pluginDescriptor()) as any;
   candidate.metadata.digest = composition.computeDocumentDigest(candidate);
-  const descriptor = definePlugin(runtimeKit, candidate);
+  const descriptor = definePlugin(runtimeKit, candidate as ReturnType<typeof pluginDescriptor>);
   assert.deepEqual(descriptor, candidate);
   assert(Object.isFrozen(descriptor));
 
@@ -74,9 +74,9 @@ test("SDK and manager construct against the exact runtime-kit owner surface", { 
 });
 
 test("exact runtime-kit owns restart, replay, lifecycle ordering, and authenticated indeterminate recovery", { skip: !exactAvailable }, async () => {
-  const composition = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")));
-  const runtimeManager = await import(pathToFileURL(join(exactRoot, "src/manager/index.js")));
-  const fixtures = await import(pathToFileURL(join(exactRoot, "test/helpers/manager-fixtures.mjs")));
+  const composition = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")).href);
+  const runtimeManager = await import(pathToFileURL(join(exactRoot, "src/manager/index.js")).href);
+  const fixtures = await import(pathToFileURL(join(exactRoot, "test/helpers/manager-fixtures.mjs")).href);
   const runtimeKit = { ...composition, ...runtimeManager };
 
   function admittedFixture() {
@@ -91,14 +91,14 @@ test("exact runtime-kit owns restart, replay, lifecycle ordering, and authentica
     request.runtimeAssertion = fixtures.runtimeAssertion(
       seal, instanceIdentity, signing, bundle, "lock", request.requestDigest,
     );
-    request.runtimeAssertionDigest = request.runtimeAssertion.metadata.digest;
+    request.runtimeAssertionDigest = (request.runtimeAssertion as any).metadata.digest;
     return { resolved, lock, instanceIdentity, signing, bundle, seal, request };
   }
 
-  function assertionRequest(subject, operation, priorReceiptDigest, expectedState, overrides = {}) {
+  function assertionRequest(subject: any, operation: string, priorReceiptDigest: any, expectedState: string, overrides = {}) {
     const request = {
       apiVersion: "runtime.sympoies.dev/v1",
-      kind: `${operation[0].toUpperCase()}${operation.slice(1)}InstanceRequest`,
+      kind: `${operation.charAt(0).toUpperCase()}${operation.slice(1)}InstanceRequest`,
       requestId: `${operation}-request`,
       idempotencyKey: `${operation}-key`,
       requestDigest: fixtures.ZERO_DIGEST,
@@ -115,11 +115,11 @@ test("exact runtime-kit owns restart, replay, lifecycle ordering, and authentica
       subject.seal, subject.instanceIdentity, subject.signing, subject.bundle,
       operation, request.requestDigest,
     );
-    request.runtimeAssertionDigest = request.runtimeAssertion.metadata.digest;
+    request.runtimeAssertionDigest = (request.runtimeAssertion as any).metadata.digest;
     return request;
   }
 
-  function managerFor(store, effects) {
+  function managerFor(store: any, effects: any) {
     const dshAdapter = { lifecycleEffects: effects };
     return createApplicationManager({
       runtimeKit,

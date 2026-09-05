@@ -5,15 +5,13 @@ import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import test from "node:test";
 
-import {
-  createDshRc2Adapter,
-  REQUIRED_AMBIENT_DENIALS,
-} from "../packages/dsh-rc2-adapter/src/index.ts";
+import { createDshRc2Adapter, REQUIRED_AMBIENT_DENIALS } from "../packages/dsh-rc2-adapter/src/index.ts";
+import { pluginDescriptor } from "./helpers/owner-fixtures.ts";
 
 const dshRoot = process.env.DSH_ROOT === undefined ? undefined : resolve(process.env.DSH_ROOT);
 
-async function load(relativePath) {
-  const path = join(dshRoot, relativePath);
+async function load(relativePath: string) {
+  const path = join(dshRoot!, relativePath);
   await access(path);
   return import(pathToFileURL(path).href);
 }
@@ -76,21 +74,21 @@ test("the adapter composes and executes through the exact pinned DSH agent tool 
       memory: {}, queue: {}, credentialHandles: {}, budget: {}, concurrencyController: {},
       configureScope: async () => undefined,
     };
-    let bound;
+    let bound: any;
     let evidenceAvailable = false;
     let hostExecutions = 0;
     const hostSandbox = {
-      bind(request) {
+      bind(request: any) {
         bound = Object.freeze(request);
         return bound;
       },
-      assertCurrent(binding, request) {
+      assertCurrent(binding: unknown, request: { agent: unknown; }) {
         assert.equal(binding, bound);
         assert.equal(request.agent, bound.agent);
         if (!evidenceAvailable) throw new Error("host confinement intentionally unavailable");
         return {
-          owner: "DSH/host",
-          enforced: true,
+          owner: "DSH/host" as const,
+          enforced: true as const,
           identity,
           sessionId,
           root: workspaceRoot,
@@ -99,7 +97,7 @@ test("the adapter composes and executes through the exact pinned DSH agent tool 
           deniedAmbient: REQUIRED_AMBIENT_DENIALS,
         };
       },
-      async execute(binding, invocation, execution) {
+      async execute(binding: unknown, invocation: any, execution: any) {
         assert.equal(binding, bound);
         assert.equal(execution.agent, bound.agent);
         assert.equal(execution.confinement.owner, "DSH/host");
@@ -121,11 +119,11 @@ test("the adapter composes and executes through the exact pinned DSH agent tool 
     bound.agent.session.append("todo/write", { todos: [] });
 
     const invocation = {
-      descriptor: { metadata: { id: "review" } },
+      descriptor: pluginDescriptor(),
       actionId: "comment",
       identity,
       input: { pullRequest: 42 },
-      hostAction: async request => ({ owner: "runtime-kit-host", request }),
+      hostAction: async (request: any) => ({ owner: "runtime-kit-host", request }),
     };
     await assert.rejects(adapter.executePlugin(invocation), /host confinement intentionally unavailable/);
     assert.equal(hostExecutions, 0, "tools.restrict visibility is not accepted as confinement proof");

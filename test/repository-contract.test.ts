@@ -19,17 +19,17 @@ const expectedRuntimeKitRevision =
 const expectedDshRevision = "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e";
 const reviewedFixtureCommit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
-function read(path) {
+function read(path: string) {
   return readFileSync(join(root, path), "utf8");
 }
 
-function json(path) {
+function json(path: string) {
   return JSON.parse(read(path));
 }
 
-function filesBelow(path) {
+function filesBelow(path: string): string[] {
   const absolute = join(root, path);
-  const files = [];
+  const files: string[] = [];
   for (const entry of readdirSync(absolute, { withFileTypes: true })) {
     const child = join(absolute, entry.name);
     if (entry.isDirectory()) {
@@ -74,16 +74,16 @@ test("workspace metadata is exact, private at the root, and release-safe", () =>
   assert.deepEqual(pkg.workspaces, ["packages/*"]);
   assert.equal(pkg.packageManager, "npm@11.6.2");
   assert.equal(pkg.engines.node, ">=24.0.0");
-  assert.equal(pkg.scripts.test, "node --test test/*.test.mjs");
-  assert.equal(pkg.scripts["test:manager-contract"], "node --test test/manager-contract.test.mjs");
-  assert.equal(pkg.scripts["test:manager-faults"], "node --test test/manager-faults.test.mjs");
-  assert.equal(pkg.scripts["test:plugin-sandbox"], "node --test test/plugin-sandbox.test.mjs");
-  assert.equal(pkg.scripts["test:profiles"], "node --test test/profiles.test.mjs");
-  assert.equal(pkg.scripts["test:profile-compatibility"], "node scripts/check-profile-compatibility.mjs");
-  assert.equal(pkg.scripts["test:integration"], "node --test test/integration.test.mjs");
-  assert.equal(pkg.scripts["test:github-contracts"], "node --test test/github-contracts.test.mjs");
-  assert.equal(pkg.scripts["check:compatibility"], "node scripts/check-compatibility.mjs");
-  assert.equal(pkg.scripts["verify:package-reproducibility"], "node scripts/check-package-reproducibility.mjs");
+  assert.equal(pkg.scripts.test, "node --test test/*.test.ts");
+  assert.equal(pkg.scripts["test:manager-contract"], "node --test test/manager-contract.test.ts");
+  assert.equal(pkg.scripts["test:manager-faults"], "node --test test/manager-faults.test.ts");
+  assert.equal(pkg.scripts["test:plugin-sandbox"], "node --test test/plugin-sandbox.test.ts");
+  assert.equal(pkg.scripts["test:profiles"], "node --test test/profiles.test.ts");
+  assert.equal(pkg.scripts["test:profile-compatibility"], "node scripts/check-profile-compatibility.ts");
+  assert.equal(pkg.scripts["test:integration"], "node --test test/integration.test.ts");
+  assert.equal(pkg.scripts["test:github-contracts"], "node --test test/github-contracts.test.ts");
+  assert.equal(pkg.scripts["check:compatibility"], "node scripts/check-compatibility.ts");
+  assert.equal(pkg.scripts["verify:package-reproducibility"], "node scripts/check-package-reproducibility.ts");
   assert.equal(pkg.scripts["test:package"], "npm run check:compatibility -- --manifest-only && npm run verify:package-reproducibility && npm pack --dry-run --ignore-scripts");
   assert.deepEqual(pkg.files, ["AGENTS.md", "SECURITY.md", "CONTRIBUTING.md", "compatibility", "docs", "fixtures", "profiles", "packages"]);
 
@@ -114,7 +114,7 @@ test("workspace packages are components of one coordinated application artifact"
 
 test("workspace packages ship erasable TypeScript sources that Node executes without a build", () => {
   const pkg = json("package.json");
-  assert.equal(pkg.scripts.typecheck, "tsc -p tsconfig.json");
+  assert.equal(pkg.scripts.typecheck, "tsc -p tsconfig.json && tsc -p tsconfig.tools.json");
   for (const script of ["build", "prepare", "prepack", "postinstall"]) {
     assert.equal(pkg.scripts[script], undefined, `${script} would add a build or install step`);
   }
@@ -155,6 +155,28 @@ test("workspace packages ship erasable TypeScript sources that Node executes wit
   const adapter = json("packages/dsh-rc2-adapter/package.json");
   assert(adapter.files.includes("types"), "the adapter ships its DSH peer fallback declarations");
   assert.equal(statSync(join(root, "packages/dsh-rc2-adapter/types/dsh-peer-fallbacks.d.ts")).isFile(), true);
+});
+
+test("repository-owned JavaScript entrypoints are TypeScript and typechecked", () => {
+  const runtimeSourceFiles = [
+    ...filesBelow("packages"),
+    ...filesBelow("scripts"),
+    ...filesBelow("test"),
+  ];
+  assert.deepEqual(
+    runtimeSourceFiles.filter((path) => /\.[cm]?js$/.test(path)),
+    [],
+    "repository-owned source, scripts, and tests must use TypeScript",
+  );
+
+  const toolsConfig = json("tsconfig.tools.json");
+  assert.equal(toolsConfig.compilerOptions, undefined, "tools and tests must inherit the root strict options");
+  assert.deepEqual(toolsConfig.include, [
+    "scripts/**/*.ts",
+    "test/**/*.ts",
+    "packages/dsh-rc2-adapter/types/**/*.d.ts",
+  ]);
+  assert.deepEqual(toolsConfig.exclude, ["test/exact-dsh-consumer.ts"]);
 });
 
 test("a downstream TypeScript consumer compiles the shipped sources under stricter options without the DSH peers", () => {
@@ -200,7 +222,7 @@ test("installed workspace resolves every actual public package specifier", async
     ["@sympoies/dsh-github-read", "validateGitHubPullRequestReadBundle"],
     ["@sympoies/dsh-github-review-publish", "createGitHubReviewWorkerResult"],
     ["@sympoies/dsh-conversation-agent", "validateConversationTurn"],
-  ]) {
+  ] as const) {
     const module = await import(specifier);
     assert.equal(typeof module[exported], "function", `${specifier} must resolve from the installed workspace`);
   }
@@ -238,7 +260,7 @@ test("compatibility lock pins the accepted runtime-kit and DSH identities", () =
   assert.match(read("README.md"), /fnm use/);
   assert.match(read("CONTRIBUTING.md"), /fnm use/);
 
-  const checker = read("scripts/check-compatibility.mjs");
+  const checker = read("scripts/check-compatibility.ts");
   for (const runtimeOwner of [
     "createCompositionService", "validatePluginDescriptor", "createMemoryRuntimeStore",
     "createWorkloadManager", "createMediatedHostService", "createManagerControlService",
@@ -319,7 +341,7 @@ test("release verification is read-only and privileged publish runs no project c
   assert.match(verifyJob, /npm test/);
   assert.match(verifyJob, /Check out fresh exact tagged source/);
   assert.match(verifyJob, /ref: \$\{\{ steps\.verify-tag\.outputs\.release_commit \}\}/);
-  assert.match(verifyJob, /scripts\/package-release-artifact\.mjs/);
+  assert.match(verifyJob, /scripts\/package-release-artifact\.ts/);
 
   assert.match(publishJob, /needs: verify-build/);
   assert.match(publishJob, /permissions:[\s\S]*contents: write[\s\S]*id-token: write[\s\S]*attestations: write/);
@@ -336,7 +358,7 @@ test("release verification is read-only and privileged publish runs no project c
 });
 
 test("reviewed release source requires one merged same-repo PR and independent exact-head approval", () => {
-  const checker = join(root, "scripts/check-reviewed-release-source.mjs");
+  const checker = join(root, "scripts/check-reviewed-release-source.ts");
   const fixtureRoot = join(root, "test/fixtures/release-source");
   const accepted = JSON.parse(
     execFileSync(
@@ -365,7 +387,7 @@ test("reviewed release source requires one merged same-repo PR and independent e
     ["nonmerge-associations.json", "accepted-reviews.json"],
     ["ambiguous-associations.json", "accepted-reviews.json"],
     ["accepted-associations.json", "unapproved-reviews.json"],
-  ]) {
+  ] as const) {
     assert.throws(() =>
       execFileSync(
         process.execPath,
@@ -390,7 +412,7 @@ test("reviewed release source requires one merged same-repo PR and independent e
   assert.match(workflow, /pulls\/\$pr_number\/reviews/);
   assert.match(workflow, /gh api --paginate --slurp[\s\S]*commits\/\$release_commit\/pulls[\s\S]*jq 'add'/);
   assert.match(workflow, /gh api --paginate --slurp[\s\S]*pulls\/\$pr_number\/reviews[\s\S]*jq 'add'/);
-  assert.match(workflow, /check-reviewed-release-source\.mjs/);
+  assert.match(workflow, /check-reviewed-release-source\.ts/);
 });
 
 test("release packaging rejects dirty source and emits a flat verifiable checksum", () => {
@@ -409,7 +431,7 @@ test("release packaging rejects dirty source and emits a flat verifiable checksu
       execFileSync(
         process.execPath,
         [
-          "scripts/package-release-artifact.mjs",
+          "scripts/package-release-artifact.ts",
           "--source-root",
           sourceRoot,
           "--expected-commit",
@@ -437,7 +459,7 @@ test("release packaging rejects dirty source and emits a flat verifiable checksu
         execFileSync(
           process.execPath,
           [
-            "scripts/package-release-artifact.mjs",
+            "scripts/package-release-artifact.ts",
             "--source-root",
             sourceRoot,
             "--expected-commit",
@@ -455,19 +477,19 @@ test("release packaging rejects dirty source and emits a flat verifiable checksu
 });
 
 test("compatibility validator accepts the manifest-only bootstrap contract", () => {
-  execFileSync(process.execPath, ["scripts/check-compatibility.mjs", "--manifest-only"], {
+  execFileSync(process.execPath, ["scripts/check-compatibility.ts", "--manifest-only"], {
     cwd: root,
     stdio: "pipe",
   });
 });
 
 test("the repository package is reproducible and contains the public coordinated catalog", () => {
-  execFileSync(process.execPath, ["scripts/check-package-reproducibility.mjs"], {
+  execFileSync(process.execPath, ["scripts/check-package-reproducibility.ts"], {
     cwd: root,
     stdio: "pipe",
   });
 
-  const packed = JSON.parse(
+  const packed: { files: Array<{ path: string }> } = JSON.parse(
     execFileSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], {
       cwd: root,
       encoding: "utf8",
@@ -487,11 +509,11 @@ test("the repository package is reproducible and contains the public coordinated
   assert(paths.includes("fixtures/triggers/manual.json"));
   assert(paths.includes("fixtures/triggers/schedule.json"));
   assert(paths.includes("packages/plugin-sdk/src/index.ts"));
-  assert(!paths.some((path) => /^packages\/[^/]+\/index\.d\.ts$/.test(path) || path.endsWith("/src/index.js")));
+  assert(!paths.some((path: string) => /^packages\/[^/]+\/index\.d\.ts$/.test(path) || path.endsWith("/src/index.js")));
   assert(paths.includes("packages/dsh-rc2-adapter/types/dsh-peer-fallbacks.d.ts"));
-  assert(!paths.some((path) => path.startsWith(".github/")));
-  assert(!paths.some((path) => path.startsWith("scripts/")));
-  assert(!paths.some((path) => path.startsWith("test/")));
+  assert(!paths.some((path: string) => path.startsWith(".github/")));
+  assert(!paths.some((path: string) => path.startsWith("scripts/")));
+  assert(!paths.some((path: string) => path.startsWith("test/")));
 });
 
 test("tracked public content contains no credential material or machine-local paths", () => {

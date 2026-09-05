@@ -2,10 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import * as pluginSdk from "../packages/plugin-sdk/src/index.ts";
-import {
-  createApplicationManager,
-  createPluginSandbox,
-} from "../packages/manager/src/index.ts";
+import { type InstanceIdentity, type LockedAdmissionQuery } from "../packages/manager/src/index.ts";
+import { createApplicationManager, createPluginSandbox } from "./helpers/typed-manager.ts";
 import {
   DIGEST,
   admitRunningPlugin,
@@ -13,9 +11,10 @@ import {
   hostAction,
   identity,
   pluginDescriptor,
-} from "./helpers/owner-fixtures.mjs";
+} from "./helpers/owner-fixtures.ts";
 
 const { defineOutput, definePlugin, defineTrigger } = pluginSdk;
+const unsafePluginSdk = pluginSdk as unknown as Record<string, (...arguments_: any[]) => any>;
 
 test("SDK exports strict immutable plugin, trigger, output, configuration, health, and sandbox helpers", () => {
   const runtimeKit = createOwnerRuntimeKit();
@@ -35,23 +34,23 @@ test("SDK exports strict immutable plugin, trigger, output, configuration, healt
   assert(Object.isFrozen(health.probes));
   assert(Object.isFrozen(sandbox.resources));
   assert(runtimeKit.calls.some(call => call.operation === "validate-plugin-descriptor"));
-  assert.throws(() => definePlugin(runtimeKit, { ...pluginDescriptor(), privateBinding: "forbidden" }), /unknown/i);
-  assert.throws(() => defineTrigger({ id: "bad", class: "cron", privatePath: "/private" }), /unknown/i);
-  assert.throws(() => defineOutput({ id: "bad", schemaDigest: "floating" }), /digest/i);
-  assert.throws(() => pluginSdk.defineConfiguration({ schemaDigest: DIGEST, defaults: {}, privateBinding: true }), /unknown/i);
+  assert.throws(() => unsafePluginSdk.definePlugin!(runtimeKit, { ...pluginDescriptor(), privateBinding: "forbidden" }), /unknown/i);
+  assert.throws(() => unsafePluginSdk.defineTrigger!({ id: "bad", class: "cron", privatePath: "/private" }), /unknown/i);
+  assert.throws(() => unsafePluginSdk.defineOutput!({ id: "bad", schemaDigest: "floating" }), /digest/i);
+  assert.throws(() => unsafePluginSdk.defineConfiguration!({ schemaDigest: DIGEST, defaults: {}, privateBinding: true }), /unknown/i);
   const sparseDefaults = [];
   sparseDefaults[1] = true;
   for (const defaults of [undefined, Number.NaN, -0, { value: undefined }, sparseDefaults]) {
     assert.throws(
-      () => pluginSdk.defineConfiguration({ schemaDigest: DIGEST, defaults }),
+      () => unsafePluginSdk.defineConfiguration!({ schemaDigest: DIGEST, defaults }),
       /JSON/i,
     );
   }
-  assert.throws(() => pluginSdk.defineHealth({ probes: [{ id: "review.ready", requirement: "best-effort" }] }), /unsupported/i);
-  assert.throws(() => pluginSdk.defineSandbox({ ...sandbox, network: ["z", "a"] }), /sorted/i);
+  assert.throws(() => unsafePluginSdk.defineHealth!({ probes: [{ id: "review.ready", requirement: "best-effort" }] }), /unsupported/i);
+  assert.throws(() => unsafePluginSdk.defineSandbox!({ ...sandbox, network: ["z", "a"] }), /sorted/i);
 });
 
-function setupSandbox(executePlugin, options = {}) {
+function setupSandbox(executePlugin: any, options: any = {}) {
   const runtimeKit = options.runtimeKit ?? createOwnerRuntimeKit();
   const instanceIdentity = options.identity ?? identity();
   const descriptor = options.descriptor ?? pluginDescriptor();
@@ -87,7 +86,7 @@ function setupSandbox(executePlugin, options = {}) {
   };
 }
 
-function invokeRequest(instanceIdentity, input, overrides = {}) {
+function invokeRequest(instanceIdentity: any, input: any, overrides: any = {}) {
   return {
     pluginId: "review",
     actionId: "review.pull-request",
@@ -105,7 +104,7 @@ test("locked plugin execution receives no ambient manager capability and every m
     "filesystem-write", "network-connect", "subprocess-template",
     "credential-use", "provider-write",
   ];
-  const executePlugin = async invocation => {
+  const executePlugin = async (invocation: any) => {
     assert.deepEqual(Object.keys(invocation).sort(), ["actionId", "descriptor", "hostAction", "identity", "input"]);
     for (const ambient of ["process", "fs", "network", "subprocess", "credentials", "provider", "clock", "random"]) {
       assert.equal(invocation[ambient], undefined);
@@ -131,10 +130,10 @@ test("locked plugin execution receives no ambient manager capability and every m
       actionClass,
     );
   }
-  assert.equal(runtimeKit.calls.filter(call => call.operation === "validate-host-request").length, readClasses.length);
-  assert.equal(runtimeKit.calls.filter(call => call.owner === "host" && call.operation === "execute").length, readClasses.length);
+  assert.equal(runtimeKit.calls.filter((call: any) => call.operation === "validate-host-request").length, readClasses.length);
+  assert.equal(runtimeKit.calls.filter((call: any) => call.owner === "host" && call.operation === "execute").length, readClasses.length);
 
-  const writeDescriptor = pluginDescriptor();
+  const writeDescriptor = structuredClone(pluginDescriptor()) as any;
   writeDescriptor.actions[0].class = "write";
   writeDescriptor.actions[0].sideEffect = "idempotent";
   const writeIdentity = identity("instance-write");
@@ -147,7 +146,7 @@ test("locked plugin execution receives no ambient manager capability and every m
     assert.equal(result.kind, "MediatedHostActionSucceeded");
   }
   assert.equal(
-    writeSandbox.runtimeKit.calls.filter(call => call.owner === "host" && call.operation === "execute").length,
+    writeSandbox.runtimeKit.calls.filter((call: any) => call.owner === "host" && call.operation === "execute").length,
     effectfulClasses.length,
   );
 });
@@ -161,12 +160,12 @@ test("caller descriptors and substituted admission proofs fail before DSH execut
     ...invokeRequest(instanceIdentity, {}), descriptor,
   }), /fields/i);
   for (const mutate of [
-    resolution => { resolution.descriptorDigest = `sha256:${"2".repeat(64)}`; },
-    resolution => { resolution.artifactDigest = `sha256:${"2".repeat(64)}`; },
-    resolution => { resolution.resolvedCompositionDigest = `sha256:${"2".repeat(64)}`; },
-    resolution => { resolution.compositionLockReceiptDigest = `sha256:${"2".repeat(64)}`; },
-    resolution => { resolution.admissionSealDigest = `sha256:${"2".repeat(64)}`; },
-    resolution => { resolution.descriptor = pluginDescriptor("other"); },
+    (resolution: any) => { resolution.descriptorDigest = `sha256:${"2".repeat(64)}`; },
+    (resolution: any) => { resolution.artifactDigest = `sha256:${"2".repeat(64)}`; },
+    (resolution: any) => { resolution.resolvedCompositionDigest = `sha256:${"2".repeat(64)}`; },
+    (resolution: any) => { resolution.compositionLockReceiptDigest = `sha256:${"2".repeat(64)}`; },
+    (resolution: any) => { resolution.admissionSealDigest = `sha256:${"2".repeat(64)}`; },
+    (resolution: any) => { resolution.descriptor = pluginDescriptor("other"); },
   ]) {
     const admission = admitRunningPlugin(base.runtimeKit, instanceIdentity, descriptor);
     const subject = createPluginSandbox({
@@ -174,7 +173,7 @@ test("caller descriptors and substituted admission proofs fail before DSH execut
       manager: base.manager,
       dshAdapter: base.dshAdapter,
       schemaOwner: admission.schemaOwner,
-      admissionResolver(query) {
+      admissionResolver(query: any) {
         const resolution = structuredClone(admission.admissionResolver(query));
         mutate(resolution);
         return resolution;
@@ -187,7 +186,7 @@ test("caller descriptors and substituted admission proofs fail before DSH execut
 
 test("input schema, secret, byte, depth, item, accessor, and clone bounds fail before DSH execution", async () => {
   let executions = 0;
-  const { sandbox, instanceIdentity } = setupSandbox(async invocation => {
+  const { sandbox, instanceIdentity } = setupSandbox(async (invocation: any) => {
     executions += 1;
     return invocation.input;
   }, {
@@ -216,21 +215,21 @@ test("input schema, secret, byte, depth, item, accessor, and clone bounds fail b
 test("a huge sparse array is rejected before length-proportional construction", async () => {
   let executions = 0;
   let amplified = false;
-  const { sandbox, instanceIdentity } = setupSandbox(async invocation => {
+  const { sandbox, instanceIdentity } = setupSandbox(async (invocation: any) => {
     executions += 1;
     return invocation.input;
   }, {
     payloadLimits: { inputBytes: 128, outputBytes: 128, depth: 3, items: 4 },
   });
-  const sparse = [];
+  const sparse: any[] = [];
   sparse.length = 2 ** 32 - 1;
   const originalArrayFrom = Array.from;
-  Array.from = function guardedArrayFrom(value, ...rest) {
+  Array.from = function guardedArrayFrom(value: any, ...rest: any[]) {
     if (Number.isSafeInteger(value?.length) && value.length > 1_000) {
       amplified = true;
       throw new Error("length-proportional construction attempted");
     }
-    return originalArrayFrom.call(Array, value, ...rest);
+    return (originalArrayFrom as any).call(Array, value, ...rest);
   };
   try {
     await assert.rejects(
@@ -245,14 +244,14 @@ test("a huge sparse array is rejected before length-proportional construction", 
 });
 
 test("plugin invocation bytes are snapshotted before asynchronous admission", async () => {
-  const gate = Promise.withResolvers();
+  const gate = Promise.withResolvers<void>();
   const runtimeKit = createOwnerRuntimeKit();
   const instanceIdentity = identity();
   const admission = admitRunningPlugin(runtimeKit, instanceIdentity);
-  const subject = setupSandbox(async invocation => invocation.input, {
+  const subject = setupSandbox(async (invocation: any) => invocation.input, {
     runtimeKit,
     identity: instanceIdentity,
-    admissionResolver: async query => {
+    admissionResolver: async (query: any) => {
       await gate.promise;
       return admission.admissionResolver(query);
     },
@@ -265,7 +264,7 @@ test("plugin invocation bytes are snapshotted before asynchronous admission", as
 });
 
 test("admission is revalidated against the current running instance after asynchronous resolution", async () => {
-  const gate = Promise.withResolvers();
+  const gate = Promise.withResolvers<void>();
   let executions = 0;
   const runtimeKit = createOwnerRuntimeKit();
   const instanceIdentity = identity();
@@ -273,20 +272,20 @@ test("admission is revalidated against the current running instance after asynch
   const subject = setupSandbox(async () => { executions += 1; return {}; }, {
     runtimeKit,
     identity: instanceIdentity,
-    admissionResolver: async query => {
+    admissionResolver: async (query: any) => {
       await gate.promise;
       return admission.admissionResolver(query);
     },
   });
   const pending = subject.sandbox.invoke(invokeRequest(instanceIdentity, {}));
-  runtimeKit.store.instances.get(instanceIdentity.namespace).state = "Stopped";
+  (runtimeKit.store.instances.get(instanceIdentity.namespace) as any).state = "Stopped";
   gate.resolve();
   await assert.rejects(pending, /running/i);
   assert.equal(executions, 0);
 });
 
 test("admission cannot cross a complete lifecycle receipt epoch", async () => {
-  const gate = Promise.withResolvers();
+  const gate = Promise.withResolvers<void>();
   let executions = 0;
   const runtimeKit = createOwnerRuntimeKit();
   const instanceIdentity = identity();
@@ -294,13 +293,13 @@ test("admission cannot cross a complete lifecycle receipt epoch", async () => {
   const subject = setupSandbox(async () => { executions += 1; return {}; }, {
     runtimeKit,
     identity: instanceIdentity,
-    admissionResolver: async query => {
+    admissionResolver: async (query: any) => {
       await gate.promise;
       return admission.admissionResolver(query);
     },
   });
   const pending = subject.sandbox.invoke(invokeRequest(instanceIdentity, {}));
-  const instance = runtimeKit.store.instances.get(instanceIdentity.namespace);
+  const instance = runtimeKit.store.instances.get(instanceIdentity.namespace) as any;
   instance.state = "Stopped";
   instance.receiptHead = `sha256:${"2".repeat(64)}`;
   instance.state = "Running";
@@ -310,8 +309,8 @@ test("admission cannot cross a complete lifecycle receipt epoch", async () => {
 });
 
 test("mediated host effects receive a detached request snapshot", async () => {
-  const gate = Promise.withResolvers();
-  const effects = [];
+  const gate = Promise.withResolvers<void>();
+  const effects: any[] = [];
   const instanceIdentity = identity();
   const runtimeKit = createOwnerRuntimeKit({
     async host(request) {
@@ -320,7 +319,7 @@ test("mediated host effects receive a detached request snapshot", async () => {
       return request;
     },
   });
-  const { sandbox } = setupSandbox(async invocation => {
+  const { sandbox } = setupSandbox(async (invocation: any) => {
     const request = hostAction(instanceIdentity, { payload: { revision: "original" } });
     const pending = invocation.hostAction(request);
     request.payload.revision = "mutated";
@@ -334,12 +333,12 @@ test("mediated host effects receive a detached request snapshot", async () => {
 
 test("a retained mediated-host capability is revoked when plugin execution settles", async () => {
   const instanceIdentity = identity();
-  let retainedHostAction;
+  let retainedHostAction: any;
   let effects = 0;
   const runtimeKit = createOwnerRuntimeKit({
     host(request) { effects += 1; return request; },
   });
-  const { sandbox } = setupSandbox(async invocation => {
+  const { sandbox } = setupSandbox(async (invocation: any) => {
     retainedHostAction = invocation.hostAction;
     return { completed: true };
   }, { runtimeKit, identity: instanceIdentity });
@@ -366,10 +365,10 @@ test("output schema, descriptor byte ceiling, and secret-shaped material fail be
 test("missing, stale, wrong, cross-instance, and changed-action assertions fail before host effects", async () => {
   const instanceIdentity = identity();
   let effects = 0;
-  const { runtimeKit, sandbox } = setupSandbox(async invocation => invocation.hostAction(
+  const { runtimeKit, sandbox } = setupSandbox(async (invocation: any) => invocation.hostAction(
     hostAction(instanceIdentity, invocation.input),
   ));
-  runtimeKit.validateMediatedHostActionRequest = request => {
+  runtimeKit.validateMediatedHostActionRequest = (request: any) => {
     if (request.runtimeAssertion?.valid !== true) throw new TypeError("assertion-invalid");
     if (request.runtimeAssertion.operation && request.runtimeAssertion.operation !== "host.action") throw new TypeError("wrong-operation");
     if (request.runtimeAssertion.requestDigest && request.runtimeAssertion.requestDigest !== request.requestDigest) throw new TypeError("wrong-request");
@@ -443,7 +442,7 @@ test("exact action retry is idempotent while changed reuse and Indeterminate red
       return rows.get(request.idempotencyKey);
     },
   });
-  const { sandbox } = setupSandbox(async invocation => invocation.hostAction(invocation.input), {
+  const { sandbox } = setupSandbox(async (invocation: any) => invocation.hostAction(invocation.input), {
     runtimeKit, identity: instanceIdentity,
   });
   const exact = hostAction(instanceIdentity);

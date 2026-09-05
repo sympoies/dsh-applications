@@ -11,12 +11,12 @@ import {
 } from "node:fs";
 import { basename, join, relative, resolve, sep } from "node:path";
 
-function fail(message) {
+function fail(message: string): never {
   throw new Error(`release artifact invalid: ${message}`);
 }
 
-function parseArguments(argv) {
-  const values = new Map();
+function parseArguments(argv: string[]): Map<string, string> {
+  const values = new Map<string, string>();
   for (let index = 0; index < argv.length; index += 2) {
     const flag = argv[index];
     const value = argv[index + 1];
@@ -41,14 +41,14 @@ function parseArguments(argv) {
   return values;
 }
 
-function git(sourceRoot, ...arguments_) {
+function git(sourceRoot: string, ...arguments_: string[]) {
   return execFileSync("git", ["-C", sourceRoot, ...arguments_], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
 }
 
-function assertExactCleanSource(sourceRoot, expectedCommit) {
+function assertExactCleanSource(sourceRoot: string, expectedCommit: string) {
   const actualCommit = git(sourceRoot, "rev-parse", "HEAD");
   if (actualCommit !== expectedCommit) {
     fail(`source checkout revision ${actualCommit} does not equal ${expectedCommit}`);
@@ -59,9 +59,9 @@ function assertExactCleanSource(sourceRoot, expectedCommit) {
 }
 
 const argumentsByName = parseArguments(process.argv.slice(2));
-const sourceRoot = resolve(argumentsByName.get("--source-root"));
-const expectedCommit = argumentsByName.get("--expected-commit");
-const outputRoot = resolve(argumentsByName.get("--out"));
+const sourceRoot = resolve(argumentsByName.get("--source-root")!);
+const expectedCommit = argumentsByName.get("--expected-commit")!;
+const outputRoot = resolve(argumentsByName.get("--out")!);
 
 if (!/^[0-9a-f]{40}$/.test(expectedCommit)) {
   fail("expected commit must be a full lowercase Git revision");

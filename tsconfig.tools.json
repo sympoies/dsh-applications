@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "scripts/**/*.ts",
+    "test/**/*.ts",
+    "packages/dsh-rc2-adapter/types/**/*.d.ts"
+  ],
+  "exclude": ["test/exact-dsh-consumer.ts"]
+}

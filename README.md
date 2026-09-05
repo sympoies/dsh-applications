@@ -62,6 +62,11 @@ source, and `npm run typecheck` (`tsc --noEmit`) is the only compiler
 invocation. Node.js 24 or newer is therefore a runtime requirement, not only a
 development one.
 
+Repository-owned Node.js scripts and tests use the same directly executable
+`.ts` format. The production package program remains strict in `tsconfig.json`;
+`tsconfig.tools.json` checks scripts and runtime-focused test fixtures without
+forcing intentionally malformed contract inputs to satisfy production types.
+
 Two consequences follow for anyone consuming the packages outside this
 workspace:
 
