@@ -50,9 +50,17 @@ npm run test:plugin-sandbox
 npm run test:profiles
 npm run test:github-contracts
 npm test
+npm run typecheck
 npm run check:compatibility -- --manifest-only
 npm run test:package
 ```
+
+The workspace packages are written in erasable TypeScript that Node.js 24
+executes directly through its built-in type stripping. There is no build step:
+`exports` point at the `.ts` sources, the shipped tarball is the reviewed
+source, and `npm run typecheck` (`tsc --noEmit`) is the only compiler
+invocation. Node.js 24 or newer is therefore a runtime requirement, not only a
+development one.
 
 See [architecture](docs/architecture.md), [ownership](docs/ownership.md),
 [release rules](docs/releases.md), [development log](docs/devlog/README.md),

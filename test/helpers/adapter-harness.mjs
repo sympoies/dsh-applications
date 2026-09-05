@@ -1,7 +1,7 @@
 // Shared DSH rc2 adapter harness: a faithful in-memory stand-in for the DSH
 // agent/session/tool surface and the host sandbox, extracted from the manager
 // contract suite so profile-behavior suites can drive the same seams.
-import { createDshRc2Adapter, REQUIRED_AMBIENT_DENIALS } from "../../packages/dsh-rc2-adapter/src/index.js";
+import { createDshRc2Adapter, REQUIRED_AMBIENT_DENIALS } from "../../packages/dsh-rc2-adapter/src/index.ts";
 
 export function createAdapterHarness(options = {}) {
   const created = [];

@@ -5,7 +5,7 @@ import {
   PUBLIC_MANAGER_OPERATIONS,
   createApplicationControlService,
   createApplicationManager,
-} from "../packages/manager/src/index.js";
+} from "../packages/manager/src/index.ts";
 import { createAdapterHarness, invocation } from "./helpers/adapter-harness.mjs";
 import { createOwnerRuntimeKit, identity } from "./helpers/owner-fixtures.mjs";
 

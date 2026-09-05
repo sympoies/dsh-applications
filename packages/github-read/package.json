@@ -6,12 +6,19 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./index.d.ts",
-      "import": "./src/index.js"
+      "import": "./src/index.ts"
     }
   },
-  "files": ["src", "schemas", "index.d.ts", "README.md"],
-  "dependencies": { "@sympoies/dsh-plugin-sdk": "0.3.0" },
-  "engines": { "node": ">=24.0.0" },
+  "files": [
+    "src",
+    "schemas",
+    "README.md"
+  ],
+  "dependencies": {
+    "@sympoies/dsh-plugin-sdk": "0.3.0"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "license": "MIT"
 }

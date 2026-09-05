@@ -1,7 +1,47 @@
-import { definePlugin } from "@sympoies/dsh-plugin-sdk";
+import { definePlugin, type PluginDescriptor, type RuntimeKitPluginValidator } from "@sympoies/dsh-plugin-sdk";
 
-export const GITHUB_REVIEW_TRIGGER_SCHEMA_DIGEST = "sha256:2d8aa351df22e1435eaf1ae427bc45a96c46f5a31bb29a97813c2b0447c81386";
-export const GITHUB_PULL_REQUEST_READ_BUNDLE_SCHEMA_DIGEST = "sha256:a7f8780d067efb35df08f8f61e673e6586dc7fb812c3563674fc05825fdfb0f6";
+export const GITHUB_REVIEW_TRIGGER_SCHEMA_DIGEST: `sha256:${string}` = "sha256:2d8aa351df22e1435eaf1ae427bc45a96c46f5a31bb29a97813c2b0447c81386";
+export const GITHUB_PULL_REQUEST_READ_BUNDLE_SCHEMA_DIGEST: `sha256:${string}` = "sha256:a7f8780d067efb35df08f8f61e673e6586dc7fb812c3563674fc05825fdfb0f6";
+
+export interface ImmutableGitHubPluginArtifactIdentity {
+  readonly digest: `sha256:${string}`;
+  readonly sourceRevision: string;
+  readonly attestationIdentity: string;
+}
+
+export interface RuntimeKitPluginDescriptorOwner extends RuntimeKitPluginValidator {
+  computeDocumentDigest(value: unknown): `sha256:${string}`;
+}
+
+export interface GitHubReviewBinding {
+  readonly capsuleDigest: `sha256:${string}`;
+  readonly requestId: string;
+  readonly target: string;
+  readonly headSha: string;
+  readonly pathSetDigest: `sha256:${string}`;
+  readonly generation: string;
+  readonly instance: string;
+  readonly outputSchemaDigest: `sha256:${string}`;
+  readonly admissionId: string;
+  readonly publisherEpoch: string;
+}
+
+export interface GitHubPullRequestReadBundle extends GitHubReviewBinding {
+  readonly trigger:
+    | { readonly kind: "pull-request-opened" }
+    | { readonly kind: "review-command"; readonly command: "@mes_bot review" };
+  readonly pullRequest: { readonly title: string; readonly body: string };
+  readonly files: readonly { readonly path: string; readonly lines: readonly number[] }[];
+  readonly threads: readonly {
+    readonly path: string;
+    readonly line: number;
+    readonly author: string;
+    readonly body: string;
+  }[];
+}
+
+/** Untyped caller input after the object-shape check; every field is still validated. */
+type Fields = Record<string, unknown>;
 
 const DIGEST = /^sha256:[0-9a-f]{64}$/u;
 const HEAD_SHA = /^[0-9a-f]{40}$/u;
@@ -13,44 +53,51 @@ const BINDING_FIELDS = Object.freeze([
   "generation", "instance", "outputSchemaDigest", "admissionId", "publisherEpoch",
 ]);
 
-function fail(message) {
+function fail(message: string): never {
   throw new TypeError(message);
 }
 
-function record(value, label) {
+function record(value: unknown, label: string): Fields {
   if (value === null || typeof value !== "object" || Array.isArray(value)) fail(`${label} must be an object`);
   if (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null) {
     fail(`${label} must be a plain object`);
   }
-  return value;
+  return value as Fields;
 }
 
-function exactKeys(value, required, optional, label) {
+function exactKeys(value: Fields, required: readonly string[], optional: readonly string[], label: string): void {
   const allowed = new Set([...required, ...optional]);
   for (const key of Object.keys(value)) if (!allowed.has(key)) fail(`${label} has unknown field ${key}`);
   for (const key of required) if (!(key in value)) fail(`${label}.${key} is required`);
 }
 
-function boundedString(value, label, maximumBytes, { nonempty = true } = {}) {
+function boundedString(
+  value: unknown,
+  label: string,
+  maximumBytes: number,
+  { nonempty = true }: { readonly nonempty?: boolean } = {},
+): asserts value is string {
   if (typeof value !== "string" || (nonempty && value.length === 0)
     || Buffer.byteLength(value, "utf8") > maximumBytes) fail(`${label} is invalid or too long`);
 }
 
-function digest(value, label) {
+function digest(value: unknown, label: string): asserts value is `sha256:${string}` {
   if (typeof value !== "string" || !DIGEST.test(value)) fail(`${label} must be a lowercase sha256 digest`);
 }
 
-function uint64(value, label) {
+function uint64(value: unknown, label: string): asserts value is string {
   if (typeof value !== "string" || !UINT64.test(value) || BigInt(value) > UINT64_MAX) {
     fail(`${label} must be a canonical uint64 decimal string`);
   }
 }
 
-function positiveInteger(value, label) {
-  if (!Number.isSafeInteger(value) || value < 1 || value > 2_147_483_647) fail(`${label} must be a positive integer`);
+function positiveInteger(value: unknown, label: string): asserts value is number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1 || value > 2_147_483_647) {
+    fail(`${label} must be a positive integer`);
+  }
 }
 
-function path(value, label) {
+function path(value: unknown, label: string): asserts value is string {
   boundedString(value, label, 1024);
   if (value.startsWith("/") || value.includes("\\") || value.includes("\0")
     || value.split("/").some(segment => segment === "" || segment === "." || segment === "..")) {
@@ -58,7 +105,7 @@ function path(value, label) {
   }
 }
 
-function sortedUniqueIntegers(value, label) {
+function sortedUniqueIntegers(value: unknown, label: string): asserts value is number[] {
   if (!Array.isArray(value) || value.length > 10_000) fail(`${label} must be a bounded array`);
   let previous = 0;
   value.forEach((line, index) => {
@@ -68,7 +115,7 @@ function sortedUniqueIntegers(value, label) {
   });
 }
 
-function validateBinding(value, label = "readBundle") {
+function validateBinding(value: Fields, label = "readBundle"): void {
   digest(value.capsuleDigest, `${label}.capsuleDigest`);
   for (const field of ["requestId", "target", "generation", "instance", "admissionId"]) {
     boundedString(value[field], `${label}.${field}`, 256);
@@ -79,9 +126,9 @@ function validateBinding(value, label = "readBundle") {
   uint64(value.publisherEpoch, `${label}.publisherEpoch`);
 }
 
-function freezeClone(value) {
+function freezeClone<T>(value: T): T {
   const clone = structuredClone(value);
-  const freeze = candidate => {
+  const freeze = <Candidate>(candidate: Candidate): Candidate => {
     if (candidate !== null && typeof candidate === "object" && !Object.isFrozen(candidate)) {
       Object.values(candidate).forEach(freeze);
       Object.freeze(candidate);
@@ -91,7 +138,8 @@ function freezeClone(value) {
   return freeze(clone);
 }
 
-export function validateGitHubPullRequestReadBundle(input) {
+export function validateGitHubPullRequestReadBundle(input: unknown): Readonly<GitHubPullRequestReadBundle>;
+export function validateGitHubPullRequestReadBundle(input: unknown): unknown {
   const value = record(input, "readBundle");
   exactKeys(value, [
     ...BINDING_FIELDS, "trigger", "pullRequest", "files", "threads",
@@ -114,7 +162,7 @@ export function validateGitHubPullRequestReadBundle(input) {
   boundedString(pullRequest.body, "readBundle.pullRequest.body", 65_536, { nonempty: false });
 
   if (!Array.isArray(value.files) || value.files.length > 512) fail("readBundle.files must be a bounded array");
-  const linesByPath = new Map();
+  const linesByPath = new Map<string, Set<number>>();
   value.files.forEach((candidate, index) => {
     const file = record(candidate, `readBundle.files[${index}]`);
     exactKeys(file, ["path", "lines"], [], `readBundle.files[${index}]`);
@@ -139,11 +187,16 @@ export function validateGitHubPullRequestReadBundle(input) {
   return freezeClone(value);
 }
 
-export function isCompatibilityReviewTrigger(trigger) {
-  return trigger?.kind === "review-command" && trigger.command === "@mes_bot review";
+export function isCompatibilityReviewTrigger(trigger: unknown): boolean {
+  const candidate = trigger as Partial<Record<"kind" | "command", unknown>> | null | undefined;
+  return candidate?.kind === "review-command" && candidate.command === "@mes_bot review";
 }
 
-export function createGitHubReadPluginDescriptor(runtimeKit, artifactIdentity) {
+export function createGitHubReadPluginDescriptor(
+  runtimeKit: RuntimeKitPluginDescriptorOwner,
+  artifactIdentity: ImmutableGitHubPluginArtifactIdentity,
+): Readonly<PluginDescriptor>;
+export function createGitHubReadPluginDescriptor(runtimeKit: RuntimeKitPluginDescriptorOwner, artifactIdentity: unknown): unknown {
   if (typeof runtimeKit?.computeDocumentDigest !== "function") {
     fail("runtime-kit computeDocumentDigest owner is required");
   }
@@ -162,7 +215,7 @@ export function createGitHubReadPluginDescriptor(runtimeKit, artifactIdentity) {
     artifact: {
       package: "@sympoies/dsh-github-read",
       digest: artifact.digest,
-      entrypoint: "packages/github-read/src/index.js",
+      entrypoint: "packages/github-read/src/index.ts",
       sourceRevision: artifact.sourceRevision,
       attestationIdentity: artifact.attestationIdentity,
     },
@@ -197,5 +250,5 @@ export function createGitHubReadPluginDescriptor(runtimeKit, artifactIdentity) {
     },
   };
   descriptor.metadata.digest = runtimeKit.computeDocumentDigest(descriptor);
-  return definePlugin(runtimeKit, descriptor);
+  return definePlugin(runtimeKit, descriptor as unknown as PluginDescriptor);
 }

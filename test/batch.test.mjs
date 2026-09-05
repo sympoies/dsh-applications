@@ -4,7 +4,7 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
 
-import { createApplicationControlService, createApplicationManager } from "../packages/manager/src/index.js";
+import { createApplicationControlService, createApplicationManager } from "../packages/manager/src/index.ts";
 
 const profile = JSON.parse(
   readFileSync(new URL("../profiles/batch/profile.json", import.meta.url), "utf8"),

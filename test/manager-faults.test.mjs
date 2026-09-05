@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   createApplicationControlService,
   createApplicationManager,
-} from "../packages/manager/src/index.js";
+} from "../packages/manager/src/index.ts";
 import { createOwnerRuntimeKit, identity } from "./helpers/owner-fixtures.mjs";
 
 function createManager(runtimeKit) {

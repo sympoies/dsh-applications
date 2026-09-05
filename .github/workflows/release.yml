@@ -110,6 +110,7 @@ jobs:
         working-directory: dsh-applications
         run: |
           npm test
+          npm run typecheck
           npm run check:compatibility -- \
             --runtime-kit-root ../dsh-runtime-kit \
             --dsh-root ../deepseek-harness

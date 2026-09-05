@@ -8,7 +8,7 @@ import test from "node:test";
 import {
   createDshRc2Adapter,
   REQUIRED_AMBIENT_DENIALS,
-} from "../packages/dsh-rc2-adapter/src/index.js";
+} from "../packages/dsh-rc2-adapter/src/index.ts";
 
 const dshRoot = process.env.DSH_ROOT === undefined ? undefined : resolve(process.env.DSH_ROOT);
 

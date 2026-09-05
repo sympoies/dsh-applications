@@ -6,13 +6,11 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./index.d.ts",
-      "import": "./src/index.js"
+      "import": "./src/index.ts"
     }
   },
   "files": [
     "src",
-    "index.d.ts",
     "README.md"
   ],
   "engines": {

@@ -4,9 +4,9 @@ import { createHash } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { createGitHubReadPluginDescriptor } from "../packages/github-read/src/index.js";
-import { createGitHubReviewPublishPluginDescriptor } from "../packages/github-review-publish/src/index.js";
-import { defineTrigger } from "../packages/plugin-sdk/src/index.js";
+import { createGitHubReadPluginDescriptor } from "../packages/github-read/src/index.ts";
+import { createGitHubReviewPublishPluginDescriptor } from "../packages/github-review-publish/src/index.ts";
+import { defineTrigger } from "../packages/plugin-sdk/src/index.ts";
 
 const root = resolve(import.meta.dirname, "..");
 

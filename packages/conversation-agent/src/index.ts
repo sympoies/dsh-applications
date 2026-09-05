@@ -1,7 +1,50 @@
-import { definePlugin } from "@sympoies/dsh-plugin-sdk";
+import { definePlugin, type PluginDescriptor, type RuntimeKitPluginValidator } from "@sympoies/dsh-plugin-sdk";
 
-export const CONVERSATION_TURN_SCHEMA_DIGEST = "sha256:540e0d8d2c74012ed2a0a091fb45e95852a3106569195ff88fd63797f369a1f3";
-export const CONVERSATION_REPLY_SCHEMA_DIGEST = "sha256:a155a7a633ac342aa6c2dd7411296222e6c38e88d9a6b4cc31dbea5d45b2351f";
+export const CONVERSATION_TURN_SCHEMA_DIGEST: string = "sha256:540e0d8d2c74012ed2a0a091fb45e95852a3106569195ff88fd63797f369a1f3";
+export const CONVERSATION_REPLY_SCHEMA_DIGEST: string = "sha256:a155a7a633ac342aa6c2dd7411296222e6c38e88d9a6b4cc31dbea5d45b2351f";
+
+/**
+ * An opaque, deployment-scoped reference to a chat or a participant, shaped as
+ * `ref:<64 lowercase hex>`. The channel adapter resolves the real identifier
+ * into this digest, so no channel identifier reaches the public contract, the
+ * model, or session memory.
+ *
+ * It MUST be a keyed digest — `HMAC-SHA256(deployment secret, identifier)` or
+ * equivalent. A bare digest of a low-entropy identifier such as a numeric chat
+ * id or a phone number is exhaustively invertible and therefore
+ * non-conforming. Only the shape can be validated here; minting the ref
+ * correctly is the adapter's obligation.
+ */
+export type ChannelRef = string;
+
+export interface ConversationChannelContext {
+  readonly chatRef: ChannelRef;
+  readonly senderRef: ChannelRef;
+  readonly isGroup: boolean;
+}
+
+export interface ConversationTurn {
+  readonly message: string;
+  readonly channel?: ConversationChannelContext;
+}
+
+export interface ConversationReply {
+  readonly reply: string;
+}
+
+export interface ArtifactIdentity {
+  readonly digest: string;
+  readonly sourceRevision: string;
+  readonly attestationIdentity: string;
+}
+
+/** Untyped caller input after the object-shape check; every field is still validated. */
+type Fields = Record<string, unknown>;
+
+/** The runtime-kit surface the descriptor factory needs; checked at runtime, not trusted from the type. */
+interface DescriptorOwner extends RuntimeKitPluginValidator {
+  computeDocumentDigest(value: unknown): string;
+}
 
 const DIGEST = /^sha256:[0-9a-f]{64}$/u;
 const SOURCE_REVISION = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/u;
@@ -23,43 +66,43 @@ const CHANNEL_REF = /^ref:[0-9a-f]{64}$/u;
 const MESSAGE_MAX_CHARACTERS = 16_384;
 const ATTESTATION_MAX_CHARACTERS = 1024;
 
-function fail(message) {
+function fail(message: string): never {
   throw new TypeError(message);
 }
 
-function record(value, label) {
+function record(value: unknown, label: string): Fields {
   if (value === null || typeof value !== "object" || Array.isArray(value)) fail(`${label} must be an object`);
   const prototype = Object.getPrototypeOf(value);
   if (prototype !== Object.prototype && prototype !== null) fail(`${label} must be a plain object`);
-  return value;
+  return value as Fields;
 }
 
-function exactKeys(value, required, optional, label) {
+function exactKeys(value: Fields, required: readonly string[], optional: readonly string[], label: string): void {
   const allowed = new Set([...required, ...optional]);
   for (const key of Object.keys(value)) if (!allowed.has(key)) fail(`${label} has unknown field ${key}`);
   for (const key of required) if (!(key in value)) fail(`${label}.${key} is required`);
 }
 
-function boundedText(value, label, maximumCharacters) {
+function boundedText(value: unknown, label: string, maximumCharacters: number): asserts value is string {
   if (typeof value !== "string" || value.length === 0) fail(`${label} must be a non-empty string`);
   // Spread counts code points; value.length would count UTF-16 units and would
   // diverge from the schemas on astral characters.
   if ([...value].length > maximumCharacters) fail(`${label} is too long`);
 }
 
-function channelRef(value, label) {
+function channelRef(value: unknown, label: string): asserts value is ChannelRef {
   if (typeof value !== "string" || !CHANNEL_REF.test(value)) {
     fail(`${label} must be an opaque ref: digest, never a real channel identifier`);
   }
 }
 
-function digest(value, label) {
+function digest(value: unknown, label: string): asserts value is string {
   if (typeof value !== "string" || !DIGEST.test(value)) fail(`${label} must be a lowercase sha256 digest`);
 }
 
-function freezeClone(value) {
+function freezeClone<T>(value: T): T {
   const clone = structuredClone(value);
-  const freeze = candidate => {
+  const freeze = <Candidate>(candidate: Candidate): Candidate => {
     if (candidate !== null && typeof candidate === "object" && !Object.isFrozen(candidate)) {
       Object.values(candidate).forEach(freeze);
       Object.freeze(candidate);
@@ -73,7 +116,8 @@ function freezeClone(value) {
 // assembled from those locals. Returning a clone of caller-owned memory would
 // re-read each property, so an accessor could pass the checks and then yield a
 // raw identifier into the result.
-export function validateConversationTurn(input) {
+export function validateConversationTurn(input: unknown): ConversationTurn;
+export function validateConversationTurn(input: unknown): unknown {
   const value = record(input, "turn");
   exactKeys(value, ["message"], ["channel"], "turn");
   const message = value.message;
@@ -91,7 +135,8 @@ export function validateConversationTurn(input) {
   return freezeClone({ message, channel: { chatRef, senderRef, isGroup } });
 }
 
-export function validateConversationReply(input) {
+export function validateConversationReply(input: unknown): ConversationReply;
+export function validateConversationReply(input: unknown): unknown {
   const value = record(input, "reply");
   exactKeys(value, ["reply"], [], "reply");
   const reply = value.reply;
@@ -99,8 +144,13 @@ export function validateConversationReply(input) {
   return freezeClone({ reply });
 }
 
-export function createConversationAgentPluginDescriptor(runtimeKit, artifactIdentity) {
-  if (typeof runtimeKit?.computeDocumentDigest !== "function") {
+export function createConversationAgentPluginDescriptor(
+  runtimeKit: unknown,
+  artifactIdentity: ArtifactIdentity,
+): unknown;
+export function createConversationAgentPluginDescriptor(runtimeKit: unknown, artifactIdentity: unknown): unknown {
+  const owner = runtimeKit as Partial<DescriptorOwner> | null | undefined;
+  if (typeof owner?.computeDocumentDigest !== "function") {
     fail("runtime-kit computeDocumentDigest owner is required");
   }
   const artifact = record(artifactIdentity, "artifactIdentity");
@@ -118,7 +168,7 @@ export function createConversationAgentPluginDescriptor(runtimeKit, artifactIden
     artifact: {
       package: "@sympoies/dsh-conversation-agent",
       digest: artifact.digest,
-      entrypoint: "packages/conversation-agent/src/index.js",
+      entrypoint: "packages/conversation-agent/src/index.ts",
       sourceRevision: artifact.sourceRevision,
       attestationIdentity: artifact.attestationIdentity,
     },
@@ -165,6 +215,6 @@ export function createConversationAgentPluginDescriptor(runtimeKit, artifactIden
       disposal: "required", recovery: "reconcile",
     },
   };
-  descriptor.metadata.digest = runtimeKit.computeDocumentDigest(descriptor);
-  return definePlugin(runtimeKit, descriptor);
+  descriptor.metadata.digest = owner.computeDocumentDigest(descriptor);
+  return definePlugin(owner as RuntimeKitPluginValidator, descriptor as unknown as PluginDescriptor);
 }

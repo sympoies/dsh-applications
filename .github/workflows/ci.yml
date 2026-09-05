@@ -52,6 +52,9 @@ jobs:
       - name: Run aggregate tests
         working-directory: dsh-applications
         run: npm test
+      - name: Typecheck the erasable TypeScript sources
+        working-directory: dsh-applications
+        run: npm run typecheck
       - name: Verify manifest compatibility
         working-directory: dsh-applications
         run: npm run check:compatibility -- --manifest-only

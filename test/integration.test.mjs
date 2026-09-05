@@ -4,8 +4,8 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
 
-import { createApplicationControlService, createApplicationManager, createPluginSandbox } from "../packages/manager/src/index.js";
-import { definePlugin } from "../packages/plugin-sdk/src/index.js";
+import { createApplicationControlService, createApplicationManager, createPluginSandbox } from "../packages/manager/src/index.ts";
+import { definePlugin } from "../packages/plugin-sdk/src/index.ts";
 import {
   admitRunningPlugin,
   createOwnerRuntimeKit,

@@ -11,7 +11,7 @@ import {
   createConversationAgentPluginDescriptor,
   validateConversationReply,
   validateConversationTurn,
-} from "../packages/conversation-agent/src/index.js";
+} from "../packages/conversation-agent/src/index.ts";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const exactRoot = process.env.DSH_RUNTIME_KIT_ROOT

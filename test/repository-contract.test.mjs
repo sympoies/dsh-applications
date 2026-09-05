@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
+  existsSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -109,6 +110,44 @@ test("workspace packages are components of one coordinated application artifact"
   assert.match(packages, /share.*root.*version/i);
   assert.doesNotMatch(architecture, /independently versioned/i);
   assert.match(read(".github/workflows/release.yml"), /test "\$package_version" != "0\.0\.0"/);
+});
+
+test("workspace packages ship erasable TypeScript sources that Node executes without a build", () => {
+  const pkg = json("package.json");
+  assert.equal(pkg.scripts.typecheck, "tsc -p tsconfig.json");
+  for (const script of ["build", "prepare", "prepack", "postinstall"]) {
+    assert.equal(pkg.scripts[script], undefined, `${script} would add a build or install step`);
+  }
+  assert.equal(pkg.devDependencies.typescript, "6.0.3");
+  assert.equal(pkg.devDependencies["@types/node"], "24.13.3");
+
+  const tsconfig = json("tsconfig.json");
+  for (const [option, expected] of Object.entries({
+    strict: true,
+    noEmit: true,
+    erasableSyntaxOnly: true,
+    verbatimModuleSyntax: true,
+    allowImportingTsExtensions: true,
+    module: "NodeNext",
+    moduleResolution: "NodeNext",
+  })) {
+    assert.equal(tsconfig.compilerOptions[option], expected, `tsconfig ${option}`);
+  }
+
+  for (const name of [
+    "plugin-sdk", "manager", "dsh-rc2-adapter",
+    "conversation-agent", "github-read", "github-review-publish",
+  ]) {
+    const manifest = json(`packages/${name}/package.json`);
+    assert.deepEqual(manifest.exports["."], { import: "./src/index.ts" }, `${name} must export its TypeScript source`);
+    assert(!manifest.files.includes("index.d.ts"), `${name} must not ship a hand-written declaration file`);
+    assert.equal(statSync(join(root, `packages/${name}/src/index.ts`)).isFile(), true);
+    assert(!existsSync(join(root, `packages/${name}/src/index.js`)), `${name} must not keep a JavaScript entry`);
+    assert(!existsSync(join(root, `packages/${name}/index.d.ts`)), `${name} must fold its types into the source`);
+  }
+
+  const workflow = read(".github/workflows/ci.yml");
+  assert.match(workflow, /npm run typecheck/);
 });
 
 test("installed workspace resolves every actual public package specifier", async () => {
@@ -405,6 +444,8 @@ test("the repository package is reproducible and contains the public coordinated
   assert(paths.includes("profiles/github-pr-review/profile.json"));
   assert(paths.includes("fixtures/triggers/manual.json"));
   assert(paths.includes("fixtures/triggers/schedule.json"));
+  assert(paths.includes("packages/plugin-sdk/src/index.ts"));
+  assert(!paths.some((path) => path.endsWith(".d.ts") || path.endsWith("/src/index.js")));
   assert(!paths.some((path) => path.startsWith(".github/")));
   assert(!paths.some((path) => path.startsWith("scripts/")));
   assert(!paths.some((path) => path.startsWith("test/")));

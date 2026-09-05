@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import * as pluginSdk from "../packages/plugin-sdk/src/index.js";
+import * as pluginSdk from "../packages/plugin-sdk/src/index.ts";
 import {
   createApplicationManager,
   createPluginSandbox,
-} from "../packages/manager/src/index.js";
+} from "../packages/manager/src/index.ts";
 import {
   DIGEST,
   admitRunningPlugin,

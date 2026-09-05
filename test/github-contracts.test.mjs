@@ -11,8 +11,8 @@ import {
   createGitHubReadPluginDescriptor,
   isCompatibilityReviewTrigger,
   validateGitHubPullRequestReadBundle,
-} from "../packages/github-read/src/index.js";
-import * as reviewPublish from "../packages/github-review-publish/src/index.js";
+} from "../packages/github-read/src/index.ts";
+import * as reviewPublish from "../packages/github-review-publish/src/index.ts";
 
 const {
   GITHUB_REVIEW_OUTPUT_DIGEST_DOMAIN,
@@ -124,8 +124,8 @@ test("read bundle preserves untrusted content while authority remains server-bou
 
 test("public package code contains no App identity or provider client", () => {
   for (const path of [
-    "packages/github-read/src/index.js",
-    "packages/github-review-publish/src/index.js",
+    "packages/github-read/src/index.ts",
+    "packages/github-review-publish/src/index.ts",
   ]) {
     const source = readFileSync(resolve(root, path), "utf8");
     assert.doesNotMatch(source, /release-reviewer|dsh-release-reviewer|octokit|api\.github\.com|installation token/i);
@@ -382,9 +382,8 @@ test("private completion envelope stays outside public plugins and manager", () 
   assert.equal(reviewPublish.createDshGitHubReviewCompletionEnvelope, undefined);
   assert.equal(reviewPublish.validateDshGitHubReviewCompletionEnvelope, undefined);
   for (const path of [
-    "packages/github-read/src/index.js",
-    "packages/github-review-publish/src/index.js",
-    "packages/github-review-publish/index.d.ts",
+    "packages/github-read/src/index.ts",
+    "packages/github-review-publish/src/index.ts",
   ]) assert.doesNotMatch(readFileSync(resolve(root, path), "utf8"), /DshGitHubReviewCompletionEnvelope/);
 });
 
