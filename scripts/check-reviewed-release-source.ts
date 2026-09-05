@@ -1,12 +1,12 @@
 import { readFileSync } from "node:fs";
 
-function fail(message) {
+function fail(message: string): never {
   process.stderr.write(`reviewed release source invalid: ${message}\n`);
   process.exit(1);
 }
 
-function parseArguments(argv) {
-  const values = new Map();
+function parseArguments(argv: string[]): Map<string, string> {
+  const values = new Map<string, string>();
   for (let index = 0; index < argv.length; index += 2) {
     const flag = argv[index];
     const value = argv[index + 1];
@@ -31,31 +31,31 @@ function parseArguments(argv) {
   return values;
 }
 
-function readJson(path, label) {
+function readJson(path: string, label: string): any {
   try {
     return JSON.parse(readFileSync(path, "utf8"));
   } catch (error) {
-    fail(`${label} is not valid JSON: ${error.message}`);
+    fail(`${label} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
 const argumentsByName = parseArguments(process.argv.slice(2));
 const repository = argumentsByName.get("--repository");
 const commit = argumentsByName.get("--commit");
-if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) {
+if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository!)) {
   fail("repository must be an owner/name identity");
 }
-if (!/^[0-9a-f]{40}$/.test(commit)) {
+if (!/^[0-9a-f]{40}$/.test(commit!)) {
   fail("commit must be a full lowercase Git revision");
 }
 
-const associations = readJson(argumentsByName.get("--associations"), "associations");
+const associations = readJson(argumentsByName.get("--associations")!, "associations");
 if (!Array.isArray(associations)) {
   fail("associations must be an array");
 }
 
 const qualifying = associations.filter(
-  (pullRequest) =>
+  (pullRequest: any) =>
     Number.isInteger(pullRequest?.number) &&
     pullRequest.number > 0 &&
     pullRequest.state === "closed" &&

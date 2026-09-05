@@ -19,17 +19,17 @@ const expectedRuntimeKitRevision =
 const expectedDshRevision = "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e";
 const reviewedFixtureCommit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
-function read(path) {
+function read(path: string) {
   return readFileSync(join(root, path), "utf8");
 }
 
-function json(path) {
+function json(path: string) {
   return JSON.parse(read(path));
 }
 
-function filesBelow(path) {
+function filesBelow(path: string): string[] {
   const absolute = join(root, path);
-  const files = [];
+  const files: string[] = [];
   for (const entry of readdirSync(absolute, { withFileTypes: true })) {
     const child = join(absolute, entry.name);
     if (entry.isDirectory()) {
@@ -170,6 +170,7 @@ test("repository-owned JavaScript entrypoints are TypeScript and typechecked", (
   );
 
   const toolsConfig = json("tsconfig.tools.json");
+  assert.equal(toolsConfig.compilerOptions, undefined, "tools and tests must inherit the root strict options");
   assert.deepEqual(toolsConfig.include, [
     "scripts/**/*.ts",
     "test/**/*.ts",
@@ -221,7 +222,7 @@ test("installed workspace resolves every actual public package specifier", async
     ["@sympoies/dsh-github-read", "validateGitHubPullRequestReadBundle"],
     ["@sympoies/dsh-github-review-publish", "createGitHubReviewWorkerResult"],
     ["@sympoies/dsh-conversation-agent", "validateConversationTurn"],
-  ]) {
+  ] as const) {
     const module = await import(specifier);
     assert.equal(typeof module[exported], "function", `${specifier} must resolve from the installed workspace`);
   }
@@ -386,7 +387,7 @@ test("reviewed release source requires one merged same-repo PR and independent e
     ["nonmerge-associations.json", "accepted-reviews.json"],
     ["ambiguous-associations.json", "accepted-reviews.json"],
     ["accepted-associations.json", "unapproved-reviews.json"],
-  ]) {
+  ] as const) {
     assert.throws(() =>
       execFileSync(
         process.execPath,
@@ -488,7 +489,7 @@ test("the repository package is reproducible and contains the public coordinated
     stdio: "pipe",
   });
 
-  const packed = JSON.parse(
+  const packed: { files: Array<{ path: string }> } = JSON.parse(
     execFileSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], {
       cwd: root,
       encoding: "utf8",
@@ -508,11 +509,11 @@ test("the repository package is reproducible and contains the public coordinated
   assert(paths.includes("fixtures/triggers/manual.json"));
   assert(paths.includes("fixtures/triggers/schedule.json"));
   assert(paths.includes("packages/plugin-sdk/src/index.ts"));
-  assert(!paths.some((path) => /^packages\/[^/]+\/index\.d\.ts$/.test(path) || path.endsWith("/src/index.js")));
+  assert(!paths.some((path: string) => /^packages\/[^/]+\/index\.d\.ts$/.test(path) || path.endsWith("/src/index.js")));
   assert(paths.includes("packages/dsh-rc2-adapter/types/dsh-peer-fallbacks.d.ts"));
-  assert(!paths.some((path) => path.startsWith(".github/")));
-  assert(!paths.some((path) => path.startsWith("scripts/")));
-  assert(!paths.some((path) => path.startsWith("test/")));
+  assert(!paths.some((path: string) => path.startsWith(".github/")));
+  assert(!paths.some((path: string) => path.startsWith("scripts/")));
+  assert(!paths.some((path: string) => path.startsWith("test/")));
 });
 
 test("tracked public content contains no credential material or machine-local paths", () => {

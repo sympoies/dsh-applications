@@ -12,12 +12,13 @@ const dshRoot = process.env.DSH_ROOT === undefined ? undefined : resolve(process
 if (dshRoot === undefined) {
   throw new Error("DSH_ROOT is required for the exact DSH consumer check");
 }
+const exactDshRoot = dshRoot;
 
-const compiler = join(dshRoot, "node_modules", ".bin", "tsc");
+const compiler = join(exactDshRoot, "node_modules", ".bin", "tsc");
 
-async function exactDshPackagePaths() {
-  const paths = {};
-  async function visit(directory) {
+async function exactDshPackagePaths(): Promise<Record<string, string[]>> {
+  const paths: Record<string, string[]> = {};
+  async function visit(directory: string): Promise<void> {
     const entries = await readdir(directory, { withFileTypes: true });
     const manifest = entries.find(entry => entry.isFile() && entry.name === "package.json");
     if (manifest !== undefined) {
@@ -32,8 +33,8 @@ async function exactDshPackagePaths() {
       await visit(join(directory, entry.name));
     }
   }
-  await visit(join(dshRoot, "vendor"));
-  await visit(join(dshRoot, "packages"));
+  await visit(join(exactDshRoot, "vendor"));
+  await visit(join(exactDshRoot, "packages"));
   return paths;
 }
 const temporaryRoot = await mkdtemp(join(tmpdir(), "dsh-applications-types-"));
@@ -44,7 +45,7 @@ try {
       target: "ES2024",
       lib: ["ESNext"],
       types: ["node"],
-      typeRoots: [join(dshRoot, "node_modules", "@types")],
+      typeRoots: [join(exactDshRoot, "node_modules", "@types")],
       module: "NodeNext",
       moduleResolution: "NodeNext",
       strict: true,
@@ -59,7 +60,7 @@ try {
     files: [join(applicationRoot, "test", "exact-dsh-consumer.ts")],
   }, null, 2)}\n`, "utf8");
   await execFileAsync(compiler, ["--project", configPath, "--pretty", "false"], {
-    cwd: dshRoot,
+    cwd: exactDshRoot,
     timeout: 60_000,
   });
 } finally {

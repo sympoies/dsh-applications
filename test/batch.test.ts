@@ -4,9 +4,7 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
 
-import * as managerApi from "../packages/manager/src/index.ts";
-
-const { createApplicationControlService, createApplicationManager } = managerApi as any;
+import { createApplicationControlService, createApplicationManager } from "./helpers/typed-manager.ts";
 
 const profile = JSON.parse(
   readFileSync(new URL("../profiles/batch/profile.json", import.meta.url), "utf8"),
@@ -31,8 +29,8 @@ test("the batch profile declares one authority shared by manual and scheduled in
 
   // Both trigger classes bind the SAME input schema: scheduling is reusable
   // trigger configuration, never a second persona or a widened authority.
-  assert.deepEqual(profile.triggers.map(trigger => trigger.class).sort(), ["manual", "schedule"]);
-  const schemaDigests = new Set(profile.triggers.map(trigger => trigger.inputSchemaDigest));
+  assert.deepEqual(profile.triggers.map((trigger: any) => trigger.class).sort(), ["manual", "schedule"]);
+  const schemaDigests = new Set(profile.triggers.map((trigger: any) => trigger.inputSchemaDigest));
   assert.equal(schemaDigests.size, 1, "manual and schedule triggers share one input schema");
 
   // The declared overlap rule is forbid with single-slot concurrency, and
@@ -96,7 +94,7 @@ async function exactHarness() {
   const signing = fixtures.signingFixture();
   const bundle = fixtures.trustBundle(signing);
 
-  function admitted(instanceId) {
+  function admitted(instanceId: string) {
     const identity = fixtures.identity({
       deploymentId: "batch-service", profileId: "batch", instanceId,
     });
@@ -106,11 +104,11 @@ async function exactHarness() {
     request.runtimeAssertion = fixtures.runtimeAssertion(
       seal, identity, signing, bundle, "lock", request.requestDigest,
     );
-    request.runtimeAssertionDigest = request.runtimeAssertion.metadata.digest;
+    request.runtimeAssertionDigest = (request.runtimeAssertion as any).metadata.digest;
     return { identity, seal, request };
   }
 
-  function startRequest(subject, priorReceiptDigest, idempotencyKey) {
+  function startRequest(subject: any, priorReceiptDigest: any, idempotencyKey: any) {
     const request = {
       apiVersion: "runtime.sympoies.dev/v1",
       kind: "StartInstanceRequest",
@@ -128,11 +126,11 @@ async function exactHarness() {
     request.runtimeAssertion = fixtures.runtimeAssertion(
       subject.seal, subject.identity, signing, bundle, "start", request.requestDigest,
     );
-    request.runtimeAssertionDigest = request.runtimeAssertion.metadata.digest;
+    request.runtimeAssertionDigest = (request.runtimeAssertion as any).metadata.digest;
     return request;
   }
 
-  function managerFor(store, effects) {
+  function managerFor(store: any, effects: any) {
     return createApplicationManager({
       runtimeKit,
       runtimeStore: store,
@@ -281,7 +279,7 @@ test("a schedule trigger peer can observe but never drive lifecycle operations",
     reconcileEvidence: async () => ({ status: "temporary-unavailable" }),
   });
 
-  function frame(payload, nonce) {
+  function frame(payload: any, nonce: string) {
     const value = {
       apiVersion: "runtime.sympoies.dev/v1",
       kind: "ManagerControlRequestFrame",

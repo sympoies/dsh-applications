@@ -4,17 +4,15 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
 
-import * as managerApi from "../packages/manager/src/index.ts";
 import { REQUIRED_AMBIENT_DENIALS } from "../packages/dsh-rc2-adapter/src/index.ts";
 import { createAdapterHarness } from "./helpers/adapter-harness.ts";
+import { createApplicationManager, createPluginSandbox } from "./helpers/typed-manager.ts";
 import {
   DIGEST,
   admitRunningPlugin,
   createOwnerRuntimeKit,
   pluginDescriptor,
 } from "./helpers/owner-fixtures.ts";
-
-const { createApplicationManager, createPluginSandbox } = managerApi as any;
 
 const profile = JSON.parse(
   readFileSync(new URL("../profiles/conversational/profile.json", import.meta.url), "utf8"),
@@ -50,7 +48,7 @@ function codingIdentity(instanceId = "project-a") {
 // the profile's default grants and becomes available only through a locked
 // plugin admission that declares it.
 function conversationDescriptor() {
-  const descriptor = pluginDescriptor("conversation-agent");
+  const descriptor = structuredClone(pluginDescriptor("conversation-agent")) as any;
   descriptor.artifact.package = "@sympoies/conversation-agent";
   descriptor.capabilities = {
     provides: ["plugin.conversation"],
@@ -95,7 +93,7 @@ test("the conversational profile carries no repository, shell, workspace, or amb
     [...profile.approvals.requiredFor].sort(),
     ["destructive", "open-world"],
   );
-  assert.deepEqual(profile.triggers.map(trigger => trigger.class), ["message"]);
+  assert.deepEqual(profile.triggers.map((trigger: any) => trigger.class), ["message"]);
   for (const denial of ["env", "filesystem", "network", "subprocess", "credential", "secret", "cross-instance"]) {
     assert((REQUIRED_AMBIENT_DENIALS as readonly string[]).includes(denial), `ambient ${denial} denial is required`);
   }
@@ -114,7 +112,7 @@ test("a conversation instance denies ambient tools, persists across restart, and
   const guard = subject.guards.at(-1);
   for (const ambient of ["bash", "shell_exec", "repository_read", "http_fetch"]) {
     assert.notEqual(
-      guard({ name: ambient, arguments: {} }),
+      guard?.({ name: ambient, arguments: {} } as any),
       undefined,
       `${ambient} must be denied for a conversation-scoped agent`,
     );
@@ -138,8 +136,8 @@ test("conversation state, queues, and credential namespaces stay isolated from o
   const project = codingIdentity();
   assert.equal((await subject.adapter.lifecycleEffects.start({ identity: channel })).status, "succeeded");
   assert.equal((await subject.adapter.lifecycleEffects.start({ identity: project })).status, "succeeded");
-  const conversationRuntime = subject.runtimes.get(channel.namespace);
-  const codingRuntime = subject.runtimes.get(project.namespace);
+  const conversationRuntime = subject.runtimes.get(channel.namespace)!;
+  const codingRuntime = subject.runtimes.get(project.namespace)!;
   assert.notEqual(conversationRuntime.root, codingRuntime.root, "session roots are disjoint");
   assert.notEqual(conversationRuntime.sessionId, codingRuntime.sessionId);
   for (const field of ["memory", "queue", "credentialHandles", "budget", "concurrencyController"]) {
@@ -160,7 +158,7 @@ test("conversation state, queues, and credential namespaces stay isolated from o
   // string shapes: a coding runtime that tries to reuse ANY of the running
   // conversation instance's reserved controllers is refused before create.
   for (const field of ["memory", "queue", "credentialHandles", "budget", "concurrencyController", "root", "sessionId"]) {
-    let conversationRuntimeValue;
+    let conversationRuntimeValue: any;
     const sharing = createAdapterHarness({
       runtimeFactory(instanceIdentity, runtimes) {
         const runtime = sharing.defaultRuntime(instanceIdentity);
@@ -186,10 +184,10 @@ test("one separately granted read-only action is admitted while undeclared and m
   const runtimeKit = createOwnerRuntimeKit();
   const channel = conversationIdentity();
   const descriptor = conversationDescriptor();
-  const executions = [];
+  const executions: string[] = [];
   const dshAdapter = {
     lifecycleEffects: {},
-    async executePlugin(invocationValue) {
+    async executePlugin(invocationValue: any) {
       executions.push(invocationValue.actionId);
       const reply = await invocationValue.hostAction({
         apiVersion: "runtime.sympoies.dev/v1",
@@ -265,7 +263,7 @@ test("one separately granted read-only action is admitted while undeclared and m
   // fails the manager's action binding.
   const escalatingAdapter = {
     ...dshAdapter,
-    async executePlugin(invocationValue) {
+    async executePlugin(invocationValue: any) {
       return invocationValue.hostAction({
         apiVersion: "runtime.sympoies.dev/v1",
         kind: "MediatedHostActionRequest",
@@ -316,7 +314,7 @@ test("one separately granted read-only action is admitted while undeclared and m
   // a read-declared action can never carry an effectful host action class.
   const classEscalatingAdapter = {
     ...dshAdapter,
-    async executePlugin(invocationValue) {
+    async executePlugin(invocationValue: any) {
       return invocationValue.hostAction({
         apiVersion: "runtime.sympoies.dev/v1",
         kind: "MediatedHostActionRequest",
@@ -398,7 +396,7 @@ test("exact runtime-kit retains the conversation instance across manager restart
   );
   request.runtimeAssertionDigest = request.runtimeAssertion.metadata.digest;
 
-  function managerFor(store) {
+  function managerFor(store: any) {
     return createApplicationManager({
       runtimeKit,
       runtimeStore: store,
@@ -439,7 +437,7 @@ test("exact runtime-kit retains the conversation instance across manager restart
   startRequest.runtimeAssertion = fixtures.runtimeAssertion(
     seal, channel, signing, bundle, "start", startRequest.requestDigest,
   );
-  startRequest.runtimeAssertionDigest = startRequest.runtimeAssertion.metadata.digest;
+  startRequest.runtimeAssertionDigest = (startRequest.runtimeAssertion as any).metadata.digest;
   const started = await first.start(startRequest);
   assert.equal(started.kind, "StartInstanceSucceeded");
 

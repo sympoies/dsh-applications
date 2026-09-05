@@ -14,7 +14,7 @@ import test from "node:test";
 
 const root = resolve(import.meta.dirname, "..");
 
-function git(cwd, ...arguments_) {
+function git(cwd: string, ...arguments_: string[]) {
   return execFileSync("git", arguments_, {
     cwd,
     encoding: "utf8",

@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const projectRoot = fileURLToPath(new URL("..", import.meta.url));
 const scriptPath = join(projectRoot, "scripts", "dsh-plugin-probe.sh");
 
-const probe = (...args) =>
+const probe = (...args: string[]) =>
   spawnSync(scriptPath, args, {
     cwd: projectRoot,
     encoding: "utf8",

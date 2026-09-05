@@ -15,11 +15,11 @@ type CompatibilityOptions = {
   dshRoot?: string;
 };
 
-function load(path) {
+function load(path: string) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
-function parseArguments(argv) {
+function parseArguments(argv: string[]): CompatibilityOptions {
   const result: CompatibilityOptions = { manifestOnly: false };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
@@ -47,26 +47,26 @@ function parseArguments(argv) {
   return result;
 }
 
-function git(checkout, ...arguments_) {
+function git(checkout: string, ...arguments_: string[]) {
   return execFileSync("git", ["-C", checkout, ...arguments_], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
 }
 
-function normalizeRepository(url) {
+function normalizeRepository(url: string) {
   return url.replace(/^git\+/, "").replace(/\.git$/, "").replace(/\/$/, "");
 }
 
-function source(path) {
+function source(path: string) {
   return readFileSync(path, "utf8");
 }
 
-function assertMethods(owner, names, label) {
+function assertMethods(owner: Record<string, unknown>, names: string[], label: string) {
   for (const name of names) assert.equal(typeof owner[name], "function", `${label}.${name} is required`);
 }
 
-function assertSourceMethods(contents, patterns, label) {
+function assertSourceMethods(contents: string, patterns: Record<string, RegExp>, label: string) {
   for (const [name, pattern] of Object.entries(patterns) as [string, RegExp][]) {
     assert.match(contents, pattern, `${label}.${name} declaration is required`);
   }
@@ -87,26 +87,29 @@ assert.equal(lock.dsh.version, "0.1.1-rc.2");
 assert.deepEqual(lock.runtime_kit.required_exports, ["./composition", "./manager"]);
 
 if (!options.manifestOnly) {
-  assert.equal(git(options.runtimeKitRoot, "rev-parse", "HEAD"), lock.runtime_kit.revision);
-  assert.equal(git(options.dshRoot, "rev-parse", "HEAD"), lock.dsh.revision);
-  assert.equal(git(options.runtimeKitRoot, "status", "--porcelain"), "");
-  assert.equal(git(options.dshRoot, "status", "--porcelain"), "");
+  const runtimeKitRoot = options.runtimeKitRoot;
+  const dshRoot = options.dshRoot;
+  assert(runtimeKitRoot !== undefined && dshRoot !== undefined);
+  assert.equal(git(runtimeKitRoot, "rev-parse", "HEAD"), lock.runtime_kit.revision);
+  assert.equal(git(dshRoot, "rev-parse", "HEAD"), lock.dsh.revision);
+  assert.equal(git(runtimeKitRoot, "status", "--porcelain"), "");
+  assert.equal(git(dshRoot, "status", "--porcelain"), "");
   assert.equal(
-    normalizeRepository(git(options.runtimeKitRoot, "remote", "get-url", "origin")),
+    normalizeRepository(git(runtimeKitRoot, "remote", "get-url", "origin")),
     normalizeRepository(lock.runtime_kit.repository),
   );
   assert.equal(
-    normalizeRepository(git(options.dshRoot, "remote", "get-url", "origin")),
+    normalizeRepository(git(dshRoot, "remote", "get-url", "origin")),
     normalizeRepository(lock.dsh.repository),
   );
 
-  const runtimePackage = load(resolve(options.runtimeKitRoot, "package.json"));
+  const runtimePackage = load(resolve(runtimeKitRoot, "package.json"));
   assert.equal(runtimePackage.name, lock.runtime_kit.package);
   for (const requiredExport of lock.runtime_kit.required_exports) {
     assert.equal(typeof runtimePackage.exports?.[requiredExport], "string");
   }
-  const runtimeComposition = await import(pathToFileURL(resolve(options.runtimeKitRoot, runtimePackage.exports["./composition"])).href);
-  const runtimeManager = await import(pathToFileURL(resolve(options.runtimeKitRoot, runtimePackage.exports["./manager"])).href);
+  const runtimeComposition = await import(pathToFileURL(resolve(runtimeKitRoot, runtimePackage.exports["./composition"])).href);
+  const runtimeManager = await import(pathToFileURL(resolve(runtimeKitRoot, runtimePackage.exports["./manager"])).href);
   assertMethods(runtimeComposition, [
     "computeDocumentDigest", "createCompositionService", "parseCanonicalJsonText",
     "validateBotProfile", "validatePluginDescriptor",
@@ -117,7 +120,7 @@ if (!options.manifestOnly) {
   ], "runtime-kit manager");
 
   const runtimeCompatibility = load(
-    resolve(options.runtimeKitRoot, lock.runtime_kit.dsh_compatibility_manifest),
+    resolve(runtimeKitRoot, lock.runtime_kit.dsh_compatibility_manifest),
   );
   assert.deepEqual(runtimeCompatibility.channels?.pinned, {
     ref: lock.dsh.ref,
@@ -125,14 +128,14 @@ if (!options.manifestOnly) {
     version: lock.dsh.version,
   });
 
-  const dshPackage = load(resolve(options.dshRoot, "package.json"));
+  const dshPackage = load(resolve(dshRoot, "package.json"));
   assert.equal(dshPackage.name, "@deepseek-ai/dsh-root");
   assert.equal(dshPackage.version, lock.dsh.version);
-  const agentSource = source(resolve(options.dshRoot, "packages/core/agent/src/index.ts"));
-  const agentRuntimeSource = source(resolve(options.dshRoot, "packages/core/agent/src/runtime-types.ts"));
-  const sessionSource = source(resolve(options.dshRoot, "packages/core/session/src/index.ts"));
-  const persistenceSource = source(resolve(options.dshRoot, "packages/session/session-persistence/src/index.ts"));
-  const toolsSource = source(resolve(options.dshRoot, "packages/core/tools/src/index.ts"));
+  const agentSource = source(resolve(dshRoot, "packages/core/agent/src/index.ts"));
+  const agentRuntimeSource = source(resolve(dshRoot, "packages/core/agent/src/runtime-types.ts"));
+  const sessionSource = source(resolve(dshRoot, "packages/core/session/src/index.ts"));
+  const persistenceSource = source(resolve(dshRoot, "packages/session/session-persistence/src/index.ts"));
+  const toolsSource = source(resolve(dshRoot, "packages/core/tools/src/index.ts"));
   assertSourceMethods(agentSource, {
     create: /\basync\s+create\s*\(/u,
     resume: /\basync\s+resume\s*\(/u,
