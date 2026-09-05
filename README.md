@@ -8,6 +8,14 @@ the exact public contracts supplied by
 [dsh-runtime-kit](https://github.com/sympoies/dsh-runtime-kit) and leaves DSH's
 agent loop, sessions, tools, sandbox, approvals, and subagents in DSH.
 
+## Repository boundary
+
+- [`sympoies/dsh-runtime-kit`](https://github.com/sympoies/dsh-runtime-kit)
+  owns reusable DSH runtime governance and lifecycle contracts.
+- This repository owns the coordinated public application and profile catalog.
+- [`sympoies/dsh-plugins`](https://github.com/sympoies/dsh-plugins) owns
+  independently released DSH plugins.
+
 Private deployment bindings, host and service identity, installation or
 channel identifiers, credentials, ingress, rollout state, and personal
 operator configuration are intentionally outside this repository.
