@@ -182,6 +182,10 @@ test("release-bound GitHub packages construct exact runtime-kit PluginDescriptor
   assert.equal(runtimeKit.versionSatisfies(publish.metadata.version, reviewPublisherRange), true);
   assert.equal(read.metadata.digest, runtimeKit.computeDocumentDigest(read));
   assert.equal(publish.metadata.digest, runtimeKit.computeDocumentDigest(publish));
+  assert.equal(read.artifact.entrypoint, "packages/github-read/src/index.ts");
+  assert.equal(publish.artifact.entrypoint, "packages/github-review-publish/src/index.ts");
+  assert.equal(existsSync(resolve(root, read.artifact.entrypoint)), true, "the descriptor entrypoint must be a shipped source file");
+  assert.equal(existsSync(resolve(root, publish.artifact.entrypoint)), true, "the descriptor entrypoint must be a shipped source file");
   assert.deepEqual(read.mediation.network, []);
   assert.deepEqual(publish.mediation.network, []);
   assert.deepEqual(read.mediation.credentialHandleClasses, []);

@@ -148,6 +148,7 @@ export function createAdapterHarness(options = {}) {
       releaseCompletions.push(binding);
     },
   };
+  if (options.omitRelease === true) delete hostSandbox.release;
   const adapter = createDshRc2Adapter({
     ctx,
     hostSandbox,

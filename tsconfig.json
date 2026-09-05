@@ -11,7 +11,9 @@
     "rewriteRelativeImportExtensions": false,
     "erasableSyntaxOnly": true,
     "verbatimModuleSyntax": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
     "skipLibCheck": false
   },
-  "include": ["packages/*/src/**/*.ts", "types/**/*.d.ts"]
+  "include": ["packages/*/src/**/*.ts", "packages/dsh-rc2-adapter/types/**/*.d.ts"]
 }

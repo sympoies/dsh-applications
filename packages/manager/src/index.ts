@@ -268,7 +268,7 @@ function assertBoundedJson(value: unknown, { maxBytes, maxDepth, maxItems }: Bou
     let first = true;
     for (const key of keys) {
       if (isArray && key === "length") continue;
-      const descriptor = descriptors[key];
+      const descriptor = descriptors[key] as PropertyDescriptor;
       if (descriptor.get !== undefined || descriptor.set !== undefined || descriptor.enumerable !== true) {
         fail(`${label} must contain only enumerable data fields`);
       }

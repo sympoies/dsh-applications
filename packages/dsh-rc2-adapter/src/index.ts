@@ -87,12 +87,15 @@ export interface DshRc2Adapter {
 
 export type DshRc2Context = Pick<Context, "agents" | "sessions" | "sessionPersistence">;
 
-// The internal view of the DSH rc2 services and agent scope this adapter drives.
-// Every member is asserted at runtime before use; the types only name what the
-// assertions established, they never stand in for the checks.
-
 /** Untyped caller input after the object-shape check; every field is still validated. */
 type Fields = Record<string, unknown>;
+
+// The internal view of the DSH rc2 services and agent scope this adapter drives.
+// `assertOwnerServices` and `assertAgentTools` establish only that the named
+// service and tool methods exist and that the agent is an object. The member
+// shapes below (`LiveAgent`, `AgentHandle`, `ToolExecution`, `ToolResult`) are
+// the DSH rc2 contract this adapter relies on, not runtime-verified facts; the
+// exact pinned DSH declarations check them in `npm run test:exact-dsh`.
 
 interface LiveAgent {
   readonly id: string;
@@ -305,16 +308,16 @@ export function createDshRc2Adapter<Binding extends object>(options: {
   resolveInstanceRuntime(identity: DshRc2Identity): DshRc2InstanceRuntime | Promise<DshRc2InstanceRuntime>;
   hostSandbox: DshHostSandboxOwner<Binding>;
 }): DshRc2Adapter;
-export function createDshRc2Adapter(options: {
+export function createDshRc2Adapter({ ctx: ownerServices, resolveInstanceRuntime: runtimeResolver, hostSandbox: sandboxOwner }: {
   ctx: unknown;
   resolveInstanceRuntime: unknown;
   hostSandbox: unknown;
 }): DshRc2Adapter {
-  assertOwnerServices(options.ctx, options.hostSandbox);
-  if (typeof options.resolveInstanceRuntime !== "function") fail("resolveInstanceRuntime is required");
-  const ctx = options.ctx as OwnerServices;
-  const resolveInstanceRuntime = options.resolveInstanceRuntime as ResolveInstanceRuntime;
-  const hostSandbox = options.hostSandbox as DshHostSandboxOwner<object>;
+  assertOwnerServices(ownerServices, sandboxOwner);
+  if (typeof runtimeResolver !== "function") fail("resolveInstanceRuntime is required");
+  const ctx = ownerServices as OwnerServices;
+  const resolveInstanceRuntime = runtimeResolver as ResolveInstanceRuntime;
+  const hostSandbox = sandboxOwner as DshHostSandboxOwner<object>;
   const instances = new Map<string, InstanceEntry>();
   const resourceOwners = new WeakMap<object, OwnerToken>();
   const sessionOwners = new Map<string, OwnerToken>();

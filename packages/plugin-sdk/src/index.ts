@@ -206,7 +206,7 @@ function assertJsonValue(value: unknown, label: string): void {
     ancestors.add(candidate);
     for (const key of keys) {
       if (isArray && key === "length") continue;
-      const descriptor = descriptors[key];
+      const descriptor = descriptors[key] as PropertyDescriptor;
       if (descriptor.get !== undefined || descriptor.set !== undefined || descriptor.enumerable !== true) {
         fail(`${label} must be lossless JSON`);
       }

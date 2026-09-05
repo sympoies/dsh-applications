@@ -26,7 +26,11 @@ workspace dependencies. Package sources are erasable TypeScript
 `namespace`, parameter properties, or decorators), `exports` point at the
 `.ts` source, exported types live in the source rather than in a hand-written
 declaration file, and `npm run typecheck` must pass alongside `npm test`.
-Do not add a build, `prepare`, or `prepack` script. All components share the root coordinated version and
+Do not add a build, `prepare`, or `prepack` script. `tsconfig.json` keeps
+`allowImportingTsExtensions` on even though every package is a single file
+today: the moment a package grows a second module, Node requires the relative
+import to name the `.ts` file explicitly, and the option makes `tsc` accept
+the same spelling. All components share the root coordinated version and
 release artifact; do not version or publish a workspace independently. Do not
 put deployment manifests, service definitions,
 credential references, environment-specific routes, or operator scripts here.

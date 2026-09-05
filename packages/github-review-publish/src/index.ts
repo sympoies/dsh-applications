@@ -157,7 +157,7 @@ function assertJsonValue(value: unknown, label: string): void {
     for (const key of keys) {
       if (isArray && key === "length") continue;
       assertUnicode(key, `${pathLabel} key`);
-      const descriptor = descriptors[key];
+      const descriptor = descriptors[key] as PropertyDescriptor;
       if (descriptor.get !== undefined || descriptor.set !== undefined || descriptor.enumerable !== true) {
         fail(`${pathLabel} has a non-data JSON property`);
       }
@@ -326,11 +326,11 @@ function compareReadBinding(result: Fields, input: unknown): void {
 }
 
 export function validateGitHubReviewWorkerResult(input: unknown, options?: {
-  readonly readBundle?: GitHubPullRequestReadBundle;
+  readonly readBundle?: GitHubPullRequestReadBundle | undefined;
 }): Readonly<GitHubReviewWorkerResult>;
 export function validateGitHubReviewWorkerResult(
   input: unknown,
-  options: { readonly readBundle?: GitHubPullRequestReadBundle } = {},
+  options: { readonly readBundle?: GitHubPullRequestReadBundle | undefined } = {},
 ): unknown {
   const value = record(input, "workerResult");
   exactKeys(value, RESULT_FIELDS, [], "workerResult");
@@ -357,12 +357,12 @@ export function validateGitHubReviewWorkerResult(
 export function createGitHubReviewWorkerResult(input: {
   readonly binding: GitHubReviewBinding;
   readonly output: GitHubReviewOutput;
-  readonly readBundle?: GitHubPullRequestReadBundle;
+  readonly readBundle?: GitHubPullRequestReadBundle | undefined;
 }): Readonly<GitHubReviewWorkerResult>;
 export function createGitHubReviewWorkerResult({ binding, output, readBundle }: {
   readonly binding?: unknown;
   readonly output?: unknown;
-  readonly readBundle?: GitHubPullRequestReadBundle;
+  readonly readBundle?: GitHubPullRequestReadBundle | undefined;
 } = {}): unknown {
   const bound = record(binding, "binding");
   exactKeys(bound, BINDING_FIELDS, [], "binding");

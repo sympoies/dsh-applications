@@ -18,3 +18,9 @@ accounting drains. Teardown retains phase completion until binding release and
 handle disposal both succeed, so stop and stale retirement can retry without
 repeating completed effects or losing ownership. Private runtime resolution is
 injected and is never included in a public manager result or receipt.
+
+The public types bind to the optional `@deepseek-ai` peer packages. A
+TypeScript program that compiles this source without those peers installed
+adds `types/dsh-peer-fallbacks.d.ts` from this package; a program that has the
+real DSH declarations must not include it, because an ambient module
+declaration shadows the installed package.

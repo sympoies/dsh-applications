@@ -128,6 +128,8 @@ test("workspace packages ship erasable TypeScript sources that Node executes wit
     erasableSyntaxOnly: true,
     verbatimModuleSyntax: true,
     allowImportingTsExtensions: true,
+    noUncheckedIndexedAccess: true,
+    exactOptionalPropertyTypes: true,
     module: "NodeNext",
     moduleResolution: "NodeNext",
   })) {
@@ -148,6 +150,46 @@ test("workspace packages ship erasable TypeScript sources that Node executes wit
 
   const workflow = read(".github/workflows/ci.yml");
   assert.match(workflow, /npm run typecheck/);
+  assert.match(read(".github/workflows/release.yml"), /npm run typecheck/);
+
+  const adapter = json("packages/dsh-rc2-adapter/package.json");
+  assert(adapter.files.includes("types"), "the adapter ships its DSH peer fallback declarations");
+  assert.equal(statSync(join(root, "packages/dsh-rc2-adapter/types/dsh-peer-fallbacks.d.ts")).isFile(), true);
+});
+
+test("a downstream TypeScript consumer compiles the shipped sources under stricter options without the DSH peers", () => {
+  const temporaryRoot = mkdtempSync(join(tmpdir(), "dsh-applications-consumer-"));
+  try {
+    const configPath = join(temporaryRoot, "tsconfig.json");
+    writeFileSync(configPath, `${JSON.stringify({
+      compilerOptions: {
+        target: "ES2024",
+        lib: ["ES2024"],
+        module: "NodeNext",
+        moduleResolution: "NodeNext",
+        types: ["node"],
+        typeRoots: [join(root, "node_modules", "@types")],
+        strict: true,
+        noEmit: true,
+        skipLibCheck: false,
+        noUncheckedIndexedAccess: true,
+        exactOptionalPropertyTypes: true,
+        noImplicitOverride: true,
+        noFallthroughCasesInSwitch: true,
+      },
+      files: [
+        join(root, "test/fixtures/typescript-consumer/consumer.ts"),
+        join(root, "packages/dsh-rc2-adapter/types/dsh-peer-fallbacks.d.ts"),
+      ],
+    }, null, 2)}\n`);
+    assert.equal(existsSync(join(root, "node_modules", "@deepseek-ai")), false, "the optional DSH peers must stay absent for this consumer");
+    execFileSync(process.execPath, [join(root, "node_modules/typescript/bin/tsc"), "--project", configPath, "--pretty", "false"], {
+      cwd: root,
+      stdio: "pipe",
+    });
+  } finally {
+    rmSync(temporaryRoot, { recursive: true, force: true });
+  }
 });
 
 test("installed workspace resolves every actual public package specifier", async () => {
@@ -445,7 +487,8 @@ test("the repository package is reproducible and contains the public coordinated
   assert(paths.includes("fixtures/triggers/manual.json"));
   assert(paths.includes("fixtures/triggers/schedule.json"));
   assert(paths.includes("packages/plugin-sdk/src/index.ts"));
-  assert(!paths.some((path) => path.endsWith(".d.ts") || path.endsWith("/src/index.js")));
+  assert(!paths.some((path) => /^packages\/[^/]+\/index\.d\.ts$/.test(path) || path.endsWith("/src/index.js")));
+  assert(paths.includes("packages/dsh-rc2-adapter/types/dsh-peer-fallbacks.d.ts"));
   assert(!paths.some((path) => path.startsWith(".github/")));
   assert(!paths.some((path) => path.startsWith("scripts/")));
   assert(!paths.some((path) => path.startsWith("test/")));
