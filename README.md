@@ -28,12 +28,14 @@ reviewed, digest-addressed GitHub release is the distribution boundary.
 
 The workspace contains the public plugin declaration helpers, the isolated DSH
 `0.1.1-rc.2` adapter, the generic ten-operation application manager, portable
-GitHub read/review-result contracts, four least-authority bot profiles, and
+GitHub read/review-result contracts, five least-authority bot profiles, and
 reusable manual, GitHub-event, channel, and schedule trigger fixtures. Version
 `0.1.3` is the first published coordinated catalog release; `0.2.0` adds the
 GitHub contracts and complete native review-output schema. Version `0.3.0`
 raises the supported Node.js floor to 24 and requires fingerprinted native
-threads for every actionable GitHub review finding.
+threads for every actionable GitHub review finding. Version `0.4.0` adds the
+fail-closed Telegram conversational profile and its reviewed public channel
+package contract.
 
 ## Development
 

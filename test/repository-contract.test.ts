@@ -87,6 +87,10 @@ test("workspace metadata is exact, private at the root, and release-safe", () =>
   assert.equal(pkg.scripts["test:package"], "npm run check:compatibility -- --manifest-only && npm run verify:package-reproducibility && npm pack --dry-run --ignore-scripts");
   assert.deepEqual(pkg.files, ["AGENTS.md", "SECURITY.md", "CONTRIBUTING.md", "compatibility", "docs", "fixtures", "profiles", "packages"]);
 
+  const readme = read("README.md");
+  assert.match(readme, /five least-authority bot profiles/u);
+  assert.match(readme, /Version `0\.4\.0`.*Telegram\s+conversational profile/su);
+
   const packageLock = json("package-lock.json");
   assert.equal(packageLock.lockfileVersion, 3);
   assert.equal(packageLock.packages[""].packageManager, undefined);
