@@ -82,8 +82,10 @@ private-infrastructure responsibilities.
 The Telegram channel package similarly contains no channel client. It binds a
 reviewed external npm artifact to its exact version, tarball digest, source
 revision, provenance identity, required conversation capabilities, and bounded
-mediation classes. The companion public profile mounts that artifact disabled;
-private infrastructure alone owns the credential and access bindings and the
+mediation classes. The companion public profile mounts that artifact disabled
+and carries a nested npm lockfile consumed with `npm ci --ignore-scripts`, so a
+clean native-profile install uses the dependency graph that was reviewed.
+Private infrastructure alone owns the credential and access bindings and the
 admission decision that may enable it.
 
 ## Compatibility

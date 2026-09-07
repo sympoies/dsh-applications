@@ -31,4 +31,5 @@ admission, lifecycle, isolation, and receipts.
 Compatibility is exact DSH `0.1.1-rc.2`, runtime-kit contract `0.0.0`, plugin
 API `1.0.0`, and Linux x64. Repository owner tests verify the external identity,
 disabled composition, descriptor digest, schema digest, and public/private
-boundary.
+boundary. The companion native fragment commits its complete npm graph and is
+installed only with `npm ci --ignore-scripts`.

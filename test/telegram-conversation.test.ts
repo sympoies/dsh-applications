@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
@@ -70,6 +72,71 @@ test("the adopted Telegram artifact identity and native DSH composition are exac
   assert.match(patch, /disabled: true/u);
   assert.equal((patch.match(/enabled: false/gu) ?? []).length, 4);
   assert.doesNotMatch(patch, /tokenRef|allowFrom|chat(?:Id|Ref)|senderRef/iu);
+});
+
+test("a clean native profile install consumes the reviewed locked graph without lifecycle scripts", {
+  timeout: 300_000,
+}, () => {
+  const nativeRoot = join(profileRoot, "dsh-profile");
+  const lock = json(join(nativeRoot, "package-lock.json"));
+  assert.equal(lock.lockfileVersion, 3);
+  assert.deepEqual(lock.packages[""].dependencies, {
+    "@ashafizullah/dsh-telegram": "0.5.1",
+    "@deepseek-ai/dsh-base": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-headless": "0.1.1-rc.2",
+  });
+
+  const expected = new Map([
+    ["@ashafizullah/dsh-telegram", {
+      version: "0.5.1",
+      integrity: "sha512-/bFEveB+vafAFoM2MW6vTCTPEHBMDnblAfKaFIs221Jh27cvfFrtHyhwi5vzxByqeoqMN/g/2I23+gI4NU1lLg==",
+    }],
+    ["@deepseek-ai/dsh-base", {
+      version: "0.1.1-rc.2",
+      integrity: "sha512-DT1kSaseoTZ0b8pwZ5biRkqez2K8AnsLataRiCPsn3uUuxupZOjM1e8x9W+kpkWWFykWy1mbCPhzDRVJ+pLCbg==",
+    }],
+    ["@deepseek-ai/dsh-headless", {
+      version: "0.1.1-rc.2",
+      integrity: "sha512-Pk50xwmUUehOxNe8DJ2/tThj7Aw1MmJQeUkfAQh9miF7Tm+WOOxiOOei/H4wjH9cf+FuqtbLDw6jrHmGotfhjw==",
+    }],
+  ]);
+  for (const [name, identity] of expected) {
+    const entry = lock.packages[`node_modules/${name}`];
+    assert.equal(entry.version, identity.version, `${name} version must remain exact`);
+    assert.equal(entry.integrity, identity.integrity, `${name} integrity must remain reviewed`);
+  }
+  for (const [path, entry] of Object.entries(lock.packages) as Array<[string, any]>) {
+    if (/(?:^|\/)node_modules\/@deepseek-ai\/dsh-[^/]+$/u.test(path)) {
+      assert.equal(entry.version, "0.1.1-rc.2", `${path} must stay on the exact reviewed DSH line`);
+    }
+  }
+
+  const installRoot = mkdtempSync(join(tmpdir(), "dsh-telegram-native-ci-"));
+  try {
+    cpSync(nativeRoot, installRoot, { recursive: true });
+    const forbiddenScriptShell = join(installRoot, "lifecycle-script-must-not-run");
+    const npmCli = process.env.DSH_APPLICATIONS_NPM_CLI ?? "npm";
+    execFileSync(npmCli, ["ci", "--ignore-scripts", "--no-audit", "--no-fund"], {
+      cwd: installRoot,
+      env: {
+        ...process.env,
+        npm_config_cache: join(installRoot, ".npm-cache"),
+        npm_config_script_shell: forbiddenScriptShell,
+      },
+      stdio: "pipe",
+      timeout: 300_000,
+    });
+    assert.equal(existsSync(forbiddenScriptShell), false, "npm ci must not invoke a lifecycle script shell");
+    for (const [name, identity] of expected) {
+      const installed = json(join(installRoot, "node_modules", name, "package.json"));
+      assert.equal(installed.version, identity.version, `${name} clean-install version must match the lock`);
+      for (const script of ["preinstall", "install", "postinstall"]) {
+        assert.equal(installed.scripts?.[script], undefined, `${name} must not declare ${script}`);
+      }
+    }
+  } finally {
+    rmSync(installRoot, { recursive: true, force: true });
+  }
 });
 
 test("the Telegram descriptor declares bounded ingress mediation and no agent tools", {

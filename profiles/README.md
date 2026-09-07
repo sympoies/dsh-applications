@@ -21,5 +21,6 @@ infrastructure must verify the exact artifact identity and provide its own
 admitted credential, access, isolated workspace, conversation-only agent
 preset, host, and enablement bindings; none of those values is a public profile
 input. The native fragment's own README documents its fail-closed installation
-path; DSH plugin-management commands are intentionally excluded because they
-register the upstream bundle as active composition.
+path: `npm ci --ignore-scripts` consumes the committed nested lockfile. DSH
+plugin-management commands are intentionally excluded because they register
+the upstream bundle as active composition.

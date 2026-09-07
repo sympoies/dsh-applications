@@ -510,6 +510,7 @@ test("the repository package is reproducible and contains the public coordinated
   assert(paths.includes("profiles/github-pr-review/profile.json"));
   assert(paths.includes("profiles/telegram-conversational/profile.json"));
   assert(paths.includes("profiles/telegram-conversational/channel-plugin.lock.json"));
+  assert(paths.includes("profiles/telegram-conversational/dsh-profile/package-lock.json"));
   assert(paths.includes("fixtures/triggers/manual.json"));
   assert(paths.includes("fixtures/triggers/schedule.json"));
   assert(paths.includes("packages/plugin-sdk/src/index.ts"));
