@@ -44,4 +44,3 @@ an unavailable stable `@deepseek-ai/dsh-subagent` range.
 bounded note projections and optimistic prior-receipt binding. The private
 store implementation and mapping remain outside the public artifact; no local
 path or storage code is borrowed.
-

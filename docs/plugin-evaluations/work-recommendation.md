@@ -43,4 +43,3 @@ version or establish the required read-only organization-source boundary.
 **Build** a single read action with an opaque admitted source, bounded ranked
 recommendations, and no task mutation or execution. The private source adapter
 owns board/provider access.
-

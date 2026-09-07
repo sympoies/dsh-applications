@@ -18,8 +18,8 @@ export const GOVERNED_ACTION_SCHEMA_DIGESTS = Object.freeze({
     output: "sha256:14343e84c92293d9f54cffcceafdc1b396136913fedfa78b918020e72a291cd4",
   }),
   "organization.work-recommendation.read": Object.freeze({
-    input: "sha256:65adb36dc1102e2103b04228150f65b73fb984690d7f99319214e9acf847d969",
-    output: "sha256:f13b281d1e641fd0ca28c30f4c3378cac378eec2f2197f281001ee32d60edfc1",
+    input: "sha256:5257f7725924d1cce81f650d6d82cecca03204c89d607d8621e8885085cb4ffa",
+    output: "sha256:410552ab930697f0400a2cb6f76044d32d0798f1a9e754e015b5177f542c0257",
   }),
   "agent-memory.recall": Object.freeze({
     input: "sha256:6101228dd95bc4fe51016273b9f739477eaad344cc206c4c72931ee2dffa646e",

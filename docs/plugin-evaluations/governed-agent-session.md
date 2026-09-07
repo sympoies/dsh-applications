@@ -48,4 +48,3 @@ optional plugin row.
 semantics. Add only distinct public mediated action schemas for create, status,
 metadata attachment, continue, and cancel. Do not copy official source, create
 a second agent loop/session store, accept a raw host path, or expose shell.
-

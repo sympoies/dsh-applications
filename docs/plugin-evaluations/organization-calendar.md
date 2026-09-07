@@ -48,4 +48,3 @@ disabled through an explicit insert row.
 Private deployment must resolve one opaque calendar target and credentials
 before runtime-kit mediation. No provider client or credential handling is
 copied from the candidate.
-

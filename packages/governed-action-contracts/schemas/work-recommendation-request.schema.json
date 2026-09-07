@@ -20,4 +20,3 @@
     "focus": { "type": "string", "maxLength": 512 }
   }
 }
-
