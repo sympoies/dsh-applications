@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sympoies.dev/schemas/dsh/work-recommendation-receipt.v1.json",
+  "$defs": {
+    "ref": { "type": "string", "pattern": "^ref:[0-9a-f]{64}$" },
+    "scope": {
+      "type": "object", "additionalProperties": false,
+      "required": ["deploymentRef", "audienceRef", "conversationRef", "targetRef"],
+      "properties": {
+        "deploymentRef": { "$ref": "#/$defs/ref" }, "audienceRef": { "$ref": "#/$defs/ref" },
+        "conversationRef": { "$ref": "#/$defs/ref" }, "targetRef": { "$ref": "#/$defs/ref" }
+      }
+    }
+  },
+  "type": "object", "additionalProperties": false,
+  "required": ["action", "requestRef", "scope", "outcome", "summary", "recommendations"],
+  "properties": {
+    "action": { "const": "organization.work-recommendation.read" }, "requestRef": { "$ref": "#/$defs/ref" },
+    "scope": { "$ref": "#/$defs/scope" },
+    "outcome": { "enum": ["succeeded", "denied", "cancelled", "timed-out", "failed"] },
+    "summary": { "type": "string", "maxLength": 2048 },
+    "recommendations": {
+      "type": "array", "maxItems": 8,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["itemRef", "title", "rationale", "rank"],
+        "properties": {
+          "itemRef": { "$ref": "#/$defs/ref" }, "title": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "rationale": { "type": "string", "minLength": 1, "maxLength": 1024 },
+          "rank": { "type": "integer", "minimum": 1, "maximum": 8 }
+        }
+      }
+    }
+  }
+}

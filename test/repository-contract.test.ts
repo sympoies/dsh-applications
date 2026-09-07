@@ -544,7 +544,8 @@ test("tracked public content contains no credential material or machine-local pa
     /~\/Project\//,
   ];
   for (const path of tracked) {
-    if (!statSync(join(root, path)).isFile()) continue;
+    const absolute = join(root, path);
+    if (!existsSync(absolute) || !statSync(absolute).isFile()) continue;
     const content = read(path);
     for (const pattern of secretPatterns) {
       assert.doesNotMatch(content, pattern, `${path} contains forbidden public material`);

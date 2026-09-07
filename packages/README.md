@@ -20,6 +20,10 @@ released together as one coordinated public application artifact.
 - `telegram-channel` describes the exact reviewed external Telegram artifact,
   its disabled public default, and the bounded mediation it may request after
   private admission; it contains no Telegram client or binding.
+- `governed-action-contracts` defines independently selectable, opaque-scope
+  calendar, group-note, work-recommendation, external-memory, and DSH-owned
+  agent-session action contracts. Runtime-kit still owns approval, execution,
+  replay, and receipts.
 
 The coordinated artifact also carries the public `profiles/` catalog and the
 reusable, non-authorizing `fixtures/` trigger configurations. These are not
