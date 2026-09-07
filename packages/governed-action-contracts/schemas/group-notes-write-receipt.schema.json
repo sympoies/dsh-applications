@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sympoies.dev/schemas/dsh/group-notes-write-receipt.v1.json",
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "pattern": "^ref:[0-9a-f]{64}$"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deploymentRef",
+        "audienceRef",
+        "conversationRef",
+        "targetRef"
+      ],
+      "properties": {
+        "deploymentRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "audienceRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "conversationRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "targetRef": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "action",
+    "requestRef",
+    "scope",
+    "outcome",
+    "summary",
+    "receiptRef",
+    "priorReceiptRef",
+    "notes"
+  ],
+  "properties": {
+    "action": {
+      "const": "conversation.group-notes.write"
+    },
+    "requestRef": {
+      "$ref": "#/$defs/ref"
+    },
+    "scope": {
+      "$ref": "#/$defs/scope"
+    },
+    "outcome": {
+      "enum": [
+        "succeeded",
+        "denied",
+        "cancelled",
+        "timed-out",
+        "failed"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 2048
+    },
+    "receiptRef": {
+      "$ref": "#/$defs/ref"
+    },
+    "priorReceiptRef": {
+      "$ref": "#/$defs/ref"
+    },
+    "notes": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "noteRef",
+          "title",
+          "body"
+        ],
+        "properties": {
+          "noteRef": {
+            "$ref": "#/$defs/ref"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 1024
+          }
+        }
+      }
+    }
+  }
+}

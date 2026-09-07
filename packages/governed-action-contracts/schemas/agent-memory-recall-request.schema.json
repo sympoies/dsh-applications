@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sympoies.dev/schemas/dsh/agent-memory-recall-request.v1.json",
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "pattern": "^ref:[0-9a-f]{64}$"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deploymentRef",
+        "audienceRef",
+        "conversationRef",
+        "targetRef"
+      ],
+      "properties": {
+        "deploymentRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "audienceRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "conversationRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "targetRef": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "action",
+    "requestRef",
+    "scope",
+    "query",
+    "maxItems"
+  ],
+  "properties": {
+    "action": {
+      "const": "agent-memory.recall"
+    },
+    "requestRef": {
+      "$ref": "#/$defs/ref"
+    },
+    "scope": {
+      "$ref": "#/$defs/scope"
+    },
+    "query": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "maxItems": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8
+    }
+  }
+}

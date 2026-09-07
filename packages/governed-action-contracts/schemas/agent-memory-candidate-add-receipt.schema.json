@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sympoies.dev/schemas/dsh/agent-memory-candidate-add-receipt.v1.json",
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "pattern": "^ref:[0-9a-f]{64}$"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deploymentRef",
+        "audienceRef",
+        "conversationRef",
+        "targetRef"
+      ],
+      "properties": {
+        "deploymentRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "audienceRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "conversationRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "targetRef": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "action",
+    "requestRef",
+    "scope",
+    "outcome",
+    "summary",
+    "receiptRef",
+    "priorReceiptRef",
+    "items"
+  ],
+  "properties": {
+    "action": {
+      "const": "agent-memory.candidate-add"
+    },
+    "requestRef": {
+      "$ref": "#/$defs/ref"
+    },
+    "scope": {
+      "$ref": "#/$defs/scope"
+    },
+    "outcome": {
+      "enum": [
+        "succeeded",
+        "denied",
+        "cancelled",
+        "timed-out",
+        "failed"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 2048
+    },
+    "receiptRef": {
+      "$ref": "#/$defs/ref"
+    },
+    "priorReceiptRef": {
+      "$ref": "#/$defs/ref"
+    },
+    "items": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "memoryRef",
+          "content",
+          "relevance"
+        ],
+        "properties": {
+          "memoryRef": {
+            "$ref": "#/$defs/ref"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "relevance": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          }
+        }
+      }
+    }
+  }
+}

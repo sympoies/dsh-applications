@@ -42,6 +42,10 @@ test("the Telegram conversation profile adds only the reviewed channel to the co
   assert.deepEqual(profile.limits.workspaceClasses, []);
   assert.deepEqual(profile.limits.networkClasses, ["telegram-api"]);
   assert.deepEqual(profile.triggers.map((trigger: any) => trigger.class), ["message"]);
+  assert.equal(profile.state.restart, "resume");
+  assert.equal(profile.execution.cancellation, "cooperative");
+  assert.equal(profile.execution.interrupt, "supported");
+  assert.equal(profile.execution.drain, "required");
   assert.equal(profile.artifacts.inputSchemaDigest, digest(join(profileRoot, "input.schema.json")));
   assert.equal(profile.artifacts.outputSchemaDigest, digest(join(profileRoot, "output.schema.json")));
 });

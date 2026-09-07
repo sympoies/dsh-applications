@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sympoies.dev/schemas/dsh/calendar-read-request.v1.json",
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "pattern": "^ref:[0-9a-f]{64}$"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deploymentRef",
+        "audienceRef",
+        "conversationRef",
+        "targetRef"
+      ],
+      "properties": {
+        "deploymentRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "audienceRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "conversationRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "targetRef": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 35
+    },
+    "patch": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "startsAt": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "endsAt": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "location": {
+          "type": "string",
+          "maxLength": 512
+        }
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "action",
+    "requestRef",
+    "scope",
+    "window",
+    "maxItems"
+  ],
+  "properties": {
+    "action": {
+      "const": "organization.calendar.read"
+    },
+    "requestRef": {
+      "$ref": "#/$defs/ref"
+    },
+    "scope": {
+      "$ref": "#/$defs/scope"
+    },
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "startsAt",
+        "endsAt"
+      ],
+      "properties": {
+        "startsAt": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "endsAt": {
+          "$ref": "#/$defs/timestamp"
+        }
+      }
+    },
+    "maxItems": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 50
+    }
+  }
+}

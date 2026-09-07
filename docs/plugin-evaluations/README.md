@@ -46,5 +46,12 @@ follow-ups.
   `@deepseek-ai/dsh-tool-web@0.1.1-rc.2`
 - [Recent community research](recent-community-research.md) — 2026-09-08 — build
 - [Taiwan-focused public-discussion research](taiwan-public-discussion-research.md) — 2026-09-08 — build
+- [Organization calendar mediation](organization-calendar.md) — 2026-09-08 — build
+- [Conversation-scoped group notes mediation](conversation-group-notes.md) — 2026-09-08 — build
+- [Read-only work recommendation mediation](work-recommendation.md) — 2026-09-08 — build
+- [Governed agent-session mediation](governed-agent-session.md) — 2026-09-08 — reference
+- [External agent-memory mediation](external-agent-memory.md) — 2026-09-08 — build
+- [Telegram audience routing](telegram-audience-routing.md) — 2026-09-08 — build
+  a public admission and routing contract beside the adopted transport
 - [Telegram channel](telegram-channel.md) — 2026-09-07 — adopt
   `@ashafizullah/dsh-telegram@0.5.1`

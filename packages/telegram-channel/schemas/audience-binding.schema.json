@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Telegram audience authorization result",
+  "description": "The exact, non-authorizing denial or admitted result a deployment authority returns after authenticating one opaque Telegram audience assertion.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed"],
+      "properties": {
+        "allowed": { "const": false }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowed", "admissionSealDigest", "bindingDigest", "assertionRef",
+        "bindingRef", "eventRef", "scopeRef", "audienceRole",
+        "conversationRef", "participantRef", "addressing",
+        "participantAuthorized", "conversationAdmitted", "behavior",
+        "modelRouteClass", "modelRouteRef", "ambientContext"
+      ],
+      "properties": {
+        "allowed": { "const": true },
+        "admissionSealDigest": { "$ref": "#/$defs/digest" },
+        "bindingDigest": { "$ref": "#/$defs/digest" },
+        "assertionRef": { "$ref": "#/$defs/opaqueRef" },
+        "bindingRef": { "$ref": "#/$defs/opaqueRef" },
+        "eventRef": { "$ref": "#/$defs/opaqueRef" },
+        "scopeRef": { "$ref": "#/$defs/opaqueRef" },
+        "audienceRole": { "$ref": "#/$defs/identifier" },
+        "conversationRef": { "$ref": "#/$defs/opaqueRef" },
+        "participantRef": { "$ref": "#/$defs/opaqueRef" },
+        "addressing": { "$ref": "#/$defs/addressing" },
+        "participantAuthorized": { "type": "boolean" },
+        "conversationAdmitted": { "type": "boolean" },
+        "behavior": {
+          "enum": ["private-dm", "group-mentioned", "group-free-response"]
+        },
+        "modelRouteClass": { "const": "conversation-bounded" },
+        "modelRouteRef": { "$ref": "#/$defs/opaqueRef" },
+        "ambientContext": {
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/ambientContext" }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "behavior": { "const": "private-dm" } },
+            "required": ["behavior"]
+          },
+          "then": {
+            "properties": { "ambientContext": { "type": "null" } }
+          },
+          "else": {
+            "properties": { "ambientContext": { "$ref": "#/$defs/ambientContext" } }
+          }
+        }
+      ]
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "opaqueRef": {
+      "type": "string",
+      "pattern": "^ref:[0-9a-f]{64}$"
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?$"
+    },
+    "addressing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mentionedBot", "repliesToBot"],
+      "properties": {
+        "mentionedBot": { "type": "boolean" },
+        "repliesToBot": { "type": "boolean" }
+      }
+    },
+    "ambientContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["retentionSeconds", "maxMessages", "maxCharacters"],
+      "properties": {
+        "retentionSeconds": { "type": "integer", "minimum": 1, "maximum": 604800 },
+        "maxMessages": { "type": "integer", "minimum": 1, "maximum": 200 },
+        "maxCharacters": { "type": "integer", "minimum": 1, "maximum": 131072 }
+      }
+    }
+  }
+}

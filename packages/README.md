@@ -25,6 +25,10 @@ released together as one coordinated public application artifact.
   community, and Taiwan public-discussion results. It validates opaque exact
   implementation/audience admission without containing a provider client or
   private binding.
+- `governed-action-contracts` defines independently selectable, opaque-scope
+  calendar, group-note, work-recommendation, external-memory, and DSH-owned
+  agent-session action contracts. Runtime-kit still owns approval, execution,
+  replay, and receipts.
 
 The coordinated artifact also carries the public `profiles/` catalog and the
 reusable, non-authorizing `fixtures/` trigger configurations. These are not

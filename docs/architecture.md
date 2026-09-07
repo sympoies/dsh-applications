@@ -101,6 +101,22 @@ conversation state. DSH still owns cancellation and runtime execution, while
 runtime-kit and the private broker own assertions, target binding, budget
 debit, DNS/redirect revalidation, and receipts.
 
+The governed-action package contributes only payload validation and separately
+selectable descriptors for organization calendar data, conversation-scoped
+group notes, read-only work recommendations, external agent-memory recall and
+candidate proposals, and DSH-owned agent sessions. Each request must match an
+independently supplied opaque deployment/audience/conversation/target binding;
+the admitted action, workspace, live-session reference, and current session
+state receive the same treatment where applicable. Each action owns distinct
+input and output schema digests, and each receipt family rejects action IDs
+outside its advertised set. Mutation actions require idempotency and remain
+subject to downstream per-action approval. A private adapter forwards the
+validated `requestRef` unchanged as the runtime-kit mediated host action's
+`idempotencyKey`; runtime-kit remains the sole replay journal and request-digest
+conflict owner. DSH and runtime-kit continue to own the agent loop, session
+store, approval, cancellation, target resolution, execution, and cryptographic
+receipt, while private adapters own real data and credentials.
+
 ## Compatibility
 
 `compatibility/dsh-applications-lock.json` is the sole bootstrap compatibility
