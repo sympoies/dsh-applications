@@ -1,0 +1,12 @@
+- insert:
+    - id: telegram-conversational-channel
+      name: '@ashafizullah/dsh-telegram'
+      disabled: true
+      config:
+        enabled: false
+        media:
+          enabled: false
+          ocr:
+            enabled: false
+        screenshot:
+          enabled: false

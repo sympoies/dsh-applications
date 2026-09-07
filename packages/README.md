@@ -17,6 +17,9 @@ released together as one coordinated public application artifact.
 - `conversation-agent` validates one conversation turn and reply for the
   `conversational` profile, admitting channel context only as opaque
   deployment-scoped refs; channel ingress and delivery stay adapter-owned.
+- `telegram-channel` describes the exact reviewed external Telegram artifact,
+  its disabled public default, and the bounded mediation it may request after
+  private admission; it contains no Telegram client or binding.
 
 The coordinated artifact also carries the public `profiles/` catalog and the
 reusable, non-authorizing `fixtures/` trigger configurations. These are not

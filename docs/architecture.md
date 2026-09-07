@@ -79,6 +79,13 @@ native inline guidance are RFC 8785 canonicalized and domain-digest bound. The
 authenticated supervisor completion envelope and every provider effect remain
 private-infrastructure responsibilities.
 
+The Telegram channel package similarly contains no channel client. It binds a
+reviewed external npm artifact to its exact version, tarball digest, source
+revision, provenance identity, required conversation capabilities, and bounded
+mediation classes. The companion public profile mounts that artifact disabled;
+private infrastructure alone owns the credential and access bindings and the
+admission decision that may enable it.
+
 ## Compatibility
 
 `compatibility/dsh-applications-lock.json` is the sole bootstrap compatibility

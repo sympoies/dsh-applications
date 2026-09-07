@@ -22,6 +22,11 @@
       "id": "github-pr-review",
       "path": "profiles/github-pr-review/profile.json",
       "digest": "sha256:f29562effdf9127b9a3025da8e9ba5bade950ed1f287a525f0217c3f0e48ae94"
+    },
+    {
+      "id": "telegram-conversational",
+      "path": "profiles/telegram-conversational/profile.json",
+      "digest": "sha256:9ab1ee37b09ebf750d8ba9d3e763845a07e9a265947529d29312d24021142a7d"
     }
   ],
   "triggerFixtures": [
