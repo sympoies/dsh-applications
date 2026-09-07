@@ -291,6 +291,7 @@ test("CI verifies the repository and exact compatibility checkouts", () => {
   assert.match(workflow, new RegExp(`repository: deepseek-ai/deepseek-harness[\\s\\S]*ref: ${expectedDshRevision}`));
   assert.match(workflow, /npm run check:compatibility --/);
   assert.match(workflow, /npm run test:profile-compatibility --/);
+  assert.match(workflow, /npm run test:telegram-exact-dsh/);
   assert.doesNotMatch(workflow, /uses:\s+[^\s@]+@(main|master|v\d+)\b/);
 });
 

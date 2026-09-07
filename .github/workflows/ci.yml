@@ -133,6 +133,11 @@ jobs:
       - name: Validate public profiles with exact runtime-kit
         working-directory: dsh-applications
         run: npm run test:profile-compatibility -- --runtime-kit-root ../dsh-runtime-kit
+      - name: Compose the native Telegram profile with exact DSH
+        working-directory: dsh-applications
+        env:
+          DSH_ROOT: ../deepseek-harness
+        run: npm run test:telegram-exact-dsh
       - name: Compile and run the exact DSH consumer
         working-directory: dsh-applications
         env:

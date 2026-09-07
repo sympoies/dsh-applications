@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
@@ -13,6 +13,7 @@ const packageRoot = resolve(root, "packages/telegram-channel");
 const exactRuntimeKitRoot = process.env.DSH_RUNTIME_KIT_ROOT
   ? resolve(process.env.DSH_RUNTIME_KIT_ROOT)
   : resolve(import.meta.dirname, "../../dsh-runtime-kit");
+const exactDshRoot = process.env.DSH_ROOT === undefined ? undefined : resolve(process.env.DSH_ROOT);
 
 function requireFile(path: string): string {
   assert.equal(existsSync(path), true, `${path.slice(root.length + 1)} must exist`);
@@ -136,6 +137,61 @@ test("a clean native profile install consumes the reviewed locked graph without 
     }
   } finally {
     rmSync(installRoot, { recursive: true, force: true });
+  }
+});
+
+test("the clean native profile composes as one disabled Telegram mount in exact DSH", {
+  skip: exactDshRoot === undefined ? "DSH_ROOT is required" : false,
+  timeout: 300_000,
+}, () => {
+  const dshHome = mkdtempSync(join(tmpdir(), "dsh-telegram-exact-profile-"));
+  const installedProfile = join(dshHome, "profiles", "telegram-conversational");
+  try {
+    mkdirSync(installedProfile, { recursive: true });
+    cpSync(join(profileRoot, "dsh-profile"), installedProfile, { recursive: true });
+    execFileSync("npm", ["ci", "--ignore-scripts", "--no-audit", "--no-fund"], {
+      cwd: installedProfile,
+      env: {
+        ...process.env,
+        npm_config_cache: join(dshHome, ".npm-cache"),
+      },
+      stdio: "pipe",
+      timeout: 300_000,
+    });
+
+    const composed = execFileSync(
+      process.execPath,
+      [
+        "--import",
+        "tsx/esm",
+        join(exactDshRoot!, "apps/cli/src/bin.ts"),
+        "--profile",
+        "telegram-conversational",
+        "--dump-config",
+      ],
+      {
+        cwd: exactDshRoot,
+        encoding: "utf8",
+        env: { ...process.env, DSH_HOME: dshHome },
+        timeout: 300_000,
+      },
+    );
+    assert.equal(
+      (composed.match(/name: ['"]?@ashafizullah\/dsh-telegram['"]?/gu) ?? []).length,
+      1,
+      "exact DSH must compose exactly one Telegram mount",
+    );
+    const telegramMount = composed.match(
+      /- id: telegram-conversational-channel\n(?: {2,}.*(?:\n|$))*/u,
+    )?.[0];
+    assert.notEqual(telegramMount, undefined, "exact DSH must retain the governed Telegram mount ID");
+    assert.match(telegramMount!, /disabled: true/u);
+    assert.match(telegramMount!, /enabled: false/u);
+    assert.match(telegramMount!, /media:\n\s+enabled: false/u);
+    assert.match(telegramMount!, /ocr:\n\s+enabled: false/u);
+    assert.match(telegramMount!, /screenshot:\n\s+enabled: false/u);
+  } finally {
+    rmSync(dshHome, { recursive: true, force: true });
   }
 });
 
