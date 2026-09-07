@@ -38,5 +38,7 @@ follow-ups.
 
 ## Index
 
+- [Telegram audience routing](telegram-audience-routing.md) — 2026-09-08 — build
+  a public admission and routing contract beside the adopted transport
 - [Telegram channel](telegram-channel.md) — 2026-09-07 — adopt
   `@ashafizullah/dsh-telegram@0.5.1`
