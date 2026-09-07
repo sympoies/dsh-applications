@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sympoies.dev/schemas/dsh/group-notes-request.v1.json",
+  "$defs": {
+    "ref": { "type": "string", "pattern": "^ref:[0-9a-f]{64}$" },
+    "scope": {
+      "type": "object", "additionalProperties": false,
+      "required": ["deploymentRef", "audienceRef", "conversationRef", "targetRef"],
+      "properties": {
+        "deploymentRef": { "$ref": "#/$defs/ref" }, "audienceRef": { "$ref": "#/$defs/ref" },
+        "conversationRef": { "$ref": "#/$defs/ref" }, "targetRef": { "$ref": "#/$defs/ref" }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object", "additionalProperties": false,
+      "required": ["action", "requestRef", "scope", "limit"],
+      "properties": {
+        "action": { "const": "conversation.group-notes.read" }, "requestRef": { "$ref": "#/$defs/ref" },
+        "scope": { "$ref": "#/$defs/scope" }, "limit": { "type": "integer", "minimum": 1, "maximum": 8 }
+      }
+    },
+    {
+      "type": "object", "additionalProperties": false,
+      "required": ["action", "requestRef", "scope", "mutation"],
+      "properties": {
+        "action": { "const": "conversation.group-notes.write" }, "requestRef": { "$ref": "#/$defs/ref" },
+        "scope": { "$ref": "#/$defs/scope" },
+        "mutation": {
+          "oneOf": [
+            {
+              "type": "object", "additionalProperties": false,
+              "required": ["kind", "expectedReceiptRef", "noteRef", "title", "body"],
+              "properties": {
+                "kind": { "const": "upsert" }, "expectedReceiptRef": { "$ref": "#/$defs/ref" },
+                "noteRef": { "$ref": "#/$defs/ref" }, "title": { "type": "string", "minLength": 1, "maxLength": 256 },
+                "body": { "type": "string", "maxLength": 4096 }
+              }
+            },
+            {
+              "type": "object", "additionalProperties": false,
+              "required": ["kind", "expectedReceiptRef", "noteRef"],
+              "properties": {
+                "kind": { "const": "delete" }, "expectedReceiptRef": { "$ref": "#/$defs/ref" },
+                "noteRef": { "$ref": "#/$defs/ref" }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
+

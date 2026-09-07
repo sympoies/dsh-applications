@@ -88,6 +88,17 @@ clean native-profile install uses the dependency graph that was reviewed.
 Private infrastructure alone owns the credential and access bindings and the
 admission decision that may enable it.
 
+The governed-action package contributes only payload validation and separately
+selectable descriptors for organization calendar data, conversation-scoped
+group notes, read-only work recommendations, external agent-memory recall and
+candidate proposals, and DSH-owned agent sessions. Each request must match an
+independently supplied opaque deployment/audience/conversation/target binding;
+workspace and live-session references receive the same treatment. Mutation
+actions require idempotency and remain subject to downstream per-action
+approval. DSH and runtime-kit continue to own the agent loop, session store,
+approval, cancellation, target resolution, replay journal, execution, and
+cryptographic receipt, while private adapters own real data and credentials.
+
 ## Compatibility
 
 `compatibility/dsh-applications-lock.json` is the sole bootstrap compatibility

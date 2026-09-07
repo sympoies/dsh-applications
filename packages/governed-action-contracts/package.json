@@ -1,0 +1,25 @@
+{
+  "name": "@sympoies/dsh-governed-action-contracts",
+  "version": "0.4.0",
+  "description": "Opaque-scope public contracts for mediated organization data and governed DSH agent sessions",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts"
+    }
+  },
+  "files": [
+    "src",
+    "schemas",
+    "README.md"
+  ],
+  "dependencies": {
+    "@sympoies/dsh-plugin-sdk": "0.4.0"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "license": "MIT"
+}
+

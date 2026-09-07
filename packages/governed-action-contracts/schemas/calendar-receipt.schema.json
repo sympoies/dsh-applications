@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sympoies.dev/schemas/dsh/calendar-receipt.v1.json",
+  "$defs": {
+    "ref": { "type": "string", "pattern": "^ref:[0-9a-f]{64}$" },
+    "scope": {
+      "type": "object", "additionalProperties": false,
+      "required": ["deploymentRef", "audienceRef", "conversationRef", "targetRef"],
+      "properties": {
+        "deploymentRef": { "$ref": "#/$defs/ref" }, "audienceRef": { "$ref": "#/$defs/ref" },
+        "conversationRef": { "$ref": "#/$defs/ref" }, "targetRef": { "$ref": "#/$defs/ref" }
+      }
+    },
+    "timestamp": { "type": "string", "format": "date-time", "maxLength": 35 }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["action", "requestRef", "scope", "outcome", "summary", "events"],
+  "properties": {
+    "action": { "enum": ["organization.calendar.read", "organization.calendar.write"] },
+    "requestRef": { "$ref": "#/$defs/ref" }, "scope": { "$ref": "#/$defs/scope" },
+    "outcome": { "enum": ["succeeded", "denied", "cancelled", "timed-out", "failed"] },
+    "summary": { "type": "string", "maxLength": 4096 },
+    "events": {
+      "type": "array", "maxItems": 16,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["eventRef", "title", "startsAt", "endsAt"],
+        "properties": {
+          "eventRef": { "$ref": "#/$defs/ref" },
+          "title": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "startsAt": { "$ref": "#/$defs/timestamp" }, "endsAt": { "$ref": "#/$defs/timestamp" },
+          "description": { "type": "string", "maxLength": 2048 },
+          "location": { "type": "string", "maxLength": 512 }
+        }
+      }
+    }
+  }
+}
+
