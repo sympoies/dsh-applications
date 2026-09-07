@@ -3,8 +3,8 @@
   "kind": "BotProfile",
   "metadata": {
     "id": "telegram-conversational",
-    "version": "0.3.0",
-    "digest": "sha256:9ab1ee37b09ebf750d8ba9d3e763845a07e9a265947529d29312d24021142a7d",
+    "version": "0.4.0",
+    "digest": "sha256:83a60275d17f64089d1d43c58d550bca6e8c29e06d22c81c518263fe4efce502",
     "purpose": "Persistent Telegram conversation with no project, shell, tool, or skill authority"
   },
   "workload": {
