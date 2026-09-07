@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sympoies.dev/schemas/dsh-assistant-read/market.input.schema.json",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "symbols"],
+      "properties": {
+        "kind": { "const": "quote" },
+        "symbols": { "type": "array", "minItems": 1, "maxItems": 20, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 64 } }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "base", "quotes"],
+      "properties": {
+        "kind": { "const": "exchange-rate" },
+        "base": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "quotes": { "type": "array", "minItems": 1, "maxItems": 10, "uniqueItems": true, "items": { "type": "string", "pattern": "^[A-Z]{3}$" } }
+      }
+    }
+  ]
+}

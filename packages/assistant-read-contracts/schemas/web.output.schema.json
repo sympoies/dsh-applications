@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sympoies.dev/schemas/dsh-assistant-read/web.output.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "asOf", "summary", "sources", "data"],
+  "properties": {
+    "status": { "enum": ["completed", "cancelled", "timed-out"] },
+    "asOf": { "type": ["string", "null"], "format": "date-time" },
+    "summary": { "type": "string", "maxLength": 8192 },
+    "sources": { "type": "array", "maxItems": 12, "items": { "$ref": "#/$defs/source" } },
+    "data": { "oneOf": [{ "type": "null" }, { "type": "object", "additionalProperties": false, "required": ["results", "extraction"], "properties": { "results": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/result" } }, "extraction": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/extraction" }] } } }] }
+  },
+  "$defs": {
+    "source": { "type": "object", "additionalProperties": false, "required": ["url", "title", "retrievedAt", "contentDigest"], "properties": { "url": { "type": "string", "format": "uri", "maxLength": 2048 }, "title": { "type": "string", "maxLength": 1024 }, "retrievedAt": { "type": "string", "format": "date-time" }, "publishedAt": { "type": "string", "format": "date-time" }, "contentDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" } } },
+    "result": { "type": "object", "additionalProperties": false, "required": ["url", "title", "excerpt"], "properties": { "url": { "type": "string", "format": "uri", "maxLength": 2048 }, "title": { "type": "string", "maxLength": 1024 }, "excerpt": { "type": "string", "maxLength": 4096 } } },
+    "extraction": { "type": "object", "additionalProperties": false, "required": ["url", "title", "text", "contentDigest"], "properties": { "url": { "type": "string", "format": "uri", "maxLength": 2048 }, "title": { "type": "string", "maxLength": 1024 }, "text": { "type": "string", "maxLength": 65536 }, "contentDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" } } }
+  }
+}

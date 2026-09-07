@@ -88,6 +88,17 @@ clean native-profile install uses the dependency graph that was reviewed.
 Private infrastructure alone owns the credential and access bindings and the
 admission decision that may enable it.
 
+The assistant read-contract package contains no data-provider clients. It
+defines six separate action descriptors rather than one aggregate grant, so a
+deployment can admit weather without also admitting market, Steam, Web, or
+research. Each action fixes a strict query/result schema, one named public-data
+network class, provider-read-only host mediation, cancellation, and byte,
+source, and timeout ceilings. A private admission binds an opaque exact
+implementation digest and audience; the returned invocation omits the binding
+digest, and strict results cannot carry implementation or conversation state.
+DSH still owns cancellation and runtime execution, while runtime-kit and the
+private broker own assertions, target binding, budget debit, and receipts.
+
 ## Compatibility
 
 `compatibility/dsh-applications-lock.json` is the sole bootstrap compatibility

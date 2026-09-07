@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sympoies.dev/schemas/dsh-assistant-read/recent-community.input.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["topic", "since", "until", "sourceClasses", "maxFindings"],
+  "properties": {
+    "topic": { "type": "string", "minLength": 1, "maxLength": 2048 },
+    "since": { "type": "string", "format": "date-time" },
+    "until": { "type": "string", "format": "date-time" },
+    "sourceClasses": { "type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": true, "items": { "enum": ["community", "news", "social"] } },
+    "maxFindings": { "type": "integer", "minimum": 1, "maximum": 32 }
+  }
+}

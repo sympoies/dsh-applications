@@ -20,6 +20,11 @@ released together as one coordinated public application artifact.
 - `telegram-channel` describes the exact reviewed external Telegram artifact,
   its disabled public default, and the bounded mediation it may request after
   private admission; it contains no Telegram client or binding.
+- `assistant-read-contracts` defines six independently admitted provider-read
+  contracts for weather, market/exchange, Steam catalog, ordinary Web, recent
+  community, and Taiwan public-discussion results. It validates opaque exact
+  implementation/audience admission without containing a provider client or
+  private binding.
 
 The coordinated artifact also carries the public `profiles/` catalog and the
 reusable, non-authorizing `fixtures/` trigger configurations. These are not

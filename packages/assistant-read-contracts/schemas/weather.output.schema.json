@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sympoies.dev/schemas/dsh-assistant-read/weather.output.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "asOf", "summary", "sources", "data"],
+  "properties": {
+    "status": { "enum": ["completed", "cancelled", "timed-out"] },
+    "asOf": { "type": ["string", "null"], "format": "date-time" },
+    "summary": { "type": "string", "maxLength": 8192 },
+    "sources": { "$ref": "#/$defs/sources" },
+    "data": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["location", "units", "current", "daily"],
+          "properties": {
+            "location": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "units": { "enum": ["metric", "imperial"] },
+            "current": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["temperature", "condition"],
+              "properties": {
+                "temperature": { "type": "number" },
+                "condition": { "type": "string", "maxLength": 128 }
+              }
+            },
+            "daily": {
+              "type": "array",
+              "maxItems": 10,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["date", "low", "high", "condition"],
+                "properties": {
+                  "date": { "type": "string", "format": "date" },
+                  "low": { "type": "number" },
+                  "high": { "type": "number" },
+                  "condition": { "type": "string", "maxLength": 128 }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "sources": {
+      "type": "array",
+      "maxItems": 4,
+      "items": { "$ref": "#/$defs/source" }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "title", "retrievedAt", "contentDigest"],
+      "properties": {
+        "url": { "type": "string", "format": "uri", "maxLength": 2048 },
+        "title": { "type": "string", "maxLength": 1024 },
+        "retrievedAt": { "type": "string", "format": "date-time" },
+        "publishedAt": { "type": "string", "format": "date-time" },
+        "contentDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      }
+    }
+  }
+}

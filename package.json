@@ -29,6 +29,7 @@
     "test:exact-dsh": "node scripts/check-exact-dsh-consumer.ts && node --test test/exact-dsh-consumer.test.ts",
     "test:telegram-exact-dsh": "node --test --test-name-pattern='clean native profile composes' test/telegram-conversation.test.ts",
     "test:github-contracts": "node --test test/github-contracts.test.ts",
+    "test:assistant-read-contracts": "node --test test/assistant-read-contracts.test.ts",
     "check:compatibility": "node scripts/check-compatibility.ts",
     "verify:package-reproducibility": "node scripts/check-package-reproducibility.ts",
     "test:package": "npm run check:compatibility -- --manifest-only && npm run verify:package-reproducibility && npm pack --dry-run --ignore-scripts",

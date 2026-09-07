@@ -49,6 +49,7 @@ jobs:
           npm run test:profiles
           npm run test:integration
           npm run test:github-contracts
+          npm run test:assistant-read-contracts
       - name: Run aggregate tests
         working-directory: dsh-applications
         run: npm test
@@ -130,6 +131,11 @@ jobs:
         env:
           DSH_RUNTIME_KIT_ROOT: ../dsh-runtime-kit
         run: npm run test:batch
+      - name: Validate assistant read descriptors with exact runtime-kit
+        working-directory: dsh-applications
+        env:
+          DSH_RUNTIME_KIT_ROOT: ../dsh-runtime-kit
+        run: npm run test:assistant-read-contracts
       - name: Validate public profiles with exact runtime-kit
         working-directory: dsh-applications
         run: npm run test:profile-compatibility -- --runtime-kit-root ../dsh-runtime-kit

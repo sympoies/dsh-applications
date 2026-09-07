@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sympoies.dev/schemas/dsh-assistant-read/steam.input.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["query", "countryCode", "currency", "limit"],
+  "properties": {
+    "query": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "countryCode": { "type": "string", "pattern": "^[A-Z]{2}$" },
+    "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+    "limit": { "type": "integer", "minimum": 1, "maximum": 20 }
+  }
+}

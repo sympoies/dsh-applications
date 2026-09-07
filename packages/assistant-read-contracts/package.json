@@ -1,0 +1,24 @@
+{
+  "name": "@sympoies/dsh-assistant-read-contracts",
+  "version": "0.4.0",
+  "description": "Public mediated read-only assistant capability contracts",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts"
+    }
+  },
+  "files": [
+    "src",
+    "schemas",
+    "README.md"
+  ],
+  "dependencies": {
+    "@sympoies/dsh-plugin-sdk": "0.4.0"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "license": "MIT"
+}

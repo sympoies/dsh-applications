@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sympoies.dev/schemas/dsh-assistant-read/market.output.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "asOf", "summary", "sources", "data"],
+  "properties": {
+    "status": { "enum": ["completed", "cancelled", "timed-out"] },
+    "asOf": { "type": ["string", "null"], "format": "date-time" },
+    "summary": { "type": "string", "maxLength": 8192 },
+    "sources": { "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/source" } },
+    "data": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["quotes", "exchangeRates"],
+          "properties": {
+            "quotes": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/quote" } },
+            "exchangeRates": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/rate" } }
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "source": { "type": "object", "additionalProperties": false, "required": ["url", "title", "retrievedAt", "contentDigest"], "properties": { "url": { "type": "string", "format": "uri", "maxLength": 2048 }, "title": { "type": "string", "maxLength": 1024 }, "retrievedAt": { "type": "string", "format": "date-time" }, "publishedAt": { "type": "string", "format": "date-time" }, "contentDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" } } },
+    "quote": { "type": "object", "additionalProperties": false, "required": ["symbol", "currency", "price", "observedAt"], "properties": { "symbol": { "type": "string", "maxLength": 64 }, "currency": { "type": "string", "pattern": "^[A-Z]{3}$" }, "price": { "type": "number", "minimum": 0 }, "observedAt": { "type": "string", "format": "date-time" } } },
+    "rate": { "type": "object", "additionalProperties": false, "required": ["base", "quote", "rate", "observedAt"], "properties": { "base": { "type": "string", "pattern": "^[A-Z]{3}$" }, "quote": { "type": "string", "pattern": "^[A-Z]{3}$" }, "rate": { "type": "number", "exclusiveMinimum": 0 }, "observedAt": { "type": "string", "format": "date-time" } } }
+  }
+}
