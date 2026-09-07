@@ -96,6 +96,7 @@ test("workspace metadata is exact, private at the root, and release-safe", () =>
   for (const path of [
     "packages/plugin-sdk", "packages/manager", "packages/dsh-rc2-adapter",
     "packages/github-read", "packages/github-review-publish",
+    "packages/conversation-agent", "packages/telegram-channel",
   ]) {
     assert.equal(packageLock.packages[path].version, pkg.version);
   }
@@ -138,7 +139,7 @@ test("workspace packages ship erasable TypeScript sources that Node executes wit
 
   for (const name of [
     "plugin-sdk", "manager", "dsh-rc2-adapter",
-    "conversation-agent", "github-read", "github-review-publish",
+    "conversation-agent", "github-read", "github-review-publish", "telegram-channel",
   ]) {
     const manifest = json(`packages/${name}/package.json`);
     assert.deepEqual(manifest.exports["."], { import: "./src/index.ts" }, `${name} must export its TypeScript source`);
@@ -222,6 +223,7 @@ test("installed workspace resolves every actual public package specifier", async
     ["@sympoies/dsh-github-read", "validateGitHubPullRequestReadBundle"],
     ["@sympoies/dsh-github-review-publish", "createGitHubReviewWorkerResult"],
     ["@sympoies/dsh-conversation-agent", "validateConversationTurn"],
+    ["@sympoies/dsh-telegram-channel", "createTelegramChannelPluginDescriptor"],
   ] as const) {
     const module = await import(specifier);
     assert.equal(typeof module[exported], "function", `${specifier} must resolve from the installed workspace`);
@@ -238,7 +240,7 @@ test("compatibility lock pins the accepted runtime-kit and DSH identities", () =
   assert.equal(lock.application_version, "0.3.0");
   assert.deepEqual(lock.profile_catalog, {
     path: "profiles/catalog.json",
-    digest: "sha256:019c00fe0503fe8d6426036b4105c33ffd1e7802357d25631a4100c8288a40fa",
+    digest: "sha256:8d3263887be1970b8d1c3cb676de1160d7005b18311c0fcfe7cded0ff471a787",
   });
   assert.deepEqual(lock.runtime_kit, {
     package: "@sympoies/dsh-runtime-kit",
@@ -289,6 +291,7 @@ test("CI verifies the repository and exact compatibility checkouts", () => {
   assert.match(workflow, new RegExp(`repository: deepseek-ai/deepseek-harness[\\s\\S]*ref: ${expectedDshRevision}`));
   assert.match(workflow, /npm run check:compatibility --/);
   assert.match(workflow, /npm run test:profile-compatibility --/);
+  assert.match(workflow, /npm run test:telegram-exact-dsh/);
   assert.doesNotMatch(workflow, /uses:\s+[^\s@]+@(main|master|v\d+)\b/);
 });
 
@@ -506,9 +509,13 @@ test("the repository package is reproducible and contains the public coordinated
   assert(paths.includes("profiles/coding/profile.json"));
   assert(paths.includes("profiles/conversational/profile.json"));
   assert(paths.includes("profiles/github-pr-review/profile.json"));
+  assert(paths.includes("profiles/telegram-conversational/profile.json"));
+  assert(paths.includes("profiles/telegram-conversational/channel-plugin.lock.json"));
+  assert(paths.includes("profiles/telegram-conversational/dsh-profile/package-lock.json"));
   assert(paths.includes("fixtures/triggers/manual.json"));
   assert(paths.includes("fixtures/triggers/schedule.json"));
   assert(paths.includes("packages/plugin-sdk/src/index.ts"));
+  assert(paths.includes("packages/telegram-channel/src/index.ts"));
   assert(!paths.some((path: string) => /^packages\/[^/]+\/index\.d\.ts$/.test(path) || path.endsWith("/src/index.js")));
   assert(paths.includes("packages/dsh-rc2-adapter/types/dsh-peer-fallbacks.d.ts"));
   assert(!paths.some((path: string) => path.startsWith(".github/")));

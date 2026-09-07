@@ -6,6 +6,8 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createGitHubReadPluginDescriptor, type RuntimeKitPluginDescriptorOwner } from "../packages/github-read/src/index.ts";
 import { createGitHubReviewPublishPluginDescriptor } from "../packages/github-review-publish/src/index.ts";
+import { createConversationAgentPluginDescriptor } from "../packages/conversation-agent/src/index.ts";
+import { createTelegramChannelPluginDescriptor } from "../packages/telegram-channel/src/index.ts";
 import { defineTrigger, type TriggerDescriptor } from "../packages/plugin-sdk/src/index.ts";
 
 const root = resolve(import.meta.dirname, "..");
@@ -132,6 +134,43 @@ assert.deepEqual(
   [["github-read", "0.3.0"], ["github-review-publish", "0.3.0"]],
 );
 
+const telegramProfile = load(resolve(root, "profiles/telegram-conversational/profile.json"));
+const telegramPlugins = [
+  createConversationAgentPluginDescriptor(composition, reviewArtifact),
+  createTelegramChannelPluginDescriptor(composition),
+];
+const telegramPolicy = {
+  digest: `sha256:${"0".repeat(64)}`,
+  grants: [...telegramProfile.grants],
+  networkClasses: [...telegramProfile.limits.networkClasses],
+  workspaceClasses: [],
+  resourceClasses: ["shared"],
+};
+telegramPolicy.digest = composition.computePublicPolicyDigest(telegramPolicy);
+const resolvedTelegram = composition.resolveComposition({
+  profile: telegramProfile,
+  plugins: telegramPlugins,
+  runtime: {
+    dshVersion: lock.dsh.version,
+    runtimeKitVersion: "0.0.0",
+    pluginApiVersion: "1.0.0",
+    platform: "linux-x64",
+    resolverVersion: "1.0.0",
+  },
+  publicPolicy: telegramPolicy,
+  catalogSnapshotDigest: composition.computeCatalogSnapshotDigest(telegramPlugins),
+  reason: "initial",
+});
+assert.deepEqual(
+  resolvedTelegram.composition.plugins.map((plugin: { id: string; version: string }) => [plugin.id, plugin.version]),
+  [["conversation-agent", "0.3.0"], ["telegram-channel", "0.5.1"]],
+);
+assert.deepEqual(resolvedTelegram.composition.authorityCeiling, {
+  capabilities: ["conversation.memory", "conversation.reply"],
+  networkClasses: ["telegram-api"],
+  workspaceClasses: [],
+});
+
 const triggerMappings = new Map<string, string>();
 for (const entry of catalog.triggerFixtures as Array<{ id: string; path: string }>) {
   assert.equal(entry.path, `fixtures/triggers/${entry.id}.json`);
@@ -157,6 +196,7 @@ for (const relative of [
   "packages/github-read/package.json",
   "packages/github-review-publish/package.json",
   "packages/conversation-agent/package.json",
+  "packages/telegram-channel/package.json",
 ]) {
   assert.equal(load(resolve(root, relative)).version, workspace.version, `${relative} must share the release version`);
 }

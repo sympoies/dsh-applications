@@ -1,0 +1,79 @@
+{
+  "apiVersion": "runtime.sympoies.dev/v1",
+  "kind": "BotProfile",
+  "metadata": {
+    "id": "telegram-conversational",
+    "version": "0.3.0",
+    "digest": "sha256:9ab1ee37b09ebf750d8ba9d3e763845a07e9a265947529d29312d24021142a7d",
+    "purpose": "Persistent Telegram conversation with no project, shell, tool, or skill authority"
+  },
+  "workload": {
+    "class": "conversational-service",
+    "scopeClass": "non-project"
+  },
+  "plugins": [
+    {
+      "id": "conversation-agent",
+      "range": ">=0.3.0 <1.0.0"
+    },
+    {
+      "id": "telegram-channel",
+      "range": "=0.5.1"
+    }
+  ],
+  "grants": [
+    "conversation.memory",
+    "conversation.reply"
+  ],
+  "requiredHealth": [
+    "conversation-agent.ready",
+    "telegram-channel.ready"
+  ],
+  "artifacts": {
+    "instructions": "profiles/telegram-conversational/instructions.md",
+    "skills": [],
+    "inputSchemaDigest": "sha256:65a6dcdc267d4ee66f480d41ff11ab7d5607d6b2d4977a1954e1f9d815a03fd0",
+    "outputSchemaDigest": "sha256:a155a7a633ac342aa6c2dd7411296222e6c38e88d9a6b4cc31dbea5d45b2351f"
+  },
+  "modelRouteClass": "conversation-bounded",
+  "state": {
+    "session": "persistent",
+    "memory": "persistent",
+    "workspace": "none",
+    "retentionSeconds": 2592000,
+    "restart": "resume"
+  },
+  "approvals": {
+    "requiredFor": [
+      "destructive",
+      "open-world"
+    ]
+  },
+  "limits": {
+    "actions": 32,
+    "networkClasses": [
+      "telegram-api"
+    ],
+    "workspaceClasses": [],
+    "budgetUnits": 1000,
+    "ratePerMinute": 60
+  },
+  "triggers": [
+    {
+      "class": "message",
+      "inputSchemaDigest": "sha256:65a6dcdc267d4ee66f480d41ff11ab7d5607d6b2d4977a1954e1f9d815a03fd0"
+    }
+  ],
+  "execution": {
+    "concurrency": 64,
+    "overlap": "allow",
+    "timeoutMs": 300000,
+    "retry": {
+      "maxAttempts": 3,
+      "backoffMs": 1000
+    },
+    "cancellation": "cooperative",
+    "interrupt": "supported",
+    "drain": "required"
+  }
+}

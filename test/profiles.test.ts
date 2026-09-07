@@ -5,7 +5,7 @@ import test from "node:test";
 import { defineTrigger, type TriggerDescriptor } from "../packages/plugin-sdk/src/index.ts";
 
 const root = resolve(import.meta.dirname, "..");
-const profileIds = ["batch", "coding", "conversational", "github-pr-review"];
+const profileIds = ["batch", "coding", "conversational", "github-pr-review", "telegram-conversational"];
 const fixtureIds = ["channel", "github-event", "manual", "schedule"];
 
 function json(path: string) {
@@ -44,7 +44,7 @@ function visit(value: unknown, callback: (key: string, value: unknown, path: str
   }
 }
 
-test("the catalog declares four distinct least-authority profiles", () => {
+test("the catalog declares five distinct least-authority profiles", () => {
   const profiles = Object.fromEntries(profileIds.map(id => [id, profile(id)]));
   assert.deepEqual(Object.keys(profiles).sort(), profileIds);
   assert.deepEqual(profiles.coding.workload, {
@@ -65,6 +65,14 @@ test("the catalog declares four distinct least-authority profiles", () => {
     "conversation.memory",
     "conversation.reply",
   ]);
+  assert.deepEqual(profiles["telegram-conversational"].workload, {
+    class: "conversational-service",
+    scopeClass: "non-project",
+  });
+  assert.deepEqual(profiles["telegram-conversational"].grants, [
+    "conversation.memory",
+    "conversation.reply",
+  ]);
   assert.deepEqual(profiles["github-pr-review"].workload, {
     class: "event-service",
     scopeClass: "non-project",
@@ -79,12 +87,12 @@ test("the catalog declares four distinct least-authority profiles", () => {
   });
   assert.deepEqual(profiles.batch.grants, ["batch.input.read", "batch.output.write"]);
 
-  for (const id of ["conversational", "github-pr-review", "batch"]) {
+  for (const id of ["conversational", "telegram-conversational", "github-pr-review", "batch"]) {
     assert.equal(profiles[id].state?.workspace, "none", `${id} has no project workspace`);
     assert.deepEqual(profiles[id].limits?.workspaceClasses, [], `${id} has no workspace class`);
     assert(!profiles[id].grants?.some((grant: any) => grant.startsWith("coding.")), `${id} has no coding grant`);
   }
-  assert.equal(new Set(Object.values(profiles).map(value => JSON.stringify(authority(value)))).size, 4);
+  assert.equal(new Set(Object.values(profiles).map(value => JSON.stringify(authority(value)))).size, 5);
 });
 
 test("public profiles and fixtures contain no private deployment state", () => {
@@ -137,6 +145,7 @@ test("trigger fixtures are reusable configuration and cannot widen profile autho
 
   assert.deepEqual(profile("coding").triggers?.map((item: any) => item.class), ["manual"]);
   assert.deepEqual(profile("conversational").triggers?.map((item: any) => item.class), ["message"]);
+  assert.deepEqual(profile("telegram-conversational").triggers?.map((item: any) => item.class), ["message"]);
   assert.deepEqual(profile("github-pr-review").triggers?.map((item: any) => item.class), ["webhook"]);
   assert.deepEqual(profile("batch").triggers?.map((item: any) => item.class), ["manual", "schedule"]);
 });

@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Public Telegram channel configuration",
+  "description": "A non-authorizing public default. Private admission owns access, credential, and enablement bindings.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "enabled",
+    "media",
+    "screenshot"
+  ],
+  "properties": {
+    "enabled": {
+      "const": false,
+      "description": "The public composition is always disabled. Only an admitted private deployment may enable it."
+    },
+    "media": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "ocr"
+      ],
+      "properties": {
+        "enabled": {
+          "const": false,
+          "description": "Attachment ingestion is outside the conversation-only public contract."
+        },
+        "ocr": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled"
+          ],
+          "properties": {
+            "enabled": {
+              "const": false,
+              "description": "OCR subprocess execution is outside the conversation-only public contract."
+            }
+          }
+        }
+      }
+    },
+    "screenshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled"
+      ],
+      "properties": {
+        "enabled": {
+          "const": false,
+          "description": "Screen capture is outside the conversation-only public contract."
+        }
+      }
+    }
+  }
+}
