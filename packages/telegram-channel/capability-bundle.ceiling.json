@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "dsh-applications.telegram-capability-bundle-ceiling.v1",
+  "transport": {
+    "package": "@ashafizullah/dsh-telegram",
+    "version": "0.5.1"
+  },
+  "actions": [
+    {
+      "id": "telegram.location.input",
+      "requested": false
+    },
+    {
+      "id": "telegram.media.input",
+      "requested": false
+    },
+    {
+      "id": "telegram.vision.inspect",
+      "requested": false
+    }
+  ],
+  "ocr": {
+    "status": "planned",
+    "requested": false,
+    "action": null,
+    "subprocess": []
+  }
+}

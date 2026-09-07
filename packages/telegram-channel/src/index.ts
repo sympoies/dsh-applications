@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 
 import { definePlugin, type PluginDescriptor, type RuntimeKitPluginValidator } from "@sympoies/dsh-plugin-sdk";
 
+export * from "./media-location.ts";
+
 export const TELEGRAM_PLUGIN_VERSION = "0.5.1";
 export const TELEGRAM_PLUGIN_TARBALL_DIGEST = "sha256:a41aa5300eb0b0a25b33c162e843955eac8450c8a71446ba5c7f68623b61ea4b";
 export const TELEGRAM_PLUGIN_SOURCE_REVISION = "596ef74b4fb9536aaae9981035240be4ef8a9acd";

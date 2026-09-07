@@ -46,6 +46,9 @@ follow-ups.
   `@deepseek-ai/dsh-tool-web@0.1.1-rc.2`
 - [Recent community research](recent-community-research.md) — 2026-09-08 — build
 - [Taiwan-focused public-discussion research](taiwan-public-discussion-research.md) — 2026-09-08 — build
+- [Telegram media, vision, and location](telegram-media-vision-location.md) — 2026-09-08 — adopt
+  the exact reviewed transport for its native media surface and publish a
+  separate public location-input seam
 - [Organization calendar mediation](organization-calendar.md) — 2026-09-08 — build
 - [Conversation-scoped group notes mediation](conversation-group-notes.md) — 2026-09-08 — build
 - [Read-only work recommendation mediation](work-recommendation.md) — 2026-09-08 — build

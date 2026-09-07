@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Governed static Telegram location input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["action", "requestRef", "eventRef", "scope", "location"],
+  "properties": {
+    "action": { "const": "telegram.location.input" },
+    "requestRef": { "$ref": "#/$defs/ref" },
+    "eventRef": { "$ref": "#/$defs/ref" },
+    "scope": { "$ref": "#/$defs/scope" },
+    "location": { "$ref": "#/$defs/location" }
+  },
+  "$defs": {
+    "ref": { "type": "string", "pattern": "^ref:[0-9a-f]{64}$" },
+    "scope": {
+      "type": "object", "additionalProperties": false,
+      "required": ["deploymentRef", "audienceRef", "conversationRef"],
+      "properties": {
+        "deploymentRef": { "$ref": "#/$defs/ref" }, "audienceRef": { "$ref": "#/$defs/ref" }, "conversationRef": { "$ref": "#/$defs/ref" }
+      }
+    },
+    "location": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "latitude", "longitude"],
+      "properties": {
+        "kind": { "const": "static" },
+        "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+        "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+        "horizontalAccuracyMeters": { "type": "number", "minimum": 0, "maximum": 1500 }
+      }
+    }
+  }
+}
