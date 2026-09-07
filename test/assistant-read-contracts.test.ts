@@ -306,6 +306,13 @@ test("result validation enforces request output, source, and input-derived limit
     }),
     /day count|authorized/i,
   );
+  assert.throws(
+    () => validateAssistantReadResult(narrowAuthorized, {
+      ...result(weather),
+      data: { ...result(weather).data, units: "imperial" },
+    }),
+    /units|authorized/i,
+  );
 
   const market = "assistant.market.lookup";
   assert.throws(

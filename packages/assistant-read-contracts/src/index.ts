@@ -614,6 +614,7 @@ function validateWeatherData(value: unknown, inputValue: JsonValue): void {
   exactKeys(data, ["location", "units", "current", "daily"], [], "weather result.data");
   boundedString(data.location, "weather result.data.location", 256);
   if (!['metric', 'imperial'].includes(data.units as string)) fail("weather result.data.units is unsupported");
+  if (data.units !== input.units) fail("weather result.data.units does not match the authorized request");
   const current = record(data.current, "weather result.data.current");
   exactKeys(current, ["temperature", "condition"], [], "weather result.data.current");
   finiteNumber(current.temperature, "weather result.data.current.temperature", -150, 150);
