@@ -14,11 +14,16 @@ the same contract while using different admitted implementations.
 
 `authorizeAssistantReadInvocation` intersects one request with one private
 admission. It rejects a wrong capability, implementation digest, audience, or
-larger budget before returning the provider-neutral query. The binding digest
-is deliberately never returned. `validateAssistantReadResult` accepts only a
-bounded, source-attributed result or an explicit `cancelled`/`timed-out`
-terminal result and rejects unknown fields that could leak a provider binding,
-credential, private path, or unrelated conversation state.
+larger budget before returning an immutable provider-neutral context. That
+context retains the non-secret admission, implementation, binding-assertion,
+and audience identities required for broker receipts and confused-deputy
+checks. A private broker MUST match those identities to its authenticated
+runtime assertion before execution. `validateAssistantReadResult` consumes
+that exact context, applies the request's output/source limits and
+input-derived cardinality, and accepts only a source-attributed result or an
+explicit `cancelled`/`timed-out` terminal result. Result envelopes reject
+provider bindings, credentials, private paths, and unrelated conversation
+state.
 
 The public API is `ASSISTANT_READ_CONTRACTS`,
 `authorizeAssistantReadInvocation`, `validateAssistantReadResult`, and
@@ -36,3 +41,17 @@ and receipts. Public descriptors request one named public-data network class
 but have no filesystem, subprocess, credential-handle, general shell, or
 ambient unrestricted-network authority. Every descriptor defaults to
 `enabled: false`.
+
+For Web extraction, public validation accepts only credential-free HTTP(S)
+DNS names and rejects literal addresses and localhost names. The provider-read
+broker MUST resolve every DNS answer as public before connecting and repeat
+the complete target check for every redirect, stopping after five redirects.
+Validation before DNS is not proof that a hostname remains public.
+
+The digest-bound JSON Schemas own all JSON-Schema-expressible constraints.
+The exported validators additionally own request-to-result binding,
+chronological freshness, and exact research windows that a standalone schema
+cannot express. The public broker policy separately owns DNS-answer and
+redirect-target revalidation. Transport owners MUST enforce the declared raw
+byte ceiling before JSON decoding; these functions validate an already-decoded
+value and cannot retroactively bound parser allocation.

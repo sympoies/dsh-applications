@@ -5,9 +5,14 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
 
+import { Ajv2020 } from "ajv/dist/2020.js";
+import addFormatsImport, { type FormatsPlugin } from "ajv-formats";
+
 import {
   ASSISTANT_READ_CAPABILITY_IDS,
   ASSISTANT_READ_CONTRACTS,
+  ASSISTANT_READ_TRANSPORT_REQUIREMENTS,
+  WEB_EXTRACT_TARGET_POLICY,
   authorizeAssistantReadInvocation,
   createAssistantReadPluginDescriptor,
   validateAssistantReadResult,
@@ -22,6 +27,10 @@ const exactRuntimeKitAvailable = existsSync(join(exactRoot, "src/composition/ind
 const ONE = `sha256:${"1".repeat(64)}` as const;
 const TWO = `sha256:${"2".repeat(64)}` as const;
 const THREE = `sha256:${"3".repeat(64)}` as const;
+const ajv = new Ajv2020({ allErrors: true, strict: true });
+const addFormats = addFormatsImport as unknown as FormatsPlugin;
+addFormats(ajv);
+const schemaValidators = new Map<string, ReturnType<typeof ajv.compile>>();
 
 const capabilityIds = [
   "assistant.weather.lookup",
@@ -90,6 +99,10 @@ function invocation(capabilityId: (typeof capabilityIds)[number], overrides: Rec
   };
 }
 
+function authorization(capabilityId: (typeof capabilityIds)[number]): any {
+  return authorizeAssistantReadInvocation(admission(capabilityId), invocation(capabilityId));
+}
+
 function source() {
   return {
     url: "https://example.com/public-source",
@@ -123,8 +136,34 @@ function result(capabilityId: (typeof capabilityIds)[number]): any {
   }
 }
 
+function schemaValidator(capabilityId: (typeof capabilityIds)[number], direction: "input" | "output") {
+  const contract = ASSISTANT_READ_CONTRACTS[capabilityId];
+  const key = `${capabilityId}:${direction}`;
+  const retained = schemaValidators.get(key);
+  if (retained !== undefined) return retained;
+  const compiled = ajv.compile(JSON.parse(readFileSync(
+    resolve(root, `packages/assistant-read-contracts/schemas/${contract.schemaStem}.${direction}.schema.json`),
+    "utf8",
+  )));
+  schemaValidators.set(key, compiled);
+  return compiled;
+}
+
 test("six stable read contracts remain independently selectable and bounded", () => {
   assert.deepEqual(ASSISTANT_READ_CAPABILITY_IDS, capabilityIds);
+  assert.deepEqual(ASSISTANT_READ_TRANSPORT_REQUIREMENTS, {
+    rawBytesBeforeDecode: "required",
+    decodedValueValidation: "required",
+  });
+  assert.deepEqual(WEB_EXTRACT_TARGET_POLICY, {
+    protocols: ["http:", "https:"],
+    credentialedUrls: "forbidden",
+    literalAddresses: "forbidden",
+    dnsResolution: "all-addresses-public-before-connect",
+    redirects: "revalidate-each-hop",
+    maxRedirects: 5,
+  });
+  assert(Object.isFrozen(WEB_EXTRACT_TARGET_POLICY.protocols));
   for (const capabilityId of capabilityIds) {
     const contract = ASSISTANT_READ_CONTRACTS[capabilityId];
     assert.equal(contract.id, capabilityId);
@@ -147,11 +186,195 @@ test("every contract accepts its positive invocation and result", () => {
     assert.deepEqual(authorized.input, inputByCapability[capabilityId]);
     assert.equal(authorized.capabilityId, capabilityId);
     assert.equal(authorized.control.maxSources, ASSISTANT_READ_CONTRACTS[capabilityId].budgets.sources);
-    assert.equal((authorized as Record<string, unknown>).bindingDigest, undefined);
+    assert.equal(authorized.bindingDigest, TWO);
+    assert.equal(authorized.admissionId, "admission-public-read-1");
+    assert.equal(authorized.implementationDigest, ONE);
+    assert.equal(authorized.audienceRef, "audience-bot-a");
     assert(Object.isFrozen(authorized));
-    const validated = validateAssistantReadResult(capabilityId, result(capabilityId));
+    const validated = validateAssistantReadResult(authorized, result(capabilityId));
     assert.equal(validated.status, "completed");
     assert(Object.isFrozen(validated));
+  }
+});
+
+test("exchange-rate and Web-extract branches have positive and negative ownership", () => {
+  const market = "assistant.market.lookup";
+  const marketAuthorized = authorizeAssistantReadInvocation(admission(market), invocation(market, {
+    input: { kind: "exchange-rate", base: "USD", quotes: ["JPY", "TWD"] },
+  }));
+  const exchangeResult = {
+    ...result(market),
+    data: {
+      quotes: [],
+      exchangeRates: [{
+        base: "USD",
+        quote: "TWD",
+        rate: 31.5,
+        observedAt: "2026-09-08T00:00:00Z",
+      }],
+    },
+  };
+  assert.equal(validateAssistantReadResult(marketAuthorized, exchangeResult).status, "completed");
+  assert.throws(
+    () => validateAssistantReadResult(marketAuthorized, {
+      ...exchangeResult,
+      data: {
+        quotes: [],
+        exchangeRates: [{ ...exchangeResult.data.exchangeRates[0], base: "EUR" }],
+      },
+    }),
+    /currency pair|authorized/i,
+  );
+
+  const web = "assistant.web.lookup";
+  const webAuthorized = authorizeAssistantReadInvocation(admission(web), invocation(web, {
+    input: {
+      operation: "extract",
+      url: "https://example.com/article",
+      maxChars: 10,
+    },
+  }));
+  const extractResult = {
+    ...result(web),
+    data: {
+      results: [],
+      extraction: {
+        url: "https://example.com/article",
+        title: "Article",
+        text: "bounded",
+        contentDigest: THREE,
+      },
+    },
+  };
+  assert.equal(validateAssistantReadResult(webAuthorized, extractResult).status, "completed");
+  assert.throws(
+    () => validateAssistantReadResult(webAuthorized, {
+      ...extractResult,
+      data: {
+        ...extractResult.data,
+        extraction: { ...extractResult.data.extraction, text: "over-limit!" },
+      },
+    }),
+    /character limit|authorized/i,
+  );
+});
+
+test("result validation enforces request output, source, and input-derived limits", () => {
+  const weather = "assistant.weather.lookup";
+  const contract = ASSISTANT_READ_CONTRACTS[weather];
+  const narrowAdmission = admission(weather, {
+    limits: {
+      inputBytes: contract.budgets.inputBytes,
+      outputBytes: 1_024,
+      timeoutMs: contract.budgets.timeoutMs,
+      sources: 1,
+    },
+  });
+  const narrowAuthorized = authorizeAssistantReadInvocation(narrowAdmission, invocation(weather, {
+    input: { location: "Taipei", units: "metric", days: 1 },
+    control: {
+      timeoutMs: contract.budgets.timeoutMs,
+      maxOutputBytes: 1_024,
+      maxSources: 1,
+      cancellationRef: "cancel-narrow-weather",
+    },
+  }));
+  assert.throws(
+    () => validateAssistantReadResult(narrowAuthorized, {
+      ...result(weather),
+      summary: "x".repeat(2_000),
+    }),
+    /output|byte/i,
+  );
+  assert.throws(
+    () => validateAssistantReadResult(narrowAuthorized, {
+      ...result(weather),
+      sources: [source(), source()],
+    }),
+    /source|authorized/i,
+  );
+  assert.throws(
+    () => validateAssistantReadResult(narrowAuthorized, {
+      ...result(weather),
+      data: {
+        ...result(weather).data,
+        daily: [
+          { date: "2026-09-08", low: 25, high: 31, condition: "rain" },
+          { date: "2026-09-09", low: 24, high: 30, condition: "rain" },
+        ],
+      },
+    }),
+    /day count|authorized/i,
+  );
+
+  const market = "assistant.market.lookup";
+  assert.throws(
+    () => validateAssistantReadResult(authorization(market), {
+      ...result(market),
+      data: {
+        quotes: [
+          result(market).data.quotes[0],
+          { ...result(market).data.quotes[0], symbol: "AAPL" },
+        ],
+        exchangeRates: [],
+      },
+    }),
+    /symbols|authorized/i,
+  );
+
+  const steam = "assistant.steam.catalog.lookup";
+  const narrowSteam = authorizeAssistantReadInvocation(admission(steam), invocation(steam, {
+    input: { ...inputByCapability[steam], limit: 1 },
+  }));
+  assert.throws(
+    () => validateAssistantReadResult(narrowSteam, {
+      ...result(steam),
+      data: {
+        games: [
+          result(steam).data.games[0],
+          { ...result(steam).data.games[0], appId: 124 },
+        ],
+      },
+    }),
+    /result limit|authorized/i,
+  );
+
+  const web = "assistant.web.lookup";
+  const narrowWeb = authorizeAssistantReadInvocation(admission(web), invocation(web, {
+    input: { operation: "search", query: "public", limit: 1 },
+  }));
+  assert.throws(
+    () => validateAssistantReadResult(narrowWeb, {
+      ...result(web),
+      data: {
+        results: [
+          result(web).data.results[0],
+          { ...result(web).data.results[0], url: "https://example.org/second" },
+        ],
+        extraction: null,
+      },
+    }),
+    /search limit|authorized/i,
+  );
+
+  for (const research of capabilityIds.slice(4)) {
+    const narrowResearch = authorizeAssistantReadInvocation(admission(research), invocation(research, {
+      input: { ...inputByCapability[research], maxFindings: 1 },
+    }));
+    const researchResult = result(research);
+    assert.throws(
+      () => validateAssistantReadResult(narrowResearch, {
+        ...researchResult,
+        data: {
+          ...researchResult.data,
+          findings: [
+            researchResult.data.findings[0],
+            { ...researchResult.data.findings[0], claim: "A second finding." },
+          ],
+        },
+      }),
+      /result limit|authorized/i,
+    );
   }
 });
 
@@ -213,11 +436,11 @@ test("input, output, source, and timeout ceilings reject excess", () => {
     /source/i,
   );
   assert.throws(
-    () => validateAssistantReadResult(weather, { ...result(weather), summary: "x".repeat(100_000) }),
+    () => validateAssistantReadResult(authorization(weather), { ...result(weather), summary: "x".repeat(100_000) }),
     /output|byte|long/i,
   );
   assert.throws(
-    () => validateAssistantReadResult(weather, { ...result(weather), sources: Array.from({ length: ASSISTANT_READ_CONTRACTS[weather].budgets.sources + 1 }, source) }),
+    () => validateAssistantReadResult(authorization(weather), { ...result(weather), sources: Array.from({ length: ASSISTANT_READ_CONTRACTS[weather].budgets.sources + 1 }, source) }),
     /source|bounded/i,
   );
 });
@@ -226,10 +449,10 @@ test("cancellation and timeout are explicit terminal outcomes and cannot carry s
   for (const capabilityId of capabilityIds.slice(4)) {
     const cancelled = { ...result(capabilityId), status: "cancelled", asOf: null, summary: "Cancelled by caller.", sources: [], data: null };
     const timedOut = { ...cancelled, status: "timed-out", summary: "Timed out." };
-    assert.equal(validateAssistantReadResult(capabilityId, cancelled).status, "cancelled");
-    assert.equal(validateAssistantReadResult(capabilityId, timedOut).status, "timed-out");
+    assert.equal(validateAssistantReadResult(authorization(capabilityId), cancelled).status, "cancelled");
+    assert.equal(validateAssistantReadResult(authorization(capabilityId), timedOut).status, "timed-out");
     assert.throws(
-      () => validateAssistantReadResult(capabilityId, { ...cancelled, sources: [source()] }),
+      () => validateAssistantReadResult(authorization(capabilityId), { ...cancelled, sources: [source()] }),
       /terminal|source|cancel/i,
     );
   }
@@ -239,7 +462,7 @@ test("strict output envelopes reject private bindings and unrelated state", () =
   const weather = capabilityIds[0];
   for (const forbidden of ["bindingDigest", "credentialHandle", "privateConfigPath", "conversationState"]) {
     assert.throws(
-      () => validateAssistantReadResult(weather, { ...result(weather), [forbidden]: "opaque" }),
+      () => validateAssistantReadResult(authorization(weather), { ...result(weather), [forbidden]: "opaque" }),
       new RegExp(`unknown field ${forbidden}`, "i"),
     );
   }
@@ -290,6 +513,10 @@ test("each capability creates one separately admitted read descriptor with no am
     assert.deepEqual(descriptor.mediation.network, contract.networkClasses);
     assert.deepEqual(descriptor.capabilities.dependencies, []);
     assert.deepEqual(descriptor.configuration.defaults, { enabled: false });
+    const configSchemaDigest = `sha256:${createHash("sha256")
+      .update(readFileSync(resolve(root, "packages/assistant-read-contracts/schemas/public-config.schema.json")))
+      .digest("hex")}`;
+    assert.equal(descriptor.configuration.schemaDigest, configSchemaDigest);
     assert(Object.isFrozen(descriptor));
     assert.throws(() => descriptor.mediation.network.push("ambient-network"));
   }
@@ -328,4 +555,251 @@ test("schema identities bind all checked-in strict contracts", () => {
 test("public contract source has no implementation client or private authority path", () => {
   const sourceText = readFileSync(resolve(root, "packages/assistant-read-contracts/src/index.ts"), "utf8");
   assert.doesNotMatch(sourceText, /local-scripts|serenvia|process\.env|child_process|node:fs|fetch\(|axios|subprocess-template|filesystem-(?:read|write)|network-connect/i);
+});
+
+test("Web extraction rejects literal non-public targets before broker execution", () => {
+  const web = "assistant.web.lookup";
+  for (const url of [
+    "file:///etc/passwd",
+    "http://localhost/admin",
+    "http://service.localhost/admin",
+    "http://localhost./admin",
+    "http://127.0.0.1/admin",
+    "http://127.1/admin",
+    "http://2130706433/admin",
+    "http://0x7f000001/admin",
+    "http://0177.0.0.1/admin",
+    "http://169.254.169.254/latest/meta-data",
+    "http://10.0.0.1/",
+    "http://172.16.0.1/",
+    "http://192.168.0.1/",
+    "http://[::1]/",
+    "http://[fe80::1]/",
+  ]) {
+    assert.throws(
+      () => authorizeAssistantReadInvocation(admission(web), invocation(web, {
+        input: { operation: "extract", url, maxChars: 1_024 },
+      })),
+      /public|target|URL/i,
+      url,
+    );
+  }
+  assert.doesNotThrow(
+    () => authorizeAssistantReadInvocation(admission(web), invocation(web, {
+      input: { operation: "extract", url: "https://1password.com/", maxChars: 1_024 },
+    })),
+  );
+});
+
+test("calendar validation rejects normalized impossible dates", () => {
+  const research = "assistant.research.recent-community";
+  assert.throws(
+    () => authorizeAssistantReadInvocation(admission(research), invocation(research, {
+      input: {
+        ...inputByCapability[research],
+        since: "2026-02-01T00:00:00Z",
+        until: "2026-02-30T00:00:00Z",
+      },
+    })),
+    /timestamp|calendar|date/i,
+  );
+
+  const weather = "assistant.weather.lookup";
+  assert.throws(
+    () => validateAssistantReadResult(authorization(weather), {
+      ...result(weather),
+      asOf: "2026-02-30T00:00:00Z",
+    }),
+    /timestamp|calendar|date/i,
+  );
+  assert.throws(
+    () => validateAssistantReadResult(authorization(weather), {
+      ...result(weather),
+      sources: [{ ...source(), retrievedAt: "2026-02-30T00:00:00Z" }],
+    }),
+    /timestamp|calendar|date/i,
+  );
+  assert.throws(
+    () => validateAssistantReadResult(authorization(weather), {
+      ...result(weather),
+      data: {
+        ...result(weather).data,
+        daily: [{ date: "2026-02-30", low: 1, high: 2, condition: "rain" }],
+      },
+    }),
+    /timestamp|calendar|date/i,
+  );
+});
+
+test("authorization retains immutable admission and target-binding context", () => {
+  const weather = "assistant.weather.lookup";
+  const authorized: any = authorizeAssistantReadInvocation(admission(weather), invocation(weather));
+  assert.equal(authorized.admissionId, "admission-public-read-1");
+  assert.equal(authorized.implementationDigest, ONE);
+  assert.equal(authorized.bindingDigest, TWO);
+  assert.equal(authorized.audienceRef, "audience-bot-a");
+  assert(Object.isFrozen(authorized.control));
+  assert(Object.isFrozen(authorized.input));
+  assert.throws(() => { authorized.bindingDigest = THREE; });
+});
+
+test("completed freshness timestamps are chronological", () => {
+  const weather = "assistant.weather.lookup";
+  assert.throws(
+    () => validateAssistantReadResult(authorization(weather), {
+      ...result(weather),
+      asOf: "2026-09-08T00:00:00Z",
+      sources: [{
+        ...source(),
+        publishedAt: "2026-09-08T00:00:01Z",
+        retrievedAt: "2026-09-08T00:00:02Z",
+      }],
+    }),
+    /fresh|chronolog|published|retrieved|asOf/i,
+  );
+  assert.throws(
+    () => validateAssistantReadResult(authorization(weather), {
+      ...result(weather),
+      asOf: "2026-09-08T00:00:03Z",
+      sources: [{
+        ...source(),
+        publishedAt: "2026-09-08T00:00:02Z",
+        retrievedAt: "2026-09-08T00:00:01Z",
+      }],
+    }),
+    /publishedAt.*retrievedAt/i,
+  );
+
+  const market = "assistant.market.lookup";
+  assert.throws(
+    () => validateAssistantReadResult(authorization(market), {
+      ...result(market),
+      data: {
+        ...result(market).data,
+        quotes: [{ ...result(market).data.quotes[0], observedAt: "2026-09-08T00:00:01Z" }],
+      },
+    }),
+    /observedAt.*asOf/i,
+  );
+  const steam = "assistant.steam.catalog.lookup";
+  assert.throws(
+    () => validateAssistantReadResult(authorization(steam), {
+      ...result(steam),
+      data: {
+        games: [{ ...result(steam).data.games[0], observedAt: "2026-09-08T00:00:01Z" }],
+      },
+    }),
+    /observedAt.*asOf/i,
+  );
+});
+
+test("JSON Schemas and direct validators conform on expressible constraints", () => {
+  for (const capabilityId of capabilityIds) {
+    assert.equal(schemaValidator(capabilityId, "input")(inputByCapability[capabilityId]), true);
+    assert.equal(schemaValidator(capabilityId, "output")(result(capabilityId)), true);
+  }
+
+  const web = "assistant.web.lookup";
+  for (const url of [
+    "file:///etc/passwd",
+    "http://user:password@example.com/",
+    "http://localhost/",
+    "http://service.localhost/",
+    "http://localhost./",
+    "http://127.0.0.1/",
+    "http://127.1/",
+    "http://2130706433/",
+    "http://0x7f000001/",
+    "http://0177.0.0.1/",
+    "http://[::1]/",
+  ]) {
+    const candidate = { operation: "extract", url, maxChars: 100 };
+    assert.equal(schemaValidator(web, "input")(candidate), false, url);
+    assert.throws(
+      () => authorizeAssistantReadInvocation(admission(web), invocation(web, { input: candidate })),
+      /URL|public|target/i,
+    );
+  }
+  const publicNumericName = { operation: "extract", url: "https://1password.com/", maxChars: 100 };
+  assert.equal(schemaValidator(web, "input")(publicNumericName), true);
+  assert.doesNotThrow(
+    () => authorizeAssistantReadInvocation(admission(web), invocation(web, { input: publicNumericName })),
+  );
+
+  const research = "assistant.research.recent-community";
+  const unsortedResearch = {
+    ...inputByCapability[research],
+    sourceClasses: ["social", "community"],
+  };
+  assert.equal(schemaValidator(research, "input")(unsortedResearch), true);
+  assert.doesNotThrow(
+    () => authorizeAssistantReadInvocation(admission(research), invocation(research, { input: unsortedResearch })),
+  );
+  const unsortedSourceIndexes = {
+    ...result(research),
+    sources: [
+      source(),
+      { ...source(), url: "https://example.org/second-source" },
+    ],
+    data: {
+      ...result(research).data,
+      findings: [{ ...result(research).data.findings[0], sourceIndexes: [1, 0] }],
+    },
+  };
+  assert.equal(schemaValidator(research, "output")(unsortedSourceIndexes), true);
+  assert.doesNotThrow(
+    () => validateAssistantReadResult(authorization(research), unsortedSourceIndexes),
+  );
+
+  const invalidCalendar = {
+    ...inputByCapability[research],
+    since: "2026-02-01T00:00:00Z",
+    until: "2026-02-30T00:00:00Z",
+  };
+  assert.equal(schemaValidator(research, "input")(invalidCalendar), false);
+  assert.throws(
+    () => authorizeAssistantReadInvocation(admission(research), invocation(research, { input: invalidCalendar })),
+    /timestamp|calendar|date/i,
+  );
+
+  const cancelledWithData = {
+    ...result(web),
+    status: "cancelled",
+    asOf: null,
+  };
+  assert.equal(schemaValidator(web, "output")(cancelledWithData), false);
+  assert.throws(
+    () => validateAssistantReadResult(authorization(web), cancelledWithData),
+    /terminal|cancel/i,
+  );
+
+  const credentialSource = {
+    ...result(web),
+    sources: [{ ...source(), url: "https://user:password@example.com/source" }],
+  };
+  assert.equal(schemaValidator(web, "output")(credentialSource), false);
+  assert.throws(
+    () => validateAssistantReadResult(authorization(web), credentialSource),
+    /credential|URL/i,
+  );
+});
+
+test("wide input stops before eager descriptor aggregation", () => {
+  const weather = "assistant.weather.lookup";
+  const wide = Object.fromEntries(Array.from({ length: 3_000 }, (_, index) => [`field${index}`, index]));
+  const original = Object.getOwnPropertyDescriptors;
+  Object.getOwnPropertyDescriptors = () => {
+    throw new Error("eager descriptor aggregation");
+  };
+  try {
+    assert.throws(
+      () => authorizeAssistantReadInvocation(admission(weather), {
+        ...invocation(weather),
+        input: wide,
+      }),
+      /item limit/i,
+    );
+  } finally {
+    Object.getOwnPropertyDescriptors = original;
+  }
 });

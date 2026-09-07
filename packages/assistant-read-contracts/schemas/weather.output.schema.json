@@ -24,7 +24,7 @@
               "additionalProperties": false,
               "required": ["temperature", "condition"],
               "properties": {
-                "temperature": { "type": "number" },
+                "temperature": { "type": "number", "minimum": -150, "maximum": 150 },
                 "condition": { "type": "string", "maxLength": 128 }
               }
             },
@@ -37,8 +37,8 @@
                 "required": ["date", "low", "high", "condition"],
                 "properties": {
                   "date": { "type": "string", "format": "date" },
-                  "low": { "type": "number" },
-                  "high": { "type": "number" },
+                  "low": { "type": "number", "minimum": -150, "maximum": 150 },
+                  "high": { "type": "number", "minimum": -150, "maximum": 150 },
                   "condition": { "type": "string", "maxLength": 128 }
                 }
               }
@@ -48,6 +48,10 @@
       ]
     }
   },
+  "allOf": [
+    { "if": { "properties": { "status": { "const": "completed" } } }, "then": { "properties": { "asOf": { "type": "string" }, "sources": { "type": "array", "minItems": 1 }, "data": { "not": { "type": "null" } } } } },
+    { "if": { "properties": { "status": { "enum": ["cancelled", "timed-out"] } } }, "then": { "properties": { "asOf": { "type": "null" }, "sources": { "type": "array", "maxItems": 0 }, "data": { "type": "null" } } } }
+  ],
   "$defs": {
     "sources": {
       "type": "array",
@@ -59,7 +63,7 @@
       "additionalProperties": false,
       "required": ["url", "title", "retrievedAt", "contentDigest"],
       "properties": {
-        "url": { "type": "string", "format": "uri", "maxLength": 2048 },
+        "url": { "type": "string", "format": "uri", "maxLength": 2048, "pattern": "^[Hh][Tt][Tt][Pp][Ss]?://(?![^/?#]*@)" },
         "title": { "type": "string", "maxLength": 1024 },
         "retrievedAt": { "type": "string", "format": "date-time" },
         "publishedAt": { "type": "string", "format": "date-time" },

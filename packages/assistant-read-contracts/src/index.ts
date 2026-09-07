@@ -1,4 +1,5 @@
 import { Buffer } from "node:buffer";
+import { isIP } from "node:net";
 
 import { definePlugin, type JsonValue, type PluginDescriptor, type RuntimeKitPluginValidator } from "@sympoies/dsh-plugin-sdk";
 
@@ -64,6 +65,10 @@ export interface AssistantReadInvocation {
 export interface AuthorizedAssistantReadInvocation {
   readonly capabilityId: AssistantReadCapabilityId;
   readonly requestId: string;
+  readonly admissionId: string;
+  readonly implementationDigest: `sha256:${string}`;
+  readonly bindingDigest: `sha256:${string}`;
+  readonly audienceRef: string;
   readonly input: JsonValue;
   readonly control: AssistantReadInvocation["control"];
 }
@@ -101,9 +106,23 @@ const REVISION = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/u;
 const IDENTIFIER = /^[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?$/u;
 const CURRENCY = /^[A-Z]{3}$/u;
 const COUNTRY = /^[A-Z]{2}$/u;
-const DATE = /^\d{4}-\d{2}-\d{2}$/u;
-const DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/u;
+const DATE = /^(\d{4})-(\d{2})-(\d{2})$/u;
+const DATE_TIME = /^(\d{4})-(\d{2})-(\d{2})T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,3})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/u;
 const CONFIG_SCHEMA_DIGEST = "sha256:38b8c506be2495292e2ad894e044b5ab83e31df2bb190a9665d645f831748c41";
+
+export const ASSISTANT_READ_TRANSPORT_REQUIREMENTS = Object.freeze({
+  rawBytesBeforeDecode: "required",
+  decodedValueValidation: "required",
+} as const);
+
+export const WEB_EXTRACT_TARGET_POLICY = Object.freeze({
+  protocols: Object.freeze(["http:", "https:"] as const),
+  credentialedUrls: "forbidden",
+  literalAddresses: "forbidden",
+  dnsResolution: "all-addresses-public-before-connect",
+  redirects: "revalidate-each-hop",
+  maxRedirects: 5,
+} as const);
 
 const contracts: Record<AssistantReadCapabilityId, AssistantReadCapabilityContract> = {
   "assistant.weather.lookup": {
@@ -112,7 +131,7 @@ const contracts: Record<AssistantReadCapabilityId, AssistantReadCapabilityContra
     actionId: "assistant.weather.lookup",
     schemaStem: "weather",
     inputSchemaDigest: "sha256:9ab7c92dbea779baa66b36bd39279c2b4d3d9a54ee0f63e0650bbee61281663c",
-    outputSchemaDigest: "sha256:04169ca0dc124a7df3b752a09f90568dfb73cb0b24be5fcc201974e6be0bc31a",
+    outputSchemaDigest: "sha256:ce0feceece3caff517386514db23f3cca06150e83dddb854590f2ae95f7c5d75",
     hostActionClasses: ["provider-read"],
     networkClasses: ["public-weather-data"],
     budgets: { inputBytes: 2_048, outputBytes: 32_768, timeoutMs: 10_000, sources: 4 },
@@ -125,7 +144,7 @@ const contracts: Record<AssistantReadCapabilityId, AssistantReadCapabilityContra
     actionId: "assistant.market.lookup",
     schemaStem: "market",
     inputSchemaDigest: "sha256:32c4b14dc09cddeecce3ff22aff2ebf68e9b6501515ea6ddea99c0274b3e1f94",
-    outputSchemaDigest: "sha256:cd3307d67c7d017641bd3744b450d6fc209a163fe9c98a4669e0896715ac8e24",
+    outputSchemaDigest: "sha256:ad3c0a097216e6b1b2faa74fad89fffde6fe2408f5ea9db46dd0ee9252087ecb",
     hostActionClasses: ["provider-read"],
     networkClasses: ["public-market-data"],
     budgets: { inputBytes: 4_096, outputBytes: 49_152, timeoutMs: 12_000, sources: 8 },
@@ -138,7 +157,7 @@ const contracts: Record<AssistantReadCapabilityId, AssistantReadCapabilityContra
     actionId: "assistant.steam.catalog.lookup",
     schemaStem: "steam",
     inputSchemaDigest: "sha256:c5bfb3e707461fec4b687b0f3fbfd0dc9b31fca319d55990bbb5cd00fcce7396",
-    outputSchemaDigest: "sha256:3c884c762ea28a6ca25483521442f57953ce590ac4c07a04fc2e5c64914ad6dd",
+    outputSchemaDigest: "sha256:4cde06c9eee1694855a7d936df385bd139cd1dc3404b7c09ec47080376390ecc",
     hostActionClasses: ["provider-read"],
     networkClasses: ["public-steam-catalog"],
     budgets: { inputBytes: 4_096, outputBytes: 65_536, timeoutMs: 12_000, sources: 8 },
@@ -150,8 +169,8 @@ const contracts: Record<AssistantReadCapabilityId, AssistantReadCapabilityContra
     pluginId: "assistant-web-read",
     actionId: "assistant.web.lookup",
     schemaStem: "web",
-    inputSchemaDigest: "sha256:08db0a146195dcb5cdd9d47a5f6d7dffae46a45d332905c6029409bac660d654",
-    outputSchemaDigest: "sha256:a416a70f24b16227029c40e09908cc4415418c85b123fab6b7170f05b73dcdd5",
+    inputSchemaDigest: "sha256:e85452c7e443d6c497261a13e8126d36748f73ed4b86ae25c064065c8d51ec94",
+    outputSchemaDigest: "sha256:c94eb6ac3908022092a8203ee3673081168585972d8c189d202a5219276e31c8",
     hostActionClasses: ["provider-read"],
     networkClasses: ["public-web-data"],
     budgets: { inputBytes: 8_192, outputBytes: 131_072, timeoutMs: 30_000, sources: 12 },
@@ -164,7 +183,7 @@ const contracts: Record<AssistantReadCapabilityId, AssistantReadCapabilityContra
     actionId: "assistant.research.recent-community",
     schemaStem: "recent-community",
     inputSchemaDigest: "sha256:f18ddfc526fea9920d77ab0a61567ca3034477eb782862b9d7765459d18ae768",
-    outputSchemaDigest: "sha256:163fb1695191dec2d5172c3059d1792d15406116477a515d5c53165e59e81826",
+    outputSchemaDigest: "sha256:c94887d2d3da45b9db6eb682f7c49f0af10bd4a2fccd7da69fe458fead9ed083",
     hostActionClasses: ["provider-read"],
     networkClasses: ["public-community-data"],
     budgets: { inputBytes: 8_192, outputBytes: 131_072, timeoutMs: 120_000, sources: 32 },
@@ -177,7 +196,7 @@ const contracts: Record<AssistantReadCapabilityId, AssistantReadCapabilityContra
     actionId: "assistant.research.taiwan-public-discussion",
     schemaStem: "taiwan-public-discussion",
     inputSchemaDigest: "sha256:3b270bcc2d6ddc2a704715cdaadac0314219b56cbcaeeb047eea2ff4118acbc2",
-    outputSchemaDigest: "sha256:755176f8c8025c8bab5c35b0ae6875e94084283dee261113488ef8c270989c64",
+    outputSchemaDigest: "sha256:55ee41a7bc742620cdbce59253dc07ef9a349526bd13c5bd663997d022ae35b4",
     hostActionClasses: ["provider-read"],
     networkClasses: ["public-taiwan-discussion"],
     budgets: { inputBytes: 8_192, outputBytes: 131_072, timeoutMs: 120_000, sources: 32 },
@@ -230,14 +249,26 @@ function opaqueRef(value: unknown, label: string): asserts value is string {
   if (!IDENTIFIER.test(value)) fail(`${label} must be an opaque public identifier`);
 }
 
+function validCalendarComponents(match: RegExpExecArray): boolean {
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (!Number.isInteger(year) || month < 1 || month > 12 || day < 1) return false;
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return day <= (days[month - 1] ?? 0);
+}
+
 function dateTime(value: unknown, label: string): asserts value is string {
-  if (typeof value !== "string" || !DATE_TIME.test(value) || !Number.isFinite(Date.parse(value))) {
+  const match = typeof value === "string" ? DATE_TIME.exec(value) : null;
+  if (match === null || !validCalendarComponents(match) || !Number.isFinite(Date.parse(value as string))) {
     fail(`${label} must be an RFC 3339 timestamp`);
   }
 }
 
 function calendarDate(value: unknown, label: string): asserts value is string {
-  if (typeof value !== "string" || !DATE.test(value) || !Number.isFinite(Date.parse(`${value}T00:00:00Z`))) {
+  const match = typeof value === "string" ? DATE.exec(value) : null;
+  if (match === null || !validCalendarComponents(match)) {
     fail(`${label} must be a calendar date`);
   }
 }
@@ -252,6 +283,15 @@ function publicUrl(value: unknown, label: string): asserts value is string {
   }
   if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username !== "" || parsed.password !== "") {
     fail(`${label} must be a credential-free HTTP(S) URL`);
+  }
+}
+
+function publicTargetUrl(value: unknown, label: string): asserts value is string {
+  publicUrl(value, label);
+  const parsed = new URL(value);
+  const hostname = parsed.hostname.replace(/^\[|\]$/gu, "").replace(/\.$/u, "").toLowerCase();
+  if (hostname === "localhost" || hostname.endsWith(".localhost") || isIP(hostname) !== 0) {
+    fail(`${label} must name a DNS host whose resolved target is public`);
   }
 }
 
@@ -284,24 +324,28 @@ function jsonBytes(value: unknown, label: string, maximum: number): number {
     if ((!isArray && prototype !== Object.prototype && prototype !== null) || (isArray && prototype !== Array.prototype)) {
       fail(`${label} must contain only JSON containers`);
     }
-    if (Object.getOwnPropertySymbols(candidate).length !== 0) fail(`${label} must not contain symbols`);
-    const descriptors = Object.getOwnPropertyDescriptors(candidate);
-    const keys = Object.keys(descriptors);
-    if (isArray) {
-      const dataKeys = keys.filter(key => key !== "length");
-      if (dataKeys.length !== (candidate as unknown[]).length) fail(`${label} arrays must be dense`);
-      dataKeys.forEach((key, index) => { if (key !== String(index)) fail(`${label} arrays must be dense`); });
-    }
     ancestors.add(candidate);
-    for (const key of keys) {
-      if (isArray && key === "length") continue;
-      const descriptor = descriptors[key] as PropertyDescriptor;
+    const ownEnumerableKeys: string[] = [];
+    for (const key in candidate) {
+      if (!Object.prototype.hasOwnProperty.call(candidate, key)) continue;
+      items += 1;
+      if (items > 2_048) fail(`${label} exceeds its item limit`);
+      ownEnumerableKeys.push(key);
+      const descriptor = Object.getOwnPropertyDescriptor(candidate, key);
+      if (descriptor === undefined) fail(`${label} changed during validation`);
       if (descriptor.get !== undefined || descriptor.set !== undefined || descriptor.enumerable !== true) {
         fail(`${label} must contain only enumerable data fields`);
       }
-      items += 1;
-      if (items > 2_048) fail(`${label} exceeds its item limit`);
       visit(descriptor.value, depth + 1);
+    }
+    if (Object.getOwnPropertySymbols(candidate).length !== 0) fail(`${label} must not contain symbols`);
+    const ownNames = Object.getOwnPropertyNames(candidate);
+    if (ownNames.length !== ownEnumerableKeys.length + (isArray ? 1 : 0)) {
+      fail(`${label} must contain only enumerable data fields`);
+    }
+    if (isArray) {
+      if (ownEnumerableKeys.length !== (candidate as unknown[]).length) fail(`${label} arrays must be dense`);
+      ownEnumerableKeys.forEach((key, index) => { if (key !== String(index)) fail(`${label} arrays must be dense`); });
     }
     ancestors.delete(candidate);
   };
@@ -326,11 +370,11 @@ function boundedUniqueStrings(
   maximum: number,
 ): asserts value is string[] {
   if (!Array.isArray(value) || value.length < 1 || value.length > maximum) fail(`${label} must be a bounded array`);
-  let previous = "";
+  const seen = new Set<string>();
   value.forEach((item, index) => {
     if (typeof item !== "string" || !allowed.includes(item)) fail(`${label}[${index}] is unsupported`);
-    if (index > 0 && item <= previous) fail(`${label} must be sorted and unique`);
-    previous = item;
+    if (seen.has(item)) fail(`${label} must be unique`);
+    seen.add(item);
   });
 }
 
@@ -389,7 +433,7 @@ function validateWebInput(value: unknown): void {
   }
   if (input.operation === "extract") {
     exactKeys(input, ["operation", "url", "maxChars"], [], "web input");
-    publicUrl(input.url, "web input.url");
+    publicTargetUrl(input.url, "web input.url");
     integer(input.maxChars, "web input.maxChars", 1, 65_536);
     return;
   }
@@ -485,12 +529,41 @@ export function authorizeAssistantReadInvocation(admissionValue: unknown, invoca
   return freezeClone({
     capabilityId,
     requestId: invocation.requestId,
+    admissionId: admission.admissionId,
+    implementationDigest: admission.implementationDigest,
+    bindingDigest: admission.bindingDigest,
+    audienceRef: invocation.audienceRef,
     input: invocation.input,
     control,
   });
 }
 
-function validateSource(value: unknown, label: string): void {
+function validateAuthorizedInvocation(value: unknown): Readonly<AuthorizedAssistantReadInvocation> {
+  jsonBytes(value, "authorized assistant read invocation", 32_768);
+  const authorized = record(value, "authorized assistant read invocation");
+  exactKeys(authorized, [
+    "capabilityId", "requestId", "admissionId", "implementationDigest",
+    "bindingDigest", "audienceRef", "input", "control",
+  ], [], "authorized assistant read invocation");
+  const capabilityId = capability(authorized.capabilityId);
+  opaqueRef(authorized.requestId, "authorized assistant read invocation.requestId");
+  opaqueRef(authorized.admissionId, "authorized assistant read invocation.admissionId");
+  digest(authorized.implementationDigest, "authorized assistant read invocation.implementationDigest");
+  digest(authorized.bindingDigest, "authorized assistant read invocation.bindingDigest");
+  opaqueRef(authorized.audienceRef, "authorized assistant read invocation.audienceRef");
+  const control = record(authorized.control, "authorized assistant read invocation.control");
+  exactKeys(control, ["timeoutMs", "maxOutputBytes", "maxSources", "cancellationRef"], [], "authorized assistant read invocation.control");
+  const ceiling = contracts[capabilityId].budgets;
+  integer(control.timeoutMs, "authorized assistant read invocation.control.timeoutMs", 1, ceiling.timeoutMs);
+  integer(control.maxOutputBytes, "authorized assistant read invocation.control.maxOutputBytes", 1, ceiling.outputBytes);
+  integer(control.maxSources, "authorized assistant read invocation.control.maxSources", 1, ceiling.sources);
+  opaqueRef(control.cancellationRef, "authorized assistant read invocation.control.cancellationRef");
+  jsonBytes(authorized.input, "authorized assistant read invocation.input", ceiling.inputBytes);
+  inputValidators[capabilityId](authorized.input);
+  return freezeClone(authorized) as unknown as Readonly<AuthorizedAssistantReadInvocation>;
+}
+
+function validateSource(value: unknown, label: string, asOfMs: number): void {
   const source = record(value, label);
   exactKeys(source, ["url", "title", "retrievedAt", "contentDigest"], ["publishedAt"], label);
   publicUrl(source.url, `${label}.url`);
@@ -498,15 +571,20 @@ function validateSource(value: unknown, label: string): void {
   dateTime(source.retrievedAt, `${label}.retrievedAt`);
   if (source.publishedAt !== undefined) dateTime(source.publishedAt, `${label}.publishedAt`);
   digest(source.contentDigest, `${label}.contentDigest`);
+  const retrievedAtMs = Date.parse(source.retrievedAt);
+  if (retrievedAtMs > asOfMs) fail(`${label}.retrievedAt must not be after result.asOf`);
+  if (source.publishedAt !== undefined && Date.parse(source.publishedAt) > retrievedAtMs) {
+    fail(`${label}.publishedAt must not be after retrievedAt`);
+  }
 }
 
 function validateSourceIndexes(value: unknown, label: string, sourceCount: number): void {
   if (!Array.isArray(value) || value.length < 1 || value.length > 16) fail(`${label} must be a bounded array`);
-  let previous = -1;
+  const seen = new Set<number>();
   value.forEach((index, position) => {
     integer(index, `${label}[${position}]`, 0, Math.max(0, sourceCount - 1));
-    if (index <= previous) fail(`${label} must be sorted and unique`);
-    previous = index;
+    if (seen.has(index)) fail(`${label} must be unique`);
+    seen.add(index);
   });
 }
 
@@ -526,7 +604,8 @@ function validateFinding(value: unknown, label: string, sourceCount: number): vo
   if (!['low', 'medium', 'high'].includes(finding.confidence as string)) fail(`${label}.confidence is unsupported`);
 }
 
-function validateWeatherData(value: unknown): void {
+function validateWeatherData(value: unknown, inputValue: JsonValue): void {
+  const input = record(inputValue, "authorized weather input");
   const data = record(value, "weather result.data");
   exactKeys(data, ["location", "units", "current", "daily"], [], "weather result.data");
   boundedString(data.location, "weather result.data.location", 256);
@@ -535,7 +614,9 @@ function validateWeatherData(value: unknown): void {
   exactKeys(current, ["temperature", "condition"], [], "weather result.data.current");
   finiteNumber(current.temperature, "weather result.data.current.temperature", -150, 150);
   boundedString(current.condition, "weather result.data.current.condition", 128, false);
-  if (!Array.isArray(data.daily) || data.daily.length > 10) fail("weather result.data.daily must be bounded");
+  if (!Array.isArray(data.daily) || data.daily.length > (input.days as number)) {
+    fail("weather result.data.daily exceeds the authorized day count");
+  }
   data.daily.forEach((candidate, index) => {
     const day = record(candidate, `weather result.data.daily[${index}]`);
     exactKeys(day, ["date", "low", "high", "condition"], [], `weather result.data.daily[${index}]`);
@@ -547,10 +628,17 @@ function validateWeatherData(value: unknown): void {
   });
 }
 
-function validateMarketData(value: unknown): void {
+function validateMarketData(value: unknown, inputValue: JsonValue, asOfMs: number): void {
+  const input = record(inputValue, "authorized market input");
   const data = record(value, "market result.data");
   exactKeys(data, ["quotes", "exchangeRates"], [], "market result.data");
-  if (!Array.isArray(data.quotes) || data.quotes.length > 20) fail("market result.data.quotes must be bounded");
+  const quoteRequest = input.kind === "quote";
+  const requestedSymbols = quoteRequest ? input.symbols as string[] : [];
+  const requestedQuotes = quoteRequest ? [] : input.quotes as string[];
+  if (!Array.isArray(data.quotes) || data.quotes.length > requestedSymbols.length) {
+    fail("market result.data.quotes exceeds the authorized symbols");
+  }
+  const seenSymbols = new Set<string>();
   data.quotes.forEach((candidate, index) => {
     const quote = record(candidate, `market result.data.quotes[${index}]`);
     exactKeys(quote, ["symbol", "currency", "price", "observedAt"], [], `market result.data.quotes[${index}]`);
@@ -558,8 +646,16 @@ function validateMarketData(value: unknown): void {
     if (typeof quote.currency !== "string" || !CURRENCY.test(quote.currency)) fail("market quote currency is invalid");
     finiteNumber(quote.price, `market result.data.quotes[${index}].price`, 0);
     dateTime(quote.observedAt, `market result.data.quotes[${index}].observedAt`);
+    if (!quoteRequest || !requestedSymbols.includes(quote.symbol as string) || seenSymbols.has(quote.symbol as string)) {
+      fail("market quote is not bound to one authorized symbol");
+    }
+    if (Date.parse(quote.observedAt) > asOfMs) fail("market quote observedAt must not be after result.asOf");
+    seenSymbols.add(quote.symbol as string);
   });
-  if (!Array.isArray(data.exchangeRates) || data.exchangeRates.length > 100) fail("market result.data.exchangeRates must be bounded");
+  if (!Array.isArray(data.exchangeRates) || data.exchangeRates.length > requestedQuotes.length) {
+    fail("market result.data.exchangeRates exceeds the authorized currencies");
+  }
+  const seenQuotes = new Set<string>();
   data.exchangeRates.forEach((candidate, index) => {
     const rate = record(candidate, `market result.data.exchangeRates[${index}]`);
     exactKeys(rate, ["base", "quote", "rate", "observedAt"], [], `market result.data.exchangeRates[${index}]`);
@@ -568,13 +664,21 @@ function validateMarketData(value: unknown): void {
     }
     finiteNumber(rate.rate, `market result.data.exchangeRates[${index}].rate`, Number.MIN_VALUE);
     dateTime(rate.observedAt, `market result.data.exchangeRates[${index}].observedAt`);
+    if (quoteRequest || rate.base !== input.base || !requestedQuotes.includes(rate.quote as string) || seenQuotes.has(rate.quote as string)) {
+      fail("market exchange rate is not bound to one authorized currency pair");
+    }
+    if (Date.parse(rate.observedAt) > asOfMs) fail("market exchange rate observedAt must not be after result.asOf");
+    seenQuotes.add(rate.quote as string);
   });
 }
 
-function validateSteamData(value: unknown): void {
+function validateSteamData(value: unknown, inputValue: JsonValue, asOfMs: number): void {
+  const input = record(inputValue, "authorized Steam input");
   const data = record(value, "Steam result.data");
   exactKeys(data, ["games"], [], "Steam result.data");
-  if (!Array.isArray(data.games) || data.games.length > 20) fail("Steam result.data.games must be bounded");
+  if (!Array.isArray(data.games) || data.games.length > (input.limit as number)) {
+    fail("Steam result.data.games exceeds the authorized result limit");
+  }
   data.games.forEach((candidate, index) => {
     const game = record(candidate, `Steam result.data.games[${index}]`);
     exactKeys(game, [
@@ -583,19 +687,26 @@ function validateSteamData(value: unknown): void {
     integer(game.appId, `Steam result.data.games[${index}].appId`, 1, 2_147_483_647);
     boundedString(game.name, `Steam result.data.games[${index}].name`, 512);
     if (typeof game.currency !== "string" || !CURRENCY.test(game.currency)) fail("Steam game currency is invalid");
+    if (game.currency !== input.currency) fail("Steam game currency does not match the authorized request");
     integer(game.finalPrice, `Steam result.data.games[${index}].finalPrice`, 0, 2_147_483_647);
     integer(game.originalPrice, `Steam result.data.games[${index}].originalPrice`, 0, 2_147_483_647);
     integer(game.discountPercent, `Steam result.data.games[${index}].discountPercent`, 0, 100);
     if (game.finalPrice > game.originalPrice) fail("Steam game final price exceeds original price");
     dateTime(game.observedAt, `Steam result.data.games[${index}].observedAt`);
+    if (Date.parse(game.observedAt) > asOfMs) fail("Steam game observedAt must not be after result.asOf");
     publicUrl(game.storeUrl, `Steam result.data.games[${index}].storeUrl`);
   });
 }
 
-function validateWebData(value: unknown): void {
+function validateWebData(value: unknown, inputValue: JsonValue): void {
+  const input = record(inputValue, "authorized web input");
   const data = record(value, "web result.data");
   exactKeys(data, ["results", "extraction"], [], "web result.data");
-  if (!Array.isArray(data.results) || data.results.length > 20) fail("web result.data.results must be bounded");
+  const search = input.operation === "search";
+  const searchLimit = search ? input.limit as number : 0;
+  if (!Array.isArray(data.results) || data.results.length > searchLimit) {
+    fail("web result.data.results exceeds the authorized search limit");
+  }
   data.results.forEach((candidate, index) => {
     const item = record(candidate, `web result.data.results[${index}]`);
     exactKeys(item, ["url", "title", "excerpt"], [], `web result.data.results[${index}]`);
@@ -603,21 +714,34 @@ function validateWebData(value: unknown): void {
     boundedString(item.title, `web result.data.results[${index}].title`, 1_024, false);
     boundedString(item.excerpt, `web result.data.results[${index}].excerpt`, 4_096, false);
   });
+  if (search && data.extraction !== null) fail("web search result cannot carry an extraction");
+  if (!search && data.extraction === null) fail("web extract result requires an extraction");
   if (data.extraction !== null) {
     const extraction = record(data.extraction, "web result.data.extraction");
     exactKeys(extraction, ["url", "title", "text", "contentDigest"], [], "web result.data.extraction");
     publicUrl(extraction.url, "web result.data.extraction.url");
+    if (new URL(extraction.url as string).href !== new URL(input.url as string).href) {
+      fail("web extraction URL does not match the authorized target");
+    }
     boundedString(extraction.title, "web result.data.extraction.title", 1_024, false);
     boundedString(extraction.text, "web result.data.extraction.text", 65_536, false);
+    if ([...(extraction.text as string)].length > (input.maxChars as number)) {
+      fail("web extraction text exceeds the authorized character limit");
+    }
     digest(extraction.contentDigest, "web result.data.extraction.contentDigest");
   }
 }
 
-function validateRecentCommunityData(value: unknown, sourceCount: number): void {
+function validateRecentCommunityData(value: unknown, sourceCount: number, inputValue: JsonValue): void {
+  const input = record(inputValue, "authorized recent community input");
   const data = record(value, "recent community result.data");
   exactKeys(data, ["window", "findings", "themes"], [], "recent community result.data");
   validateWindow(data.window, "recent community result.data.window");
-  if (!Array.isArray(data.findings) || data.findings.length > 32) fail("recent community findings must be bounded");
+  const window = record(data.window, "recent community result.data.window");
+  if (window.since !== input.since || window.until !== input.until) fail("recent community window does not match the authorized request");
+  if (!Array.isArray(data.findings) || data.findings.length > (input.maxFindings as number)) {
+    fail("recent community findings exceed the authorized result limit");
+  }
   data.findings.forEach((finding, index) => validateFinding(finding, `recent community result.data.findings[${index}]`, sourceCount));
   if (!Array.isArray(data.themes) || data.themes.length > 16) fail("recent community themes must be bounded");
   const themes = new Set<string>();
@@ -628,12 +752,19 @@ function validateRecentCommunityData(value: unknown, sourceCount: number): void 
   });
 }
 
-function validateTaiwanData(value: unknown, sourceCount: number): void {
+function validateTaiwanData(value: unknown, sourceCount: number, inputValue: JsonValue): void {
+  const input = record(inputValue, "authorized Taiwan research input");
   const data = record(value, "Taiwan research result.data");
   exactKeys(data, ["locale", "window", "findings", "trends"], [], "Taiwan research result.data");
   if (data.locale !== "zh-TW") fail("Taiwan research result.data.locale must be zh-TW");
   validateWindow(data.window, "Taiwan research result.data.window");
-  if (!Array.isArray(data.findings) || data.findings.length > 32) fail("Taiwan research findings must be bounded");
+  const window = record(data.window, "Taiwan research result.data.window");
+  if (window.since !== input.since || window.until !== input.until || data.locale !== input.locale) {
+    fail("Taiwan research window or locale does not match the authorized request");
+  }
+  if (!Array.isArray(data.findings) || data.findings.length > (input.maxFindings as number)) {
+    fail("Taiwan research findings exceed the authorized result limit");
+  }
   data.findings.forEach((finding, index) => validateFinding(finding, `Taiwan research result.data.findings[${index}]`, sourceCount));
   if (!Array.isArray(data.trends) || data.trends.length > 16) fail("Taiwan research trends must be bounded");
   data.trends.forEach((candidate, index) => {
@@ -646,19 +777,26 @@ function validateTaiwanData(value: unknown, sourceCount: number): void {
 }
 
 export function validateAssistantReadResult(
-  capabilityId: AssistantReadCapabilityId,
+  authorization: AuthorizedAssistantReadInvocation,
   result: AssistantReadResult,
 ): Readonly<AssistantReadResult>;
-export function validateAssistantReadResult(capabilityValue: unknown, resultValue: unknown): unknown {
-  const capabilityId = capability(capabilityValue);
+export function validateAssistantReadResult(authorizationValue: unknown, resultValue: unknown): unknown {
+  const authorization = validateAuthorizedInvocation(authorizationValue);
+  const capabilityId = authorization.capabilityId;
   const contract = contracts[capabilityId];
-  jsonBytes(resultValue, "assistant read output", contract.budgets.outputBytes);
+  jsonBytes(
+    resultValue,
+    "assistant read output",
+    Math.min(contract.budgets.outputBytes, authorization.control.maxOutputBytes),
+  );
   const result = record(resultValue, "assistant read result");
   exactKeys(result, ["status", "asOf", "summary", "sources", "data"], [], "assistant read result");
   if (!['completed', 'cancelled', 'timed-out'].includes(result.status as string)) fail("assistant read result.status is unsupported");
   boundedString(result.summary, "assistant read result.summary", 8_192, false);
-  if (!Array.isArray(result.sources) || result.sources.length > contract.budgets.sources) fail("assistant read result.sources must be bounded");
-  result.sources.forEach((source, index) => validateSource(source, `assistant read result.sources[${index}]`));
+  if (!Array.isArray(result.sources)
+    || result.sources.length > Math.min(contract.budgets.sources, authorization.control.maxSources)) {
+    fail("assistant read result.sources exceeds the authorized limit");
+  }
   if (result.status !== "completed") {
     if (result.asOf !== null || result.sources.length !== 0 || result.data !== null) {
       fail("terminal cancelled or timed-out result cannot carry stale data or sources");
@@ -666,15 +804,23 @@ export function validateAssistantReadResult(capabilityValue: unknown, resultValu
     return freezeClone(result);
   }
   dateTime(result.asOf, "assistant read result.asOf");
+  const asOfMs = Date.parse(result.asOf);
+  result.sources.forEach((source, index) => {
+    validateSource(source, `assistant read result.sources[${index}]`, asOfMs);
+  });
   if (result.sources.length < 1) fail("completed assistant read result requires source freshness metadata");
   if (result.data === null) fail("completed assistant read result.data is required");
   switch (capabilityId) {
-    case "assistant.weather.lookup": validateWeatherData(result.data); break;
-    case "assistant.market.lookup": validateMarketData(result.data); break;
-    case "assistant.steam.catalog.lookup": validateSteamData(result.data); break;
-    case "assistant.web.lookup": validateWebData(result.data); break;
-    case "assistant.research.recent-community": validateRecentCommunityData(result.data, result.sources.length); break;
-    case "assistant.research.taiwan-public-discussion": validateTaiwanData(result.data, result.sources.length); break;
+    case "assistant.weather.lookup": validateWeatherData(result.data, authorization.input); break;
+    case "assistant.market.lookup": validateMarketData(result.data, authorization.input, asOfMs); break;
+    case "assistant.steam.catalog.lookup": validateSteamData(result.data, authorization.input, asOfMs); break;
+    case "assistant.web.lookup": validateWebData(result.data, authorization.input); break;
+    case "assistant.research.recent-community":
+      validateRecentCommunityData(result.data, result.sources.length, authorization.input);
+      break;
+    case "assistant.research.taiwan-public-discussion":
+      validateTaiwanData(result.data, result.sources.length, authorization.input);
+      break;
   }
   return freezeClone(result);
 }

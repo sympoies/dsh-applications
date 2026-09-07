@@ -94,10 +94,12 @@ deployment can admit weather without also admitting market, Steam, Web, or
 research. Each action fixes a strict query/result schema, one named public-data
 network class, provider-read-only host mediation, cancellation, and byte,
 source, and timeout ceilings. A private admission binds an opaque exact
-implementation digest and audience; the returned invocation omits the binding
-digest, and strict results cannot carry implementation or conversation state.
-DSH still owns cancellation and runtime execution, while runtime-kit and the
-private broker own assertions, target binding, budget debit, and receipts.
+implementation digest and audience; the immutable authorized context retains
+non-secret admission, binding-assertion, and audience identities for broker
+matching and receipts, while strict result envelopes cannot carry them or
+conversation state. DSH still owns cancellation and runtime execution, while
+runtime-kit and the private broker own assertions, target binding, budget
+debit, DNS/redirect revalidation, and receipts.
 
 ## Compatibility
 

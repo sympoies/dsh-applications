@@ -101,7 +101,7 @@ const limit: 65536 = MAX_GITHUB_REVIEW_WORKER_RESULT_BYTES;
 const firstOperation: "validate" = PUBLIC_MANAGER_OPERATIONS[0];
 const firstDenial: "env" = REQUIRED_AMBIENT_DENIALS[0];
 const authorizedRead = authorizeAssistantReadInvocation(assistantAdmission, assistantInvocation);
-const checkedAssistantResult = validateAssistantReadResult("assistant.weather.lookup", assistantResult);
+const checkedAssistantResult = validateAssistantReadResult(authorizedRead, assistantResult);
 
 void definePlugin(runtimeKit, descriptor);
 void createGitHubReadPluginDescriptor;
