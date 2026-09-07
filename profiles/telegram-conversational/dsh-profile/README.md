@@ -18,3 +18,17 @@ public defaults also turn off attachment ingestion, OCR, and screen capture.
 Private admission must verify the locked artifact, provide a credential handle,
 access policy, isolated workspace, and conversation-only agent preset, then
 explicitly authorize enablement before deployment.
+
+Participant allowlisting and the transport's one global group-mention switch
+do not satisfy conversation admission. Before an update may reach agent
+dispatch, the private integration must resolve the update into keyed opaque
+refs and pass it through the public `createTelegramAudienceRouter` contract
+with a deployment/runtime-owned authenticated binding and atomic replay
+consumer. That owner selects the admitted logical audience, per-conversation
+behavior, bounded group-context policy, and public model-route class. No such
+binding, identifier, credential, replay store, or route selection belongs in
+this portable fragment.
+
+Media, vision/OCR, screen capture, and Telegram location behavior remain off
+and are tracked separately in
+[issue #28](https://github.com/sympoies/dsh-applications/issues/28).

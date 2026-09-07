@@ -43,5 +43,7 @@ follow-ups.
 - [Read-only work recommendation mediation](work-recommendation.md) — 2026-09-08 — build
 - [Governed agent-session mediation](governed-agent-session.md) — 2026-09-08 — reference
 - [External agent-memory mediation](external-agent-memory.md) — 2026-09-08 — build
+- [Telegram audience routing](telegram-audience-routing.md) — 2026-09-08 — build
+  a public admission and routing contract beside the adopted transport
 - [Telegram channel](telegram-channel.md) — 2026-09-07 — adopt
   `@ashafizullah/dsh-telegram@0.5.1`
