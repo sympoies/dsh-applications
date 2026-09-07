@@ -120,6 +120,11 @@ jobs:
         env:
           DSH_RUNTIME_KIT_ROOT: ../dsh-runtime-kit
         run: npm run test:integration
+      - name: Run governed action contracts with exact runtime-kit
+        working-directory: dsh-applications
+        env:
+          DSH_RUNTIME_KIT_ROOT: ../dsh-runtime-kit
+        run: node --test test/governed-action-contracts.test.ts
       - name: Prove the conversational profile boundary
         working-directory: dsh-applications
         env:

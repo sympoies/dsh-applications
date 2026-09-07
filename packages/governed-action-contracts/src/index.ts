@@ -1,15 +1,58 @@
 import { definePlugin, type PluginDescriptor, type RuntimeKitPluginValidator } from "@sympoies/dsh-plugin-sdk";
 
-export const CALENDAR_REQUEST_SCHEMA_DIGEST = "sha256:bdfe2eeb905a94e72b8ce85626d2f1c06dac2939884a99901b0685b4a5dcf3a2";
-export const CALENDAR_RECEIPT_SCHEMA_DIGEST = "sha256:7443863c643521569cd90bfbb9340605d064bb9d638bc7420a8bb45d7e2744a9";
-export const GROUP_NOTES_REQUEST_SCHEMA_DIGEST = "sha256:0fc8cc114c3c276705a952aeb963ee55e42ac31ae5b309f3869bb14a23367199";
-export const GROUP_NOTES_RECEIPT_SCHEMA_DIGEST = "sha256:0d904a6ada53edeb33067fb66b7f76362781634d9a3888d04ba35fe6727ae35e";
-export const WORK_RECOMMENDATION_REQUEST_SCHEMA_DIGEST = "sha256:65adb36dc1102e2103b04228150f65b73fb984690d7f99319214e9acf847d969";
-export const WORK_RECOMMENDATION_RECEIPT_SCHEMA_DIGEST = "sha256:f13b281d1e641fd0ca28c30f4c3378cac378eec2f2197f281001ee32d60edfc1";
-export const AGENT_SESSION_REQUEST_SCHEMA_DIGEST = "sha256:b30a9b068b6287447991d31d87ec8f84ae7ced02fdcb1f633decc3dd5edef929";
-export const AGENT_SESSION_RECEIPT_SCHEMA_DIGEST = "sha256:a16d1073eb3e5f96bc010022bb91f2607203d35bde9c1364db18cc41bd3ac000";
-export const AGENT_MEMORY_REQUEST_SCHEMA_DIGEST = "sha256:f750f2a2e1f74ecbb796f5c4262c1974978bfa70aafd36695060f0dfba1bf4ab";
-export const AGENT_MEMORY_RECEIPT_SCHEMA_DIGEST = "sha256:54adc2c50bcefd25ba17e04be6783e22326f209c0d0d9769d2b5aa8e319a6414";
+export const GOVERNED_ACTION_SCHEMA_DIGESTS = Object.freeze({
+  "organization.calendar.read": Object.freeze({
+    input: "sha256:35df26f4c791b1730db3c502fb057e355447e5f6f32ff1eb54c9a78b08e45c89",
+    output: "sha256:a1d38f1acff37c1e64a8dc2709e9d086f6ba5ea58ffdad911a45003d9bc9c5ca",
+  }),
+  "organization.calendar.write": Object.freeze({
+    input: "sha256:8996b049e59bbc80257b7fc108a0f811de54ce8dcdbdfcd6ac3524931a3311b9",
+    output: "sha256:87aa000794704a7195f0e59578c27168f06ed0428c0f0290c417503350b0959e",
+  }),
+  "conversation.group-notes.read": Object.freeze({
+    input: "sha256:1a947eebf6850b5edff62c0b5706ec62740e1e2b652397319bc2c5c2285b630a",
+    output: "sha256:913a8e86b507c3795a60f13da1eb3fbf0e572d3fd429d6ca8ad932b39035164f",
+  }),
+  "conversation.group-notes.write": Object.freeze({
+    input: "sha256:2379596c3a202af9f92415aa78924053a34a09a5aad8cd2297a10e4ffaadfdb5",
+    output: "sha256:14343e84c92293d9f54cffcceafdc1b396136913fedfa78b918020e72a291cd4",
+  }),
+  "organization.work-recommendation.read": Object.freeze({
+    input: "sha256:65adb36dc1102e2103b04228150f65b73fb984690d7f99319214e9acf847d969",
+    output: "sha256:f13b281d1e641fd0ca28c30f4c3378cac378eec2f2197f281001ee32d60edfc1",
+  }),
+  "agent-memory.recall": Object.freeze({
+    input: "sha256:6101228dd95bc4fe51016273b9f739477eaad344cc206c4c72931ee2dffa646e",
+    output: "sha256:9778989baefc5fb6b4d34ec7aa585e39de8807a2c9cc297c4d06befda57373ad",
+  }),
+  "agent-memory.candidate-add": Object.freeze({
+    input: "sha256:ec6cce51119aa3937a022cd56d40535ead1ecc69f71735f7702de914014256ed",
+    output: "sha256:13ef8e94aef2ba4c2fa3f98b6d115a5dead928aae2f0b6f79b0928b2877d11c3",
+  }),
+  "agent-session.create": Object.freeze({
+    input: "sha256:bc8957b8d54f3b524d04b0ef9f468327b4ee34997d3f79a7f45230cb6687512a",
+    output: "sha256:c579d5bda41e04a2cbe0a21956a40e8e4a24ea3aa183fb760e73e68b3eb639c8",
+  }),
+  "agent-session.status": Object.freeze({
+    input: "sha256:6f58ee6d4d8e9fbf9eac64799a0d7540294f00691ecc6060bf74efc7666c46d7",
+    output: "sha256:adea3ed2b6bb6273ba81ed459a17aeb6975cc2ef57658ba49a484e200e8888a1",
+  }),
+  "agent-session.attach-metadata": Object.freeze({
+    input: "sha256:2609b9783ac9d913ffc0250e341021dbb04f6460195bf03b9673973fc9d1b73a",
+    output: "sha256:9fb105e8d2e91923956bd87fb4e246aab99cba7d0841a9301894514f3c331427",
+  }),
+  "agent-session.continue": Object.freeze({
+    input: "sha256:035e8b5ed3284e4258cdf59ada303c70f24f89fda4648ce851c9aae6d3c61416",
+    output: "sha256:72275382b6a94d48add77bfd021b3e0f0183f372c699a7e01317704e27059585",
+  }),
+  "agent-session.cancel": Object.freeze({
+    input: "sha256:bd948de247a9b2e661c389bf2f08ed58f7217b7476fbc745f01a03488b48c7f5",
+    output: "sha256:1d722d839f2b9bc00f907c0035bdaacc4e0f356668f381943e33e9834f93b238",
+  }),
+} as const);
+
+export type GovernedActionId = keyof typeof GOVERNED_ACTION_SCHEMA_DIGESTS;
+export const CALENDAR_OUTPUT_BYTES = 262_144;
 
 export interface OpaqueActionScope {
   readonly deploymentRef: string;
@@ -18,9 +61,10 @@ export interface OpaqueActionScope {
   readonly targetRef: string;
 }
 
-export interface BoundRequestContext {
+export interface BoundRequestContext<Action extends GovernedActionId = GovernedActionId> {
   readonly scope: OpaqueActionScope;
   readonly requestRef: string;
+  readonly admittedAction: Action;
 }
 
 export interface ArtifactIdentity {
@@ -33,22 +77,46 @@ export type AgentSessionState =
   | "queued" | "running" | "awaiting-approval"
   | "succeeded" | "failed" | "cancelled" | "timed-out";
 
-export interface AgentSessionRequestContext extends BoundRequestContext {
+export interface AgentSessionCreateRequestContext extends BoundRequestContext<"agent-session.create"> {
   readonly workspaceRef: string;
-  readonly sessionRef?: string;
-  readonly expectedReceiptRef?: string;
-  readonly currentState?: AgentSessionState;
 }
 
-export interface BoundReceiptContext extends BoundRequestContext {
-  readonly action: string;
+export interface AgentSessionStatusRequestContext extends BoundRequestContext<"agent-session.status"> {
+  readonly workspaceRef: string;
+  readonly sessionRef: string;
+}
+
+export interface AgentSessionMutationRequestContext extends BoundRequestContext<
+  "agent-session.attach-metadata" | "agent-session.continue" | "agent-session.cancel"
+> {
+  readonly workspaceRef: string;
+  readonly sessionRef: string;
+  readonly expectedReceiptRef: string;
+  readonly currentState: AgentSessionState;
+}
+
+export type AgentSessionRequestContext =
+  | AgentSessionCreateRequestContext
+  | AgentSessionStatusRequestContext
+  | AgentSessionMutationRequestContext;
+
+export interface BoundReceiptContext<Action extends GovernedActionId = GovernedActionId>
+  extends BoundRequestContext<Action> {
   readonly expectedPriorReceiptRef?: string | null;
 }
 
-export interface AgentSessionReceiptContext extends BoundReceiptContext {
+export interface AgentSessionCreateReceiptContext extends BoundReceiptContext<"agent-session.create"> {
   readonly workspaceRef: string;
-  readonly sessionRef?: string;
 }
+
+export interface AgentSessionExistingReceiptContext extends BoundReceiptContext<
+  "agent-session.status" | "agent-session.attach-metadata" | "agent-session.continue" | "agent-session.cancel"
+> {
+  readonly workspaceRef: string;
+  readonly sessionRef: string;
+}
+
+export type AgentSessionReceiptContext = AgentSessionCreateReceiptContext | AgentSessionExistingReceiptContext;
 
 type Fields = Record<string, unknown>;
 
@@ -60,7 +128,7 @@ const REF = /^ref:[0-9a-f]{64}$/u;
 const DIGEST = /^sha256:[0-9a-f]{64}$/u;
 const SOURCE_REVISION = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/u;
 const METADATA_KEY = /^[a-z][a-z0-9._-]{0,63}$/u;
-const RFC3339 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/u;
+const RFC3339 = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?(?:Z|([+-])(\d{2}):(\d{2}))$/u;
 const TERMINAL_STATES = new Set<AgentSessionState>(["succeeded", "failed", "cancelled", "timed-out"]);
 const SCOPE_KEYS = ["deploymentRef", "audienceRef", "conversationRef", "targetRef"] as const;
 
@@ -118,7 +186,22 @@ function uint64(value: unknown, label: string): asserts value is string {
 }
 
 function timestamp(value: unknown, label: string): asserts value is string {
-  if (typeof value !== "string" || !RFC3339.test(value) || !Number.isFinite(Date.parse(value))) {
+  if (typeof value !== "string") fail(`${label} must be an RFC 3339 timestamp`);
+  const match = RFC3339.exec(value);
+  if (match === null) fail(`${label} must be an RFC 3339 timestamp`);
+  const [, yearText, monthText, dayText, hourText, minuteText, secondText, , offsetHourText, offsetMinuteText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  const second = Number(secondText);
+  const offsetHour = offsetHourText === undefined ? 0 : Number(offsetHourText);
+  const offsetMinute = offsetMinuteText === undefined ? 0 : Number(offsetMinuteText);
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (month < 1 || month > 12 || day < 1 || day > days[month - 1]!
+    || hour > 23 || minute > 59 || second > 59 || offsetHour > 23 || offsetMinute > 59) {
     fail(`${label} must be an RFC 3339 timestamp`);
   }
 }
@@ -161,7 +244,7 @@ function validatedScope(input: unknown, expected: OpaqueActionScope, label: stri
 function requestHead(
   input: unknown,
   expected: BoundRequestContext,
-  actions: readonly string[],
+  actions: readonly GovernedActionId[],
   required: readonly string[],
   optional: readonly string[],
   label: string,
@@ -170,6 +253,8 @@ function requestHead(
   exactKeys(value, ["action", "requestRef", "scope", ...required], optional, label);
   const action = value.action;
   enumeration(action, actions, `${label}.action`);
+  enumeration(expected.admittedAction, actions, "expected admittedAction");
+  if (action !== expected.admittedAction) fail(`${label}.action does not match the admitted action`);
   const requestRef = value.requestRef;
   opaqueRef(requestRef, `${label}.requestRef`);
   opaqueRef(expected.requestRef, "expected requestRef");
@@ -180,11 +265,12 @@ function requestHead(
 function receiptHead(
   input: unknown,
   expected: BoundReceiptContext,
+  actions: readonly GovernedActionId[],
   required: readonly string[],
   optional: readonly string[],
   label: string,
 ): { value: Fields; action: string; requestRef: string; scope: OpaqueActionScope } {
-  const head = requestHead(input, expected, [expected.action], required, optional, label);
+  const head = requestHead(input, expected, actions, required, optional, label);
   return head;
 }
 
@@ -267,7 +353,10 @@ function validateCalendarEvent(value: unknown, label: string): Fields {
 }
 
 export function validateCalendarReceipt(input: unknown, expected: BoundReceiptContext): Readonly<Fields> {
-  const head = receiptHead(input, expected, ["outcome", "summary", "events"], [], "calendarReceipt");
+  const head = receiptHead(
+    input, expected, ["organization.calendar.read", "organization.calendar.write"],
+    ["outcome", "summary", "events"], [], "calendarReceipt",
+  );
   enumeration(head.value.outcome, ["succeeded", "denied", "cancelled", "timed-out", "failed"], "calendarReceipt.outcome");
   boundedText(head.value.summary, "calendarReceipt.summary", 4_096, { allowEmpty: true });
   boundedArray(head.value.events, "calendarReceipt.events", 16)
@@ -304,7 +393,7 @@ export function validateGroupNotesRequest(input: unknown, expected: BoundRequest
 
 export function validateGroupNotesReceipt(input: unknown, expected: BoundReceiptContext): Readonly<Fields> {
   const head = receiptHead(
-    input, expected,
+    input, expected, ["conversation.group-notes.read", "conversation.group-notes.write"],
     ["outcome", "summary", "receiptRef", "priorReceiptRef", "notes"], [], "groupNotesReceipt",
   );
   enumeration(head.value.outcome, ["succeeded", "denied", "cancelled", "timed-out", "failed"], "groupNotesReceipt.outcome");
@@ -334,7 +423,8 @@ export function validateWorkRecommendationRequest(input: unknown, expected: Boun
 
 export function validateWorkRecommendationReceipt(input: unknown, expected: BoundReceiptContext): Readonly<Fields> {
   const head = receiptHead(
-    input, expected, ["outcome", "summary", "recommendations"], [], "workRecommendationReceipt",
+    input, expected, ["organization.work-recommendation.read"],
+    ["outcome", "summary", "recommendations"], [], "workRecommendationReceipt",
   );
   enumeration(head.value.outcome, ["succeeded", "denied", "cancelled", "timed-out", "failed"], "workRecommendationReceipt.outcome");
   boundedText(head.value.summary, "workRecommendationReceipt.summary", 2_048, { allowEmpty: true });
@@ -384,7 +474,7 @@ export function validateAgentMemoryRequest(
 
 export function validateAgentMemoryReceipt(input: unknown, expected: BoundReceiptContext): Readonly<Fields> {
   const head = receiptHead(
-    input, expected,
+    input, expected, ["agent-memory.recall", "agent-memory.candidate-add"],
     ["outcome", "summary", "receiptRef", "priorReceiptRef", "items"], [], "agentMemoryReceipt",
   );
   enumeration(head.value.outcome, ["succeeded", "denied", "cancelled", "timed-out", "failed"], "agentMemoryReceipt.outcome");
@@ -415,15 +505,21 @@ function validateAgentBinding(head: ReturnType<typeof requestHead>, expected: Ag
   if (head.action === "agent-session.create") return { workspaceRef };
   const sessionRef = head.value.sessionRef;
   opaqueRef(sessionRef, "agentSessionRequest.sessionRef");
+  if (!("sessionRef" in expected)) fail("agentSessionRequest trusted sessionRef is required");
   opaqueRef(expected.sessionRef, "expected sessionRef");
   if (sessionRef !== expected.sessionRef) fail("agentSessionRequest sessionRef binding mismatch");
   return { workspaceRef, sessionRef };
 }
 
-function validateCurrentAgentState(action: string, expected: AgentSessionRequestContext): void {
-  if (action !== "agent-session.status" && expected.currentState !== undefined && TERMINAL_STATES.has(expected.currentState)) {
-    fail(`agentSessionRequest cannot ${action} a terminal session`);
-  }
+function validateCurrentAgentState(
+  action: string,
+  expected: AgentSessionRequestContext,
+): asserts expected is AgentSessionMutationRequestContext {
+  if (!("currentState" in expected)) fail("agentSessionRequest trusted currentState is required");
+  enumeration(expected.currentState, [
+    "queued", "running", "awaiting-approval", "succeeded", "failed", "cancelled", "timed-out",
+  ], "agentSessionRequest trusted currentState");
+  if (TERMINAL_STATES.has(expected.currentState)) fail(`agentSessionRequest cannot ${action} a terminal session`);
 }
 
 export function validateAgentSessionRequest(input: unknown, expected: AgentSessionRequestContext): Readonly<Fields> {
@@ -494,6 +590,9 @@ function validateExpectedReceipt(actual: unknown, expected: unknown, label: stri
 
 export function validateAgentSessionReceipt(input: unknown, expected: AgentSessionReceiptContext): Readonly<Fields> {
   const head = receiptHead(input, expected, [
+    "agent-session.create", "agent-session.status", "agent-session.attach-metadata",
+    "agent-session.continue", "agent-session.cancel",
+  ], [
     "workspaceRef", "sessionRef", "receiptRef", "priorReceiptRef", "state",
     "revision", "terminal", "summary", "recovery",
   ], [], "agentSessionReceipt");
@@ -501,7 +600,8 @@ export function validateAgentSessionReceipt(input: unknown, expected: AgentSessi
   opaqueRef(expected.workspaceRef, "expected workspaceRef");
   if (head.value.workspaceRef !== expected.workspaceRef) fail("agentSessionReceipt workspace binding mismatch");
   opaqueRef(head.value.sessionRef, "agentSessionReceipt.sessionRef");
-  if (expected.sessionRef !== undefined) {
+  if (head.action !== "agent-session.create") {
+    if (!("sessionRef" in expected)) fail("agentSessionReceipt trusted sessionRef is required");
     opaqueRef(expected.sessionRef, "expected sessionRef");
     if (head.value.sessionRef !== expected.sessionRef) fail("agentSessionReceipt session binding mismatch");
   }
@@ -556,6 +656,7 @@ function descriptor(
   spec: {
     readonly id: string;
     readonly provides: readonly string[];
+    readonly outputBytes?: number;
     readonly actions: readonly {
       readonly id: string;
       readonly class: "read" | "write" | "destructive" | "open-world";
@@ -591,7 +692,7 @@ function descriptor(
     configuration: { schemaDigest: "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a", defaults: {} },
     mediation: {
       filesystem: [], network: [], subprocess: [], credentialHandleClasses: [],
-      resources: { cpuClass: "shared", memoryMb: 128, outputBytes: 65_536 },
+      resources: { cpuClass: "shared", memoryMb: 128, outputBytes: spec.outputBytes ?? 65_536 },
     },
     health: { probes: [{ id: `${spec.id}.ready`, requirement: "required" }] },
     composition: {
@@ -610,16 +711,21 @@ export function createCalendarPluginDescriptor(runtimeKit: unknown, artifactIden
 export function createCalendarPluginDescriptor(runtimeKit: unknown, artifactIdentity: unknown): Readonly<PluginDescriptor> {
   return descriptor(runtimeKit, artifactIdentity, {
     id: "organization-calendar",
+    outputBytes: CALENDAR_OUTPUT_BYTES,
     provides: ["organization.calendar.read", "organization.calendar.write"],
     actions: [
       {
-        id: "organization.calendar.read", class: "read", inputSchemaDigest: CALENDAR_REQUEST_SCHEMA_DIGEST,
-        outputSchemaDigest: CALENDAR_RECEIPT_SCHEMA_DIGEST, sideEffect: "none", idempotency: "supported",
+        id: "organization.calendar.read", class: "read",
+        inputSchemaDigest: GOVERNED_ACTION_SCHEMA_DIGESTS["organization.calendar.read"].input,
+        outputSchemaDigest: GOVERNED_ACTION_SCHEMA_DIGESTS["organization.calendar.read"].output,
+        sideEffect: "none", idempotency: "supported",
         capability: "organization.calendar.read",
       },
       {
-        id: "organization.calendar.write", class: "write", inputSchemaDigest: CALENDAR_REQUEST_SCHEMA_DIGEST,
-        outputSchemaDigest: CALENDAR_RECEIPT_SCHEMA_DIGEST, sideEffect: "non-idempotent", idempotency: "required",
+        id: "organization.calendar.write", class: "write",
+        inputSchemaDigest: GOVERNED_ACTION_SCHEMA_DIGESTS["organization.calendar.write"].input,
+        outputSchemaDigest: GOVERNED_ACTION_SCHEMA_DIGESTS["organization.calendar.write"].output,
+        sideEffect: "non-idempotent", idempotency: "required",
         capability: "organization.calendar.write",
       },
     ],
@@ -633,13 +739,17 @@ export function createGroupNotesPluginDescriptor(runtimeKit: unknown, artifactId
     provides: ["conversation.group-notes.read", "conversation.group-notes.write"],
     actions: [
       {
-        id: "conversation.group-notes.read", class: "read", inputSchemaDigest: GROUP_NOTES_REQUEST_SCHEMA_DIGEST,
-        outputSchemaDigest: GROUP_NOTES_RECEIPT_SCHEMA_DIGEST, sideEffect: "none", idempotency: "supported",
+        id: "conversation.group-notes.read", class: "read",
+        inputSchemaDigest: GOVERNED_ACTION_SCHEMA_DIGESTS["conversation.group-notes.read"].input,
+        outputSchemaDigest: GOVERNED_ACTION_SCHEMA_DIGESTS["conversation.group-notes.read"].output,
+        sideEffect: "none", idempotency: "supported",
         capability: "conversation.group-notes.read",
       },
       {
-        id: "conversation.group-notes.write", class: "write", inputSchemaDigest: GROUP_NOTES_REQUEST_SCHEMA_DIGEST,
-        outputSchemaDigest: GROUP_NOTES_RECEIPT_SCHEMA_DIGEST, sideEffect: "idempotent", idempotency: "required",
+        id: "conversation.group-notes.write", class: "write",
+        inputSchemaDigest: GOVERNED_ACTION_SCHEMA_DIGESTS["conversation.group-notes.write"].input,
+        outputSchemaDigest: GOVERNED_ACTION_SCHEMA_DIGESTS["conversation.group-notes.write"].output,
+        sideEffect: "idempotent", idempotency: "required",
         capability: "conversation.group-notes.write",
       },
     ],
@@ -653,8 +763,8 @@ export function createWorkRecommendationPluginDescriptor(runtimeKit: unknown, ar
     provides: ["organization.work-recommendation.read"],
     actions: [{
       id: "organization.work-recommendation.read", class: "read",
-      inputSchemaDigest: WORK_RECOMMENDATION_REQUEST_SCHEMA_DIGEST,
-      outputSchemaDigest: WORK_RECOMMENDATION_RECEIPT_SCHEMA_DIGEST,
+      inputSchemaDigest: GOVERNED_ACTION_SCHEMA_DIGESTS["organization.work-recommendation.read"].input,
+      outputSchemaDigest: GOVERNED_ACTION_SCHEMA_DIGESTS["organization.work-recommendation.read"].output,
       sideEffect: "none", idempotency: "supported", capability: "organization.work-recommendation.read",
     }],
   });
@@ -662,14 +772,17 @@ export function createWorkRecommendationPluginDescriptor(runtimeKit: unknown, ar
 
 export function createAgentSessionPluginDescriptor(runtimeKit: unknown, artifactIdentity: ArtifactIdentity): Readonly<PluginDescriptor>;
 export function createAgentSessionPluginDescriptor(runtimeKit: unknown, artifactIdentity: unknown): Readonly<PluginDescriptor> {
+  type AgentSessionActionId = Extract<GovernedActionId, `agent-session.${string}`>;
   const action = (
-    id: string,
+    id: AgentSessionActionId,
     actionClass: "read" | "write" | "destructive",
     sideEffect: "none" | "idempotent" | "non-idempotent",
     idempotency: "supported" | "required",
   ) => ({
-    id, class: actionClass, inputSchemaDigest: AGENT_SESSION_REQUEST_SCHEMA_DIGEST,
-    outputSchemaDigest: AGENT_SESSION_RECEIPT_SCHEMA_DIGEST, sideEffect, idempotency, capability: id,
+    id, class: actionClass,
+    inputSchemaDigest: GOVERNED_ACTION_SCHEMA_DIGESTS[id].input,
+    outputSchemaDigest: GOVERNED_ACTION_SCHEMA_DIGESTS[id].output,
+    sideEffect, idempotency, capability: id,
   });
   return descriptor(runtimeKit, artifactIdentity, {
     id: "governed-agent-session",
@@ -694,13 +807,17 @@ export function createAgentMemoryPluginDescriptor(runtimeKit: unknown, artifactI
     provides: ["agent-memory.candidate-add", "agent-memory.recall"],
     actions: [
       {
-        id: "agent-memory.recall", class: "read", inputSchemaDigest: AGENT_MEMORY_REQUEST_SCHEMA_DIGEST,
-        outputSchemaDigest: AGENT_MEMORY_RECEIPT_SCHEMA_DIGEST, sideEffect: "none", idempotency: "supported",
+        id: "agent-memory.recall", class: "read",
+        inputSchemaDigest: GOVERNED_ACTION_SCHEMA_DIGESTS["agent-memory.recall"].input,
+        outputSchemaDigest: GOVERNED_ACTION_SCHEMA_DIGESTS["agent-memory.recall"].output,
+        sideEffect: "none", idempotency: "supported",
         capability: "agent-memory.recall",
       },
       {
-        id: "agent-memory.candidate-add", class: "write", inputSchemaDigest: AGENT_MEMORY_REQUEST_SCHEMA_DIGEST,
-        outputSchemaDigest: AGENT_MEMORY_RECEIPT_SCHEMA_DIGEST, sideEffect: "idempotent", idempotency: "required",
+        id: "agent-memory.candidate-add", class: "write",
+        inputSchemaDigest: GOVERNED_ACTION_SCHEMA_DIGESTS["agent-memory.candidate-add"].input,
+        outputSchemaDigest: GOVERNED_ACTION_SCHEMA_DIGESTS["agent-memory.candidate-add"].output,
+        sideEffect: "idempotent", idempotency: "required",
         capability: "agent-memory.candidate-add",
       },
     ],

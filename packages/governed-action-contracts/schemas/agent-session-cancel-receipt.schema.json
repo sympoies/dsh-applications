@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sympoies.dev/schemas/dsh/agent-session-cancel-receipt.v1.json",
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "pattern": "^ref:[0-9a-f]{64}$"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deploymentRef",
+        "audienceRef",
+        "conversationRef",
+        "targetRef"
+      ],
+      "properties": {
+        "deploymentRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "audienceRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "conversationRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "targetRef": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "action",
+    "requestRef",
+    "scope",
+    "workspaceRef",
+    "sessionRef",
+    "receiptRef",
+    "priorReceiptRef",
+    "state",
+    "revision",
+    "terminal",
+    "summary",
+    "recovery"
+  ],
+  "properties": {
+    "action": {
+      "const": "agent-session.cancel"
+    },
+    "requestRef": {
+      "$ref": "#/$defs/ref"
+    },
+    "scope": {
+      "$ref": "#/$defs/scope"
+    },
+    "workspaceRef": {
+      "$ref": "#/$defs/ref"
+    },
+    "sessionRef": {
+      "$ref": "#/$defs/ref"
+    },
+    "receiptRef": {
+      "$ref": "#/$defs/ref"
+    },
+    "priorReceiptRef": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ref"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "state": {
+      "enum": [
+        "queued",
+        "running",
+        "awaiting-approval",
+        "succeeded",
+        "failed",
+        "cancelled",
+        "timed-out"
+      ]
+    },
+    "revision": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,19})$"
+    },
+    "terminal": {
+      "type": "boolean"
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 4096
+    },
+    "recovery": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "none"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "fromReceiptRef"
+          ],
+          "properties": {
+            "kind": {
+              "const": "resumed"
+            },
+            "fromReceiptRef": {
+              "$ref": "#/$defs/ref"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

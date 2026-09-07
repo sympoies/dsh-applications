@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sympoies.dev/schemas/dsh/agent-session-continue-request.v1.json",
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "pattern": "^ref:[0-9a-f]{64}$"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deploymentRef",
+        "audienceRef",
+        "conversationRef",
+        "targetRef"
+      ],
+      "properties": {
+        "deploymentRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "audienceRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "conversationRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "targetRef": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "base": {
+      "type": "object",
+      "properties": {
+        "requestRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "workspaceRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "sessionRef": {
+          "$ref": "#/$defs/ref"
+        },
+        "expectedReceiptRef": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "action",
+    "requestRef",
+    "scope",
+    "workspaceRef",
+    "sessionRef",
+    "expectedReceiptRef",
+    "instruction",
+    "timeoutSeconds"
+  ],
+  "properties": {
+    "action": {
+      "const": "agent-session.continue"
+    },
+    "requestRef": {
+      "$ref": "#/$defs/ref",
+      "description": "Caller-minted request-level idempotency key; private adapters forward this value unchanged as MediatedHostActionRequest.idempotencyKey."
+    },
+    "scope": {
+      "$ref": "#/$defs/scope"
+    },
+    "workspaceRef": {
+      "$ref": "#/$defs/ref"
+    },
+    "sessionRef": {
+      "$ref": "#/$defs/ref"
+    },
+    "expectedReceiptRef": {
+      "$ref": "#/$defs/ref"
+    },
+    "instruction": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "timeoutSeconds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3600
+    }
+  }
+}
