@@ -6,7 +6,12 @@ import test from "node:test";
 
 import {
   TELEGRAM_AUDIENCE_BINDING_SCHEMA_DIGEST,
+  TELEGRAM_AUTHORITY_TIMEOUT_CEILING_MILLISECONDS,
   createTelegramAudienceRouter,
+  type TelegramAudienceAuthorizationResult,
+  type TelegramAudienceAuthorityContext,
+  type TelegramAudienceConsumptionReceipt,
+  type TelegramAudienceConsumptionRequest,
 } from "../packages/telegram-channel/src/index.ts";
 
 const root = resolve(import.meta.dirname, "..");
@@ -29,8 +34,13 @@ function envelope(overrides: Record<string, unknown> = {}) {
 }
 
 function bindingFor(input: ReturnType<typeof envelope>, overrides: Record<string, unknown> = {}) {
+  const allowed: true = true;
+  const behavior: "private-dm" | "group-mentioned" = input.conversationClass === "private"
+    ? "private-dm"
+    : "group-mentioned";
+  const modelRouteClass: "conversation-bounded" = "conversation-bounded";
   return {
-    allowed: true,
+    allowed,
     admissionSealDigest: digest("admission-seal"),
     bindingDigest: digest("audience-binding"),
     assertionRef: ref(`assertion:${String(input.eventRef)}`),
@@ -40,10 +50,11 @@ function bindingFor(input: ReturnType<typeof envelope>, overrides: Record<string
     audienceRole: input.audienceRole,
     conversationRef: input.conversationRef,
     participantRef: input.participantRef,
+    addressing: input.addressing,
     participantAuthorized: true,
     conversationAdmitted: true,
-    behavior: input.conversationClass === "private" ? "private-dm" : "group-mentioned",
-    modelRouteClass: "conversation-bounded",
+    behavior,
+    modelRouteClass,
     modelRouteRef: ref("model-route-default"),
     ambientContext: input.conversationClass === "private"
       ? null
@@ -52,16 +63,30 @@ function bindingFor(input: ReturnType<typeof envelope>, overrides: Record<string
   };
 }
 
-function authority(resolveBinding = (input: ReturnType<typeof envelope>) => bindingFor(input)) {
+const deniedAuthorization: TelegramAudienceAuthorizationResult = { allowed: false };
+const acceptedConsumption: TelegramAudienceConsumptionReceipt = { accepted: true };
+
+function authority(
+  resolveBinding: (input: ReturnType<typeof envelope>) => TelegramAudienceAuthorizationResult = input => bindingFor(input),
+  consumeBinding?: (
+    request: Readonly<TelegramAudienceConsumptionRequest>,
+    context: Readonly<TelegramAudienceAuthorityContext>,
+  ) => TelegramAudienceConsumptionReceipt | Promise<TelegramAudienceConsumptionReceipt>,
+) {
   const consumed = new Set<string>();
   return {
+    timeoutMilliseconds: 250,
     async authorize(request: ReturnType<typeof envelope>) {
       return resolveBinding(request);
     },
-    async consume(request: { assertionRef: string }) {
+    async consume(
+      request: Readonly<TelegramAudienceConsumptionRequest>,
+      context: Readonly<TelegramAudienceAuthorityContext>,
+    ) {
+      if (consumeBinding) return consumeBinding(request, context);
       if (consumed.has(request.assertionRef)) return { accepted: false };
       consumed.add(request.assertionRef);
-      return { accepted: true };
+      return acceptedConsumption;
     },
   };
 }
@@ -84,7 +109,7 @@ test("an authenticated exact private audience dispatches without group addressin
 });
 
 test("participant authorization and exact conversation admission are independent gates", async () => {
-  const deniedBinding = createTelegramAudienceRouter(authority(() => ({ allowed: false }) as ReturnType<typeof bindingFor>));
+  const deniedBinding = createTelegramAudienceRouter(authority(() => deniedAuthorization));
   assert.deepEqual(await deniedBinding.admit(envelope()), {
     decision: "deny",
     code: "binding-denied",
@@ -110,6 +135,21 @@ test("participant authorization and exact conversation admission are independent
     conversationRef: ref("some-other-conversation"),
   })));
   assert.deepEqual(await allowedParticipantWrongChat.admit(envelope()), {
+    decision: "deny",
+    code: "binding-mismatch",
+  });
+});
+
+test("authenticated addressing must exactly match the transport envelope", async () => {
+  const trustedUnaddressed = createTelegramAudienceRouter(authority(input => bindingFor(input, {
+    addressing: { mentionedBot: false, repliesToBot: false },
+  })));
+  const alteredEnvelope = envelope({
+    conversationClass: "group",
+    addressing: { mentionedBot: true, repliesToBot: false },
+  });
+
+  assert.deepEqual(await trustedUnaddressed.admit(alteredEnvelope), {
     decision: "deny",
     code: "binding-mismatch",
   });
@@ -198,6 +238,47 @@ test("missing, extra, swapped, wrong-audience, and replayed bindings fail closed
   assert.deepEqual(await replayRouter.admit(envelope()), { decision: "deny", code: "binding-replayed" });
 });
 
+test("consumption receives the complete authenticated replay tuple and exact receipts", async () => {
+  const input = envelope({ eventRef: ref("consume-tuple-event") });
+  let consumedRequest: Readonly<TelegramAudienceConsumptionRequest> | undefined;
+  const router = createTelegramAudienceRouter(authority(
+    request => bindingFor(request),
+    request => {
+      consumedRequest = request;
+      return acceptedConsumption;
+    },
+  ));
+
+  assert.equal((await router.admit(input)).decision, "dispatch");
+  assert.equal(Object.isFrozen(consumedRequest), true);
+  assert.deepEqual(consumedRequest, {
+    scopeRef: input.scopeRef,
+    eventRef: input.eventRef,
+    assertionRef: ref(`assertion:${String(input.eventRef)}`),
+    bindingDigest: digest("audience-binding"),
+    admissionSealDigest: digest("admission-seal"),
+  });
+
+  const replayed = createTelegramAudienceRouter(authority(
+    request => bindingFor(request),
+    () => ({ accepted: false }),
+  ));
+  assert.deepEqual(await replayed.admit(envelope({ eventRef: ref("receipt-replay") })), {
+    decision: "deny",
+    code: "binding-replayed",
+  });
+
+  const malformedReceipt = { accepted: true, trace: "forbidden" };
+  const malformed = createTelegramAudienceRouter(authority(
+    request => bindingFor(request),
+    () => malformedReceipt,
+  ));
+  assert.deepEqual(await malformed.admit(envelope({ eventRef: ref("receipt-malformed") })), {
+    decision: "deny",
+    code: "authority-unavailable",
+  });
+});
+
 test("session and model-route keys are isolated across DM, group, and deployment scope", async () => {
   const router = createTelegramAudienceRouter(authority(input => bindingFor(input, {
     behavior: input.conversationClass === "private" ? "private-dm" : "group-free-response",
@@ -225,6 +306,93 @@ test("session and model-route keys are isolated across DM, group, and deployment
   ]).size, 3);
 });
 
+test("session and model-route isolation vary one authenticated boundary at a time", async () => {
+  const router = createTelegramAudienceRouter(authority(input => bindingFor(input, {
+    behavior: input.conversationClass === "private" ? "private-dm" : "group-free-response",
+  })));
+  const participantA = await router.admit(envelope({
+    eventRef: ref("participant-a-event"),
+    participantRef: ref("pairwise-participant-a"),
+  }));
+  const participantB = await router.admit(envelope({
+    eventRef: ref("participant-b-event"),
+    participantRef: ref("pairwise-participant-b"),
+  }));
+  const conversationA = await router.admit(envelope({
+    eventRef: ref("conversation-a-event"),
+    conversationClass: "group",
+    conversationRef: ref("pairwise-conversation-a"),
+  }));
+  const conversationB = await router.admit(envelope({
+    eventRef: ref("conversation-b-event"),
+    conversationClass: "group",
+    conversationRef: ref("pairwise-conversation-b"),
+  }));
+
+  assert.equal(participantA.decision, "dispatch");
+  assert.equal(participantB.decision, "dispatch");
+  assert.notEqual(participantA.sessionKey, participantB.sessionKey);
+  assert.equal(participantA.modelRoute.isolationKey, participantB.modelRoute.isolationKey);
+  assert.equal(conversationA.decision, "dispatch");
+  assert.equal(conversationB.decision, "dispatch");
+  assert.notEqual(conversationA.modelRoute.isolationKey, conversationB.modelRoute.isolationKey);
+});
+
+test("authority deadlines and caller cancellation abort both owner callbacks", async () => {
+  let authorizeSignal: AbortSignal | undefined;
+  const authorizeTimeout = createTelegramAudienceRouter({
+    timeoutMilliseconds: 10,
+    authorize(_request, context) {
+      authorizeSignal = context.signal;
+      return new Promise(() => {});
+    },
+    async consume() {
+      return acceptedConsumption;
+    },
+  });
+  assert.deepEqual(await authorizeTimeout.admit(envelope()), {
+    decision: "deny",
+    code: "authority-unavailable",
+  });
+  assert.equal(authorizeSignal?.aborted, true);
+
+  let consumeSignal: AbortSignal | undefined;
+  let reportConsumeStarted!: () => void;
+  const consumeStarted = new Promise<void>(resolveStarted => {
+    reportConsumeStarted = resolveStarted;
+  });
+  const consumeTimeout = createTelegramAudienceRouter(authority(
+    request => bindingFor(request),
+    (_request, context) => {
+      consumeSignal = context.signal;
+      reportConsumeStarted();
+      return new Promise(() => {});
+    },
+  ));
+  const cancellation = new AbortController();
+  const pending = consumeTimeout.admit(
+    envelope({ eventRef: ref("cancelled-consume-event") }),
+    { signal: cancellation.signal },
+  );
+  await consumeStarted;
+  cancellation.abort(new Error("caller cancelled"));
+  assert.deepEqual(await pending, { decision: "deny", code: "authority-unavailable" });
+  assert.notEqual(consumeSignal, cancellation.signal, "owner receives a derived admission signal");
+  assert.equal(consumeSignal?.aborted, true);
+
+  assert.throws(
+    () => createTelegramAudienceRouter({ ...authority(), timeoutMilliseconds: 0 }),
+    /timeoutMilliseconds/u,
+  );
+  assert.throws(
+    () => createTelegramAudienceRouter({
+      ...authority(),
+      timeoutMilliseconds: TELEGRAM_AUTHORITY_TIMEOUT_CEILING_MILLISECONDS + 1,
+    }),
+    /timeoutMilliseconds/u,
+  );
+});
+
 test("untrusted envelope shapes, owner failures, and over-ceiling ambient context deny", async () => {
   const router = createTelegramAudienceRouter(authority());
   assert.deepEqual(await router.admit({ ...envelope(), rawChat: "forbidden" }), {
@@ -237,6 +405,7 @@ test("untrusted envelope shapes, owner failures, and over-ceiling ambient contex
   });
 
   const unavailable = createTelegramAudienceRouter({
+    timeoutMilliseconds: 250,
     async authorize() { throw new Error("private detail must not escape"); },
     async consume() { return { accepted: true }; },
   });
@@ -284,4 +453,12 @@ test("the published audience schema is exact, portable, and bound to the source 
   );
   assert.doesNotMatch(source, /(?:^|[^a-z])(?:chat|user|sender)[_-]?id(?:[^a-z]|$)/iu);
   assert.doesNotMatch(source, /tokenRef|credentialRef|secretRef|providerEndpoint|\/home\//u);
+  const schema = JSON.parse(source) as {
+    oneOf: Array<{ properties: Record<string, unknown>; required: string[] }>;
+  };
+  assert.equal(schema.oneOf.length, 2);
+  assert.deepEqual(schema.oneOf[0]?.required, ["allowed"]);
+  assert.deepEqual(schema.oneOf[0]?.properties.allowed, { const: false });
+  assert.deepEqual(schema.oneOf[1]?.properties.allowed, { const: true });
+  assert.ok("addressing" in schema.oneOf[1]!.properties);
 });

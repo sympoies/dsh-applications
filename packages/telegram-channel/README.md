@@ -18,8 +18,8 @@ it is not another Telegram client or authority engine. The deployment owner
 resolves real Telegram updates into keyed opaque refs, authenticates the
 binding, and atomically consumes its single-use assertion. The router then:
 
-- checks exact scope, event, binding, audience-role, conversation, and
-  participant correspondence;
+- checks exact scope, event, binding, audience-role, conversation,
+  participant, and normalized mention/reply addressing correspondence;
 - keeps participant authorization separate from conversation admission;
 - selects `private-dm`, `group-mentioned`, or `group-free-response` behavior;
 - treats both an explicit mention and a reply to the bot as group addressing;
@@ -28,16 +28,32 @@ binding, and atomically consumes its single-use assertion. The router then:
 - derives isolated session and model-route keys from opaque scope and
   conversation inputs.
 
-The authenticated result shape is pinned by
+The authorization result is the exported
+`TelegramAudienceAuthorizationResult` union: exact denial is only
+`{ allowed: false }`, while an admitted binding includes every authenticated
+field in `AuthenticatedTelegramAudienceBinding`. Both branches are pinned by
 `schemas/audience-binding.schema.json` and
-`TELEGRAM_AUDIENCE_BINDING_SCHEMA_DIGEST`. The envelope deliberately contains
-no model choice: only the authenticated deployment result supplies an opaque
-`modelRouteRef`, and its `modelRouteClass` must remain the profile's public
-`conversation-bounded` ceiling. A missing, malformed, mismatched, denied, already-consumed,
-or authority-unavailable binding returns a fail-closed decision. A
-mention-gated but otherwise admitted group message returns an `ignore` decision
-with only its bounded context policy, so addressing remains distinct from
-access control.
+`TELEGRAM_AUDIENCE_BINDING_SCHEMA_DIGEST`. The admitted branch binds the
+normalized `mentionedBot` and `repliesToBot` booleans so caller-supplied
+addressing cannot widen a mention-gated assertion. The envelope deliberately
+contains no model choice: only the authenticated deployment result supplies an
+opaque `modelRouteRef`, and its `modelRouteClass` must remain the profile's
+public `conversation-bounded` ceiling. A missing, malformed, mismatched,
+denied, already-consumed, or authority-unavailable binding returns a
+fail-closed decision. A mention-gated but otherwise admitted group message
+returns an `ignore` decision with only its bounded context policy, so
+addressing remains distinct from access control.
+
+The owner sets `timeoutMilliseconds` from 1 through the exported 30-second
+public ceiling. One derived `AbortSignal` is propagated to both `authorize`
+and `consume`; the optional signal passed to `admit` cancels that same bounded
+admission. Timeout, cancellation, rejection, or a non-settling owner callback
+returns `authority-unavailable`. The consumption request is the exact frozen
+`TelegramAudienceConsumptionRequest` tuple of `scopeRef`, `eventRef`,
+`assertionRef`, `bindingDigest`, and `admissionSealDigest`. Its public response
+is exactly `TelegramAudienceConsumptionReceipt`: `{ accepted: true }` admits
+once, `{ accepted: false }` reports replay, and additional or malformed fields
+fail closed.
 
 The public configuration fixes the channel at `enabled: false` and explicitly
 turns off attachment ingestion, OCR, and screen capture. The companion DSH

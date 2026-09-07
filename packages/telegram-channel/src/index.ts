@@ -7,7 +7,7 @@ export const TELEGRAM_PLUGIN_TARBALL_DIGEST = "sha256:a41aa5300eb0b0a25b33c162e8
 export const TELEGRAM_PLUGIN_SOURCE_REVISION = "596ef74b4fb9536aaae9981035240be4ef8a9acd";
 export const TELEGRAM_PLUGIN_ATTESTATION = "https://github.com/ashafizullah/dsh-telegram/.github/workflows/release.yml@refs/tags/v0.5.1";
 export const TELEGRAM_PUBLIC_CONFIG_SCHEMA_DIGEST = "sha256:91b024d728e80f3b9a75aff52de1a9dbba5b0c0db42f1a9bcd90bc81970a734f";
-export const TELEGRAM_AUDIENCE_BINDING_SCHEMA_DIGEST = "sha256:11de0fe0b9cda7fbeef4cd0cb93599b3ef3bada6387927c4614ff8672765bf68";
+export const TELEGRAM_AUDIENCE_BINDING_SCHEMA_DIGEST = "sha256:9c0bc1d3b0202ab5f8489d2ab3e8a6ebe2e49f5a4566b5b606360f0a33b06d13";
 
 export const TELEGRAM_AMBIENT_CONTEXT_CEILING = Object.freeze({
   retentionSeconds: 604_800,
@@ -15,9 +15,15 @@ export const TELEGRAM_AMBIENT_CONTEXT_CEILING = Object.freeze({
   maxCharacters: 131_072,
 });
 export const TELEGRAM_MODEL_ROUTE_CLASS = "conversation-bounded";
+export const TELEGRAM_AUTHORITY_TIMEOUT_CEILING_MILLISECONDS = 30_000;
 
 export type TelegramAudienceBehavior = "private-dm" | "group-mentioned" | "group-free-response";
 export type TelegramConversationClass = "private" | "group";
+
+export interface TelegramAudienceAddressing {
+  readonly mentionedBot: boolean;
+  readonly repliesToBot: boolean;
+}
 
 export interface TelegramAudienceEnvelope {
   readonly bindingRef: string;
@@ -27,10 +33,7 @@ export interface TelegramAudienceEnvelope {
   readonly conversationRef: string;
   readonly participantRef: string;
   readonly conversationClass: TelegramConversationClass;
-  readonly addressing: {
-    readonly mentionedBot: boolean;
-    readonly repliesToBot: boolean;
-  };
+  readonly addressing: TelegramAudienceAddressing;
 }
 
 export interface TelegramAmbientContextPolicy {
@@ -50,6 +53,7 @@ export interface AuthenticatedTelegramAudienceBinding {
   readonly audienceRole: string;
   readonly conversationRef: string;
   readonly participantRef: string;
+  readonly addressing: TelegramAudienceAddressing;
   readonly participantAuthorized: boolean;
   readonly conversationAdmitted: boolean;
   readonly behavior: TelegramAudienceBehavior;
@@ -58,15 +62,40 @@ export interface AuthenticatedTelegramAudienceBinding {
   readonly ambientContext: TelegramAmbientContextPolicy | null;
 }
 
+export interface DeniedTelegramAudienceBinding {
+  readonly allowed: false;
+}
+
+export type TelegramAudienceAuthorizationResult =
+  | Readonly<DeniedTelegramAudienceBinding>
+  | Readonly<AuthenticatedTelegramAudienceBinding>;
+
+export interface TelegramAudienceAuthorityContext {
+  readonly signal: AbortSignal;
+}
+
+export interface TelegramAudienceConsumptionRequest {
+  readonly scopeRef: string;
+  readonly eventRef: string;
+  readonly assertionRef: string;
+  readonly bindingDigest: string;
+  readonly admissionSealDigest: string;
+}
+
+export interface TelegramAudienceConsumptionReceipt {
+  readonly accepted: boolean;
+}
+
 export interface TelegramAudienceAuthorityOwner {
-  authorize(request: Readonly<TelegramAudienceEnvelope>): unknown | Promise<unknown>;
-  consume(request: Readonly<{
-    scopeRef: string;
-    eventRef: string;
-    assertionRef: string;
-    bindingDigest: string;
-    admissionSealDigest: string;
-  }>): unknown | Promise<unknown>;
+  readonly timeoutMilliseconds: number;
+  authorize(
+    request: Readonly<TelegramAudienceEnvelope>,
+    context: Readonly<TelegramAudienceAuthorityContext>,
+  ): TelegramAudienceAuthorizationResult | Promise<TelegramAudienceAuthorizationResult>;
+  consume(
+    request: Readonly<TelegramAudienceConsumptionRequest>,
+    context: Readonly<TelegramAudienceAuthorityContext>,
+  ): TelegramAudienceConsumptionReceipt | Promise<TelegramAudienceConsumptionReceipt>;
 }
 
 export type TelegramAudienceDecision =
@@ -103,7 +132,11 @@ export type TelegramAudienceDecision =
   }>;
 
 export interface TelegramAudienceRouter {
-  admit(input: unknown): Promise<TelegramAudienceDecision>;
+  admit(input: unknown, options?: Readonly<TelegramAudienceAdmissionOptions>): Promise<TelegramAudienceDecision>;
+}
+
+export interface TelegramAudienceAdmissionOptions {
+  readonly signal?: AbortSignal;
 }
 
 interface DescriptorOwner extends RuntimeKitPluginValidator {
@@ -223,7 +256,7 @@ function validateAudienceBinding(input: unknown): Readonly<AuthenticatedTelegram
   exactKeys(source, [
     "allowed", "admissionSealDigest", "bindingDigest", "assertionRef", "bindingRef",
     "eventRef", "scopeRef", "audienceRole", "conversationRef", "participantRef",
-    "participantAuthorized", "conversationAdmitted", "behavior", "modelRouteClass",
+    "addressing", "participantAuthorized", "conversationAdmitted", "behavior", "modelRouteClass",
     "modelRouteRef", "ambientContext",
   ], "binding");
   if (allowed !== true) fail("binding.allowed must be a boolean decision");
@@ -236,6 +269,10 @@ function validateAudienceBinding(input: unknown): Readonly<AuthenticatedTelegram
   const audienceRole = source.audienceRole;
   const conversationRef = source.conversationRef;
   const participantRef = source.participantRef;
+  const addressingSource = record(source.addressing, "binding.addressing");
+  exactKeys(addressingSource, ["mentionedBot", "repliesToBot"], "binding.addressing");
+  const mentionedBot = addressingSource.mentionedBot;
+  const repliesToBot = addressingSource.repliesToBot;
   const participantAuthorized = source.participantAuthorized;
   const conversationAdmitted = source.conversationAdmitted;
   const behavior = source.behavior;
@@ -250,6 +287,8 @@ function validateAudienceBinding(input: unknown): Readonly<AuthenticatedTelegram
   publicIdentifier(audienceRole, "binding.audienceRole");
   opaqueRef(conversationRef, "binding.conversationRef");
   opaqueRef(participantRef, "binding.participantRef");
+  boolean(mentionedBot, "binding.addressing.mentionedBot");
+  boolean(repliesToBot, "binding.addressing.repliesToBot");
   boolean(participantAuthorized, "binding.participantAuthorized");
   boolean(conversationAdmitted, "binding.conversationAdmitted");
   if (behavior !== "private-dm" && behavior !== "group-mentioned" && behavior !== "group-free-response") {
@@ -264,6 +303,7 @@ function validateAudienceBinding(input: unknown): Readonly<AuthenticatedTelegram
   return freezeClone({
     allowed: true, admissionSealDigest, bindingDigest, assertionRef, bindingRef,
     eventRef, scopeRef, audienceRole, conversationRef, participantRef,
+    addressing: { mentionedBot, repliesToBot },
     participantAuthorized, conversationAdmitted, behavior, modelRouteClass, modelRouteRef, ambientContext,
   });
 }
@@ -274,6 +314,28 @@ function isolatedDigest(domain: string, values: readonly string[]): string {
 
 function deny(code: Extract<TelegramAudienceDecision, { decision: "deny" }>["code"]): TelegramAudienceDecision {
   return freezeClone({ decision: "deny", code });
+}
+
+function authorityContext(signal: AbortSignal): Readonly<TelegramAudienceAuthorityContext> {
+  return Object.freeze({ signal });
+}
+
+async function awaitAuthority<Result>(
+  operation: () => Result | Promise<Result>,
+  signal: AbortSignal,
+): Promise<Result> {
+  if (signal.aborted) throw signal.reason;
+  let removeAbortListener = () => {};
+  const aborted = new Promise<never>((_resolve, reject) => {
+    const onAbort = () => reject(signal.reason);
+    signal.addEventListener("abort", onAbort, { once: true });
+    removeAbortListener = () => signal.removeEventListener("abort", onAbort);
+  });
+  try {
+    return await Promise.race([Promise.resolve().then(operation), aborted]);
+  } finally {
+    removeAbortListener();
+  }
 }
 
 /**
@@ -290,8 +352,17 @@ export function createTelegramAudienceRouter(authorityOwner: unknown): TelegramA
   if (typeof authorize !== "function" || typeof consume !== "function") {
     fail("Telegram audience authority owner is required");
   }
+  const timeoutMilliseconds = owner?.timeoutMilliseconds;
+  boundedPositiveInteger(
+    timeoutMilliseconds,
+    "Telegram audience authority timeoutMilliseconds",
+    TELEGRAM_AUTHORITY_TIMEOUT_CEILING_MILLISECONDS,
+  );
   return Object.freeze({
-    async admit(input: unknown): Promise<TelegramAudienceDecision> {
+    async admit(
+      input: unknown,
+      options: Readonly<TelegramAudienceAdmissionOptions> = {},
+    ): Promise<TelegramAudienceDecision> {
       let envelope: Readonly<TelegramAudienceEnvelope>;
       try {
         envelope = validateAudienceEnvelope(input);
@@ -299,10 +370,27 @@ export function createTelegramAudienceRouter(authorityOwner: unknown): TelegramA
         return deny("envelope-invalid");
       }
 
+      const upstreamSignal = options.signal;
+      if (upstreamSignal !== undefined && !(upstreamSignal instanceof AbortSignal)) {
+        return deny("authority-unavailable");
+      }
+      const controller = new AbortController();
+      const cancel = () => controller.abort(upstreamSignal?.reason);
+      upstreamSignal?.addEventListener("abort", cancel, { once: true });
+      if (upstreamSignal?.aborted) cancel();
+      const timeout = setTimeout(
+        () => controller.abort(new Error("Telegram audience authority deadline expired")),
+        timeoutMilliseconds,
+      );
+      timeout.unref();
+      const context = authorityContext(controller.signal);
+
       let authorization: unknown;
       try {
-        authorization = await authorize.call(owner, envelope);
+        authorization = await awaitAuthority(() => authorize.call(owner, envelope, context), controller.signal);
       } catch {
+        clearTimeout(timeout);
+        upstreamSignal?.removeEventListener("abort", cancel);
         return deny("authority-unavailable");
       }
 
@@ -310,42 +398,66 @@ export function createTelegramAudienceRouter(authorityOwner: unknown): TelegramA
       try {
         binding = validateAudienceBinding(authorization);
       } catch {
+        clearTimeout(timeout);
+        upstreamSignal?.removeEventListener("abort", cancel);
         return deny("binding-invalid");
       }
-      if (binding === null) return deny("binding-denied");
+      if (binding === null) {
+        clearTimeout(timeout);
+        upstreamSignal?.removeEventListener("abort", cancel);
+        return deny("binding-denied");
+      }
 
       if (binding.bindingRef !== envelope.bindingRef
         || binding.eventRef !== envelope.eventRef
         || binding.scopeRef !== envelope.scopeRef
         || binding.audienceRole !== envelope.audienceRole
         || binding.conversationRef !== envelope.conversationRef
-        || binding.participantRef !== envelope.participantRef) {
+        || binding.participantRef !== envelope.participantRef
+        || binding.addressing.mentionedBot !== envelope.addressing.mentionedBot
+        || binding.addressing.repliesToBot !== envelope.addressing.repliesToBot) {
+        clearTimeout(timeout);
+        upstreamSignal?.removeEventListener("abort", cancel);
         return deny("binding-mismatch");
       }
       if ((envelope.conversationClass === "private" && binding.behavior !== "private-dm")
         || (envelope.conversationClass === "group" && binding.behavior === "private-dm")) {
+        clearTimeout(timeout);
+        upstreamSignal?.removeEventListener("abort", cancel);
         return deny("binding-mismatch");
       }
-      if (!binding.participantAuthorized) return deny("participant-denied");
-      if (!binding.conversationAdmitted) return deny("conversation-denied");
+      if (!binding.participantAuthorized) {
+        clearTimeout(timeout);
+        upstreamSignal?.removeEventListener("abort", cancel);
+        return deny("participant-denied");
+      }
+      if (!binding.conversationAdmitted) {
+        clearTimeout(timeout);
+        upstreamSignal?.removeEventListener("abort", cancel);
+        return deny("conversation-denied");
+      }
 
       let accepted: unknown;
       try {
-        accepted = await consume.call(owner, freezeClone({
+        accepted = await awaitAuthority(() => consume.call(owner, freezeClone({
           scopeRef: binding.scopeRef,
           eventRef: binding.eventRef,
           assertionRef: binding.assertionRef,
           bindingDigest: binding.bindingDigest,
           admissionSealDigest: binding.admissionSealDigest,
-        }));
+        }), context), controller.signal);
         const receipt = record(accepted, "consumption");
         exactKeys(receipt, ["accepted"], "consumption");
         const acceptedValue = receipt.accepted;
         boolean(acceptedValue, "consumption.accepted");
         accepted = acceptedValue;
       } catch {
+        clearTimeout(timeout);
+        upstreamSignal?.removeEventListener("abort", cancel);
         return deny("authority-unavailable");
       }
+      clearTimeout(timeout);
+      upstreamSignal?.removeEventListener("abort", cancel);
       if (accepted !== true) return deny("binding-replayed");
 
       const sessionKey = isolatedDigest("telegram-session-v1", [
