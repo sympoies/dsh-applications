@@ -712,6 +712,10 @@ test("JSON Schemas and direct validators conform on expressible constraints", ()
     "http://0x7f000001/",
     "http://0177.0.0.1/",
     "http://[::1]/",
+    "http://127%2e0%2e0%2e1/",
+    "http://%31%32%37.0.0.1/",
+    "http://localhost%2e/",
+    "http://localhos%74/",
   ]) {
     const candidate = { operation: "extract", url, maxChars: 100 };
     assert.equal(schemaValidator(web, "input")(candidate), false, url);
@@ -724,6 +728,15 @@ test("JSON Schemas and direct validators conform on expressible constraints", ()
   assert.equal(schemaValidator(web, "input")(publicNumericName), true);
   assert.doesNotThrow(
     () => authorizeAssistantReadInvocation(admission(web), invocation(web, { input: publicNumericName })),
+  );
+  const publicEncodedPath = {
+    operation: "extract",
+    url: "https://example.com/a%20public%20path?q=one%2Ftwo",
+    maxChars: 100,
+  };
+  assert.equal(schemaValidator(web, "input")(publicEncodedPath), true);
+  assert.doesNotThrow(
+    () => authorizeAssistantReadInvocation(admission(web), invocation(web, { input: publicEncodedPath })),
   );
 
   const research = "assistant.research.recent-community";

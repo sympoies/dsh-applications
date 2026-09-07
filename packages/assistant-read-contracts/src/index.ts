@@ -169,7 +169,7 @@ const contracts: Record<AssistantReadCapabilityId, AssistantReadCapabilityContra
     pluginId: "assistant-web-read",
     actionId: "assistant.web.lookup",
     schemaStem: "web",
-    inputSchemaDigest: "sha256:e85452c7e443d6c497261a13e8126d36748f73ed4b86ae25c064065c8d51ec94",
+    inputSchemaDigest: "sha256:2b353dc15f558607ad9ff44dd0e2a2ad3ce8e502628f99893db96c545641ee20",
     outputSchemaDigest: "sha256:c94eb6ac3908022092a8203ee3673081168585972d8c189d202a5219276e31c8",
     hostActionClasses: ["provider-read"],
     networkClasses: ["public-web-data"],
