@@ -107,7 +107,7 @@ const IDENTIFIER = /^[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?$/u;
 const CURRENCY = /^[A-Z]{3}$/u;
 const COUNTRY = /^[A-Z]{2}$/u;
 const DATE = /^(\d{4})-(\d{2})-(\d{2})$/u;
-const DATE_TIME = /^(\d{4})-(\d{2})-(\d{2})T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,3})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/u;
+const DATE_TIME = /^(\d{4})-(\d{2})-(\d{2})[Tt](?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:[Zz]|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/u;
 const CONFIG_SCHEMA_DIGEST = "sha256:38b8c506be2495292e2ad894e044b5ab83e31df2bb190a9665d645f831748c41";
 
 export const ASSISTANT_READ_TRANSPORT_REQUIREMENTS = Object.freeze({
@@ -613,6 +613,7 @@ function validateWeatherData(value: unknown, inputValue: JsonValue): void {
   const data = record(value, "weather result.data");
   exactKeys(data, ["location", "units", "current", "daily"], [], "weather result.data");
   boundedString(data.location, "weather result.data.location", 256);
+  if (data.location !== input.location) fail("weather result.data.location does not match the authorized request");
   if (!['metric', 'imperial'].includes(data.units as string)) fail("weather result.data.units is unsupported");
   if (data.units !== input.units) fail("weather result.data.units does not match the authorized request");
   const current = record(data.current, "weather result.data.current");

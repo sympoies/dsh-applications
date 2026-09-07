@@ -313,6 +313,13 @@ test("result validation enforces request output, source, and input-derived limit
     }),
     /units|authorized/i,
   );
+  assert.throws(
+    () => validateAssistantReadResult(narrowAuthorized, {
+      ...result(weather),
+      data: { ...result(weather).data, location: "Tokyo" },
+    }),
+    /location|authorized/i,
+  );
 
   const market = "assistant.market.lookup";
   assert.throws(
@@ -706,6 +713,29 @@ test("JSON Schemas and direct validators conform on expressible constraints", ()
     assert.equal(schemaValidator(capabilityId, "output")(result(capabilityId)), true);
   }
 
+  const research = "assistant.research.recent-community";
+  const extendedRfc3339Input = {
+    ...inputByCapability[research],
+    since: "2026-08-02t00:00:00z",
+    until: "2026-09-01T00:00:00.123456789Z",
+  };
+  assert.equal(schemaValidator(research, "input")(extendedRfc3339Input), true);
+  assert.doesNotThrow(
+    () => authorizeAssistantReadInvocation(admission(research), invocation(research, { input: extendedRfc3339Input })),
+  );
+  const weather = "assistant.weather.lookup";
+  const extendedRfc3339Result = {
+    ...result(weather),
+    asOf: "2026-09-08T00:00:00.123456789Z",
+    sources: [{
+      ...source(),
+      publishedAt: "2026-09-07t23:59:59z",
+      retrievedAt: "2026-09-08t00:00:00z",
+    }],
+  };
+  assert.equal(schemaValidator(weather, "output")(extendedRfc3339Result), true);
+  assert.doesNotThrow(() => validateAssistantReadResult(authorization(weather), extendedRfc3339Result));
+
   const web = "assistant.web.lookup";
   for (const url of [
     "file:///etc/passwd",
@@ -747,7 +777,6 @@ test("JSON Schemas and direct validators conform on expressible constraints", ()
     () => authorizeAssistantReadInvocation(admission(web), invocation(web, { input: publicEncodedPath })),
   );
 
-  const research = "assistant.research.recent-community";
   const unsortedResearch = {
     ...inputByCapability[research],
     sourceClasses: ["social", "community"],
