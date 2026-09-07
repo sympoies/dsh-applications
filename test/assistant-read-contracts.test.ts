@@ -716,6 +716,7 @@ test("JSON Schemas and direct validators conform on expressible constraints", ()
     "http://%31%32%37.0.0.1/",
     "http://localhost%2e/",
     "http://localhos%74/",
+    "https://exa%6dple.com/",
   ]) {
     const candidate = { operation: "extract", url, maxChars: 100 };
     assert.equal(schemaValidator(web, "input")(candidate), false, url);

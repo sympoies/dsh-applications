@@ -288,6 +288,10 @@ function publicUrl(value: unknown, label: string): asserts value is string {
 
 function publicTargetUrl(value: unknown, label: string): asserts value is string {
   publicUrl(value, label);
+  const rawAuthority = /^(?:https?):\/\/([^/?#]*)/iu.exec(value)?.[1];
+  if (rawAuthority === undefined || rawAuthority.includes("%")) {
+    fail(`${label} URL authority must not use percent encoding`);
+  }
   const parsed = new URL(value);
   const hostname = parsed.hostname.replace(/^\[|\]$/gu, "").replace(/\.$/u, "").toLowerCase();
   if (hostname === "localhost" || hostname.endsWith(".localhost") || isIP(hostname) !== 0) {
