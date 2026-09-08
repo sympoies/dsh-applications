@@ -38,6 +38,14 @@ follow-ups.
 
 ## Index
 
+- [Weather lookup](weather-lookup.md) — 2026-09-08 — build
+- [Market and exchange-rate lookup](market-exchange-lookup.md) — 2026-09-08 — build
+- [Steam catalog and price lookup](steam-catalog-lookup.md) — 2026-09-08 — build
+- [Ordinary web lookup and extraction](web-lookup-extraction.md) — 2026-09-08 — reference
+  `@deepseek-ai/dsh-web@0.1.1-rc.2` and
+  `@deepseek-ai/dsh-tool-web@0.1.1-rc.2`
+- [Recent community research](recent-community-research.md) — 2026-09-08 — build
+- [Taiwan-focused public-discussion research](taiwan-public-discussion-research.md) — 2026-09-08 — build
 - [Organization calendar mediation](organization-calendar.md) — 2026-09-08 — build
 - [Conversation-scoped group notes mediation](conversation-group-notes.md) — 2026-09-08 — build
 - [Read-only work recommendation mediation](work-recommendation.md) — 2026-09-08 — build

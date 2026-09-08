@@ -4,6 +4,15 @@
 // under a stricter consumer configuration without the optional DSH peers.
 import type { Context } from "@deepseek-ai/cordis";
 import {
+  ASSISTANT_READ_CONTRACTS,
+  authorizeAssistantReadInvocation,
+  createAssistantReadPluginDescriptor,
+  validateAssistantReadResult,
+  type AssistantReadAdmission,
+  type AssistantReadInvocation,
+  type AssistantReadResult,
+} from "@sympoies/dsh-assistant-read-contracts";
+import {
   createConversationAgentPluginDescriptor,
   validateConversationReply,
   validateConversationTurn,
@@ -52,6 +61,9 @@ declare const hostSandbox: DshHostSandboxOwner<{ readonly bound: true }>;
 declare const bundle: GitHubPullRequestReadBundle;
 declare const result: GitHubReviewWorkerResult;
 declare const descriptor: PluginDescriptor;
+declare const assistantAdmission: AssistantReadAdmission;
+declare const assistantInvocation: AssistantReadInvocation;
+declare const assistantResult: AssistantReadResult;
 
 const digest: Sha256Digest = defineDigest(`sha256:${"0".repeat(64)}`);
 const trigger = defineTrigger({ id: "manual", class: "manual", inputSchemaDigest: digest });
@@ -88,11 +100,16 @@ const created = createGitHubReviewWorkerResult({ binding: bundleCopy, output: ve
 const limit: 65536 = MAX_GITHUB_REVIEW_WORKER_RESULT_BYTES;
 const firstOperation: "validate" = PUBLIC_MANAGER_OPERATIONS[0];
 const firstDenial: "env" = REQUIRED_AMBIENT_DENIALS[0];
+const authorizedRead = authorizeAssistantReadInvocation(assistantAdmission, assistantInvocation);
+const checkedAssistantResult = validateAssistantReadResult(authorizedRead, assistantResult);
 
 void definePlugin(runtimeKit, descriptor);
 void createGitHubReadPluginDescriptor;
 void createConversationAgentPluginDescriptor;
+void createAssistantReadPluginDescriptor;
 void isCompatibilityReviewTrigger(bundleCopy.trigger);
+void ASSISTANT_READ_CONTRACTS[authorizedRead.capabilityId].budgets.timeoutMs;
+void checkedAssistantResult;
 void DEFAULT_PLUGIN_PAYLOAD_LIMITS.inputBytes;
 void sandbox;
 void turn;

@@ -20,6 +20,11 @@ released together as one coordinated public application artifact.
 - `telegram-channel` describes the exact reviewed external Telegram artifact,
   its disabled public default, and the bounded mediation it may request after
   private admission; it contains no Telegram client or binding.
+- `assistant-read-contracts` defines six independently admitted provider-read
+  contracts for weather, market/exchange, Steam catalog, ordinary Web, recent
+  community, and Taiwan public-discussion results. It validates opaque exact
+  implementation/audience admission without containing a provider client or
+  private binding.
 - `governed-action-contracts` defines independently selectable, opaque-scope
   calendar, group-note, work-recommendation, external-memory, and DSH-owned
   agent-session action contracts. Runtime-kit still owns approval, execution,

@@ -18,3 +18,7 @@ Provider and channel adapters authenticate data at their named boundary. They
 do not own lifecycle or deployment authority. The public GitHub read and
 review-result contracts use the private broker for credentialed writes; public
 package code never contains an App identity, credential, or provider client.
+The public assistant read contracts similarly name only capability schemas,
+network classes, and generic implementation digests. Private infrastructure
+owns provider selection, endpoint/credential binding, audience admission, and
+the mediated provider-read execution.

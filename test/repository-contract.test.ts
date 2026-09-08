@@ -82,6 +82,7 @@ test("workspace metadata is exact, private at the root, and release-safe", () =>
   assert.equal(pkg.scripts["test:profile-compatibility"], "node scripts/check-profile-compatibility.ts");
   assert.equal(pkg.scripts["test:integration"], "node --test test/integration.test.ts");
   assert.equal(pkg.scripts["test:github-contracts"], "node --test test/github-contracts.test.ts");
+  assert.equal(pkg.scripts["test:assistant-read-contracts"], "node --test test/assistant-read-contracts.test.ts");
   assert.equal(pkg.scripts["check:compatibility"], "node scripts/check-compatibility.ts");
   assert.equal(pkg.scripts["verify:package-reproducibility"], "node scripts/check-package-reproducibility.ts");
   assert.equal(pkg.scripts["test:package"], "npm run check:compatibility -- --manifest-only && npm run verify:package-reproducibility && npm pack --dry-run --ignore-scripts");
@@ -101,6 +102,7 @@ test("workspace metadata is exact, private at the root, and release-safe", () =>
     "packages/plugin-sdk", "packages/manager", "packages/dsh-rc2-adapter",
     "packages/github-read", "packages/github-review-publish",
     "packages/conversation-agent", "packages/telegram-channel",
+    "packages/assistant-read-contracts",
   ]) {
     assert.equal(packageLock.packages[path].version, pkg.version);
   }
@@ -144,6 +146,7 @@ test("workspace packages ship erasable TypeScript sources that Node executes wit
   for (const name of [
     "plugin-sdk", "manager", "dsh-rc2-adapter",
     "conversation-agent", "github-read", "github-review-publish", "telegram-channel",
+    "assistant-read-contracts",
   ]) {
     const manifest = json(`packages/${name}/package.json`);
     assert.deepEqual(manifest.exports["."], { import: "./src/index.ts" }, `${name} must export its TypeScript source`);
@@ -228,6 +231,7 @@ test("installed workspace resolves every actual public package specifier", async
     ["@sympoies/dsh-github-review-publish", "createGitHubReviewWorkerResult"],
     ["@sympoies/dsh-conversation-agent", "validateConversationTurn"],
     ["@sympoies/dsh-telegram-channel", "createTelegramChannelPluginDescriptor"],
+    ["@sympoies/dsh-assistant-read-contracts", "authorizeAssistantReadInvocation"],
   ] as const) {
     const module = await import(specifier);
     assert.equal(typeof module[exported], "function", `${specifier} must resolve from the installed workspace`);
