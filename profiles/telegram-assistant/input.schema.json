@@ -118,7 +118,10 @@
           },
           "else": {
             "required": ["albumRef"],
-            "properties": { "attachments": { "type": "array", "minItems": 2, "maxItems": 10 } }
+            "properties": {
+              "albumRef": { "$ref": "#/$defs/ref" },
+              "attachments": { "type": "array", "minItems": 2, "maxItems": 10 }
+            }
           }
         }
       ]

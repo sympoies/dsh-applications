@@ -213,6 +213,32 @@ test("the Telegram assistant trigger accepts only supported text, media, or loca
   assert.equal(validate({ unsupported: true }), false);
 });
 
+test("the Telegram assistant trigger keeps package-owned media and location constraints exact", () => {
+  const trigger = json("profiles/telegram-assistant/input.schema.json");
+  const mediaRequest = json("packages/telegram-channel/schemas/media-input-request.schema.json");
+  const locationRequest = json("packages/telegram-channel/schemas/location-input-request.schema.json");
+  const mediaFields = ["mode", "albumRef", "caption", "attachments"];
+  const expectedMedia = {
+    type: mediaRequest.type,
+    additionalProperties: mediaRequest.additionalProperties,
+    required: mediaRequest.required.filter((field: string) => mediaFields.includes(field)),
+    properties: Object.fromEntries(mediaFields.map(field => [field, mediaRequest.properties[field]])),
+    allOf: mediaRequest.allOf,
+  };
+
+  assert.deepEqual(trigger.$defs.ref, mediaRequest.$defs.ref);
+  for (const definition of ["image", "text", "attachment"]) {
+    assert.deepEqual(trigger.$defs[definition], mediaRequest.$defs[definition]);
+  }
+  assert.deepEqual(trigger.$defs.media, expectedMedia);
+  assert.deepEqual(trigger.$defs.ref, locationRequest.$defs.ref);
+  assert.deepEqual(trigger.$defs.location, locationRequest.$defs.location);
+
+  const driftedMedia = structuredClone(trigger.$defs.media);
+  driftedMedia.properties.attachments.maxItems += 1;
+  assert.throws(() => assert.deepEqual(driftedMedia, expectedMedia));
+});
+
 test("manual and scheduled batch invocation preserve one authority document", () => {
   const batch = profile("batch");
   const bindings = batch.triggers?.map((trigger: any) => ({

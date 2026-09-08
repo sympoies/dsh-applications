@@ -275,7 +275,7 @@ test("compatibility lock pins the accepted runtime-kit and DSH identities", () =
   assert.equal(lock.application_version, "0.7.0");
   assert.deepEqual(lock.profile_catalog, {
     path: "profiles/catalog.json",
-    digest: "sha256:851f5116accd8c179dd32ffcc2927b0eb3e0988335d532298669900ec34df5ef",
+    digest: "sha256:8dcc29b4e449f23a1ed1b62385accf15a579f281ac031534fc6246b92dc312a3",
   });
   assert.deepEqual(lock.runtime_kit, {
     package: "@sympoies/dsh-runtime-kit",

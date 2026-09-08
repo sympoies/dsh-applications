@@ -26,7 +26,7 @@
     {
       "id": "telegram-assistant",
       "path": "profiles/telegram-assistant/profile.json",
-      "digest": "sha256:d7975690630fc95ab17cc28f2df3e93ee33c0b84b965a04ed029eebd65e474ff"
+      "digest": "sha256:422ffe5d02b6681f789ffda20426bc85da410814b680b3dc2334d1aa96261ab9"
     },
     {
       "id": "telegram-conversational",
