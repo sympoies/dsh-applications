@@ -178,7 +178,7 @@ test("release-bound GitHub packages construct exact runtime-kit PluginDescriptor
   const publish = createGitHubReviewPublishPluginDescriptor(runtimeKit, artifactIdentity);
   assert.equal(read.metadata.id, "github-read");
   assert.equal(publish.metadata.id, "github-review-publish");
-  assert.equal(publish.metadata.version, "0.4.0");
+  assert.equal(publish.metadata.version, "0.5.0");
   assert.equal(runtimeKit.versionSatisfies(publish.metadata.version, reviewPublisherRange), true);
   assert.equal(read.metadata.digest, runtimeKit.computeDocumentDigest(read));
   assert.equal(publish.metadata.digest, runtimeKit.computeDocumentDigest(publish));
@@ -225,7 +225,7 @@ test("release-bound GitHub packages construct exact runtime-kit PluginDescriptor
   });
   assert.deepEqual(
     resolved.composition.plugins.map((plugin: any) => [plugin.id, plugin.version]),
-    [["github-read", "0.4.0"], ["github-review-publish", "0.4.0"]],
+    [["github-read", "0.5.0"], ["github-review-publish", "0.5.0"]],
   );
 });
 

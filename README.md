@@ -36,9 +36,10 @@ GitHub contracts and complete native review-output schema. Version `0.3.0`
 raises the supported Node.js floor to 24 and requires fingerprinted native
 threads for every actionable GitHub review finding. Version `0.4.0` adds the
 fail-closed Telegram conversational profile and its reviewed public channel
-package contract. The next coordinated release adds bounded weather,
-market/exchange, Steam catalog, Web lookup/extraction, recent-community, and
-Taiwan public-discussion contracts without embedding their private providers.
+package contract. Version `0.5.0` adds bounded weather, market/exchange, Steam
+catalog, Web lookup/extraction, recent-community, Taiwan public-discussion,
+governed action, media, vision, and location contracts without embedding their
+private providers.
 
 ## Development
 
