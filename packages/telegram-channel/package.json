@@ -12,6 +12,7 @@
   "files": [
     "src",
     "schemas",
+    "capability-bundle.ceiling.json",
     "README.md"
   ],
   "dependencies": {

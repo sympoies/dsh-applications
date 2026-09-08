@@ -79,12 +79,72 @@ binding before agent dispatch and may narrow, but never exceed, the public
 ambient-context ceiling. The public router keeps no replay database or mutable
 session state; those stay with the deployment/runtime owner.
 
-Attachment ingestion, vision/OCR, screen capture, and Telegram location
-handling remain outside this profile. Their separately reviewed follow-up is
-[issue #28](https://github.com/sympoies/dsh-applications/issues/28).
+## Optional media, vision, and location contracts
+
+The package also publishes three provider-neutral, independently selectable
+action contracts for private adapters:
+
+- `telegram.media.input` accepts a trusted, normalized single attachment or
+  album containing photos, image documents, or bounded text documents;
+- `telegram.vision.inspect` binds an exact ordered image-ref set to one opaque
+  DSH-owned model-route ref; and
+- `telegram.location.input` accepts one trusted static latitude/longitude value
+  with optional bounded horizontal accuracy.
+
+Each request and receipt repeats an opaque deployment, audience, conversation,
+event, and request tuple. The caller must pass the independently trusted tuple
+and the action admitted for it. Media, vision, and location additionally bind
+a domain-separated digest of their normalized input. The vision digest covers
+the route, ordered image refs, and the explicit presence or absence of its
+optional instruction; its trusted context also preserves the route and image
+refs needed to validate results. Missing context, a sibling action, tuple
+substitution, changed content, reordered refs, additional fields, accessors,
+and non-JSON data fail closed. Opaque refs must be minted by the deployment
+owner from authenticated source data; they are not Telegram chat, user,
+message, media-group, or file identifiers.
+
+The media ceiling is 10 attachments and 10 album parts, 20 MiB per item and
+20 MiB in total, 60,000 text characters across the request, a 1,024-character
+caption, and images no larger than 2,000 pixels per side or 4 million pixels.
+Photos are JPEG. Image documents are PNG, JPEG, WebP, or GIF. Text documents
+must carry an explicit `text/*` type or one of the listed structured-text
+application types; filename-extension guessing is deliberately not part of the
+public boundary. Voice, audio, video, PDFs, arbitrary binary documents, and
+live locations are rejected.
+
+Vision accepts at most 10 unique attachment refs, an optional 4,096-character
+instruction, 16,384 characters per result, and 32,768 result characters in
+total. It accepts no provider name, model name, credential, session ID, or
+filesystem path. DSH remains the model-route and session owner. The contract
+declares no provider-network or subprocess authority.
+
+The companion
+[`capability-bundle.ceiling.json`](capability-bundle.ceiling.json) keeps all
+three actions at `requested: false`. A private `dsh-bots` composition may
+choose the corresponding descriptor only after runtime admission; selecting
+one does not select either sibling or widen the existing plain conversation
+profile. The existing `telegram-conversational` BotProfile therefore remains
+unchanged.
+
+`@ashafizullah/dsh-telegram@0.5.1` implements photos, supported image/text
+documents, captions, and albums natively. Its public `TelegramMessage` type
+does not contain location, so `telegram.location.input` is a separate mediated
+adapter seam and is not described as transport-native. Its OCR implementation
+executes `tesseract`; because the reviewed public subprocess ceiling is empty,
+OCR remains `planned`, `requested: false`, has no action, and gains no
+subprocess declaration. Screen capture remains excluded.
+
+Use `createTelegramMediaInputPluginDescriptor`,
+`createTelegramVisionPluginDescriptor`, and
+`createTelegramLocationInputPluginDescriptor` with the immutable identity of
+the coordinated `@sympoies/dsh-telegram-channel` release. These public
+descriptors contain no host effects. The native channel continues to own its
+separately reviewed Telegram API and credential-handle mediation; private
+infrastructure still owns admission and actual execution.
 
 Compatibility is exact DSH `0.1.1-rc.2`, runtime-kit contract `0.0.0`, plugin
 API `1.0.0`, and Linux x64. Repository owner tests verify the external identity,
-disabled composition, descriptor digest, schema digest, and public/private
-boundary. The companion native fragment commits its complete npm graph and is
-installed only with `npm ci --ignore-scripts`.
+disabled composition, descriptor digest, strict schema compilation and runtime
+conformance, schema digest, and public/private boundary. The companion native
+fragment commits its complete npm graph and is installed only with
+`npm ci --ignore-scripts`.

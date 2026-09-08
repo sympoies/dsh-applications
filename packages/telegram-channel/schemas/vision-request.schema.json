@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Governed Telegram vision request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["action", "requestRef", "eventRef", "scope", "modelRouteRef", "imageRefs"],
+  "properties": {
+    "action": { "const": "telegram.vision.inspect" },
+    "requestRef": { "$ref": "#/$defs/ref" },
+    "eventRef": { "$ref": "#/$defs/ref" },
+    "scope": { "$ref": "#/$defs/scope" },
+    "modelRouteRef": { "$ref": "#/$defs/ref" },
+    "imageRefs": { "type": "array", "minItems": 1, "maxItems": 10, "uniqueItems": true, "items": { "$ref": "#/$defs/ref" } },
+    "instruction": { "type": "string", "minLength": 1, "maxLength": 4096 }
+  },
+  "$defs": {
+    "ref": { "type": "string", "pattern": "^ref:[0-9a-f]{64}$" },
+    "scope": {
+      "type": "object", "additionalProperties": false,
+      "required": ["deploymentRef", "audienceRef", "conversationRef"],
+      "properties": {
+        "deploymentRef": { "$ref": "#/$defs/ref" }, "audienceRef": { "$ref": "#/$defs/ref" }, "conversationRef": { "$ref": "#/$defs/ref" }
+      }
+    }
+  }
+}
