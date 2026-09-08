@@ -28,7 +28,7 @@ reviewed, digest-addressed GitHub release is the distribution boundary.
 
 The workspace contains the public plugin declaration helpers, the isolated DSH
 `0.1.1-rc.2` adapter, the generic ten-operation application manager, portable
-GitHub read/review-result contracts, five least-authority bot profiles, six
+GitHub read/review-result contracts, six least-authority bot profiles, six
 independently admitted read-only assistant capability contracts, and reusable
 manual, GitHub-event, channel, and schedule trigger fixtures. Version
 `0.1.3` is the first published coordinated catalog release; `0.2.0` adds the
@@ -41,7 +41,10 @@ catalog, Web lookup/extraction, recent-community, Taiwan public-discussion,
 governed action, media, vision, and location contracts without embedding their
 private providers. Version `0.6.0` adds an optional, request-bound 24-hour
 projection to the public weather contract while preserving existing
-current/daily consumers.
+current/daily consumers. Version `0.7.0` adds the portable Telegram assistant
+profile that composes those read contracts with governed organization data,
+agent sessions, candidate memory, and media/location input without adding
+shell or project-workspace authority.
 
 ## Development
 

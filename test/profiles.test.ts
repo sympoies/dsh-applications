@@ -5,7 +5,7 @@ import test from "node:test";
 import { defineTrigger, type TriggerDescriptor } from "../packages/plugin-sdk/src/index.ts";
 
 const root = resolve(import.meta.dirname, "..");
-const profileIds = ["batch", "coding", "conversational", "github-pr-review", "telegram-conversational"];
+const profileIds = ["batch", "coding", "conversational", "github-pr-review", "telegram-assistant", "telegram-conversational"];
 const fixtureIds = ["channel", "github-event", "manual", "schedule"];
 
 function json(path: string) {
@@ -44,7 +44,7 @@ function visit(value: unknown, callback: (key: string, value: unknown, path: str
   }
 }
 
-test("the catalog declares five distinct least-authority profiles", () => {
+test("the catalog declares six distinct least-authority profiles", () => {
   const profiles = Object.fromEntries(profileIds.map(id => [id, profile(id)]));
   assert.deepEqual(Object.keys(profiles).sort(), profileIds);
   assert.deepEqual(profiles.coding.workload, {
@@ -73,6 +73,36 @@ test("the catalog declares five distinct least-authority profiles", () => {
     "conversation.memory",
     "conversation.reply",
   ]);
+  assert.deepEqual(profiles["telegram-assistant"].workload, {
+    class: "conversational-service",
+    scopeClass: "non-project",
+  });
+  assert.deepEqual(profiles["telegram-assistant"].grants, [
+    "agent-memory.candidate-add",
+    "agent-memory.recall",
+    "agent-session.attach-metadata",
+    "agent-session.cancel",
+    "agent-session.continue",
+    "agent-session.create",
+    "agent-session.status",
+    "assistant.market.lookup",
+    "assistant.research.recent-community",
+    "assistant.research.taiwan-public-discussion",
+    "assistant.steam.catalog.lookup",
+    "assistant.weather.lookup",
+    "assistant.web.lookup",
+    "channel.telegram.ingress",
+    "conversation.group-notes.read",
+    "conversation.group-notes.write",
+    "conversation.memory",
+    "conversation.reply",
+    "organization.calendar.read",
+    "organization.calendar.write",
+    "organization.work-recommendation.read",
+    "telegram.location.input",
+    "telegram.media.input",
+    "telegram.vision.inspect",
+  ]);
   assert.deepEqual(profiles["github-pr-review"].workload, {
     class: "event-service",
     scopeClass: "non-project",
@@ -87,12 +117,12 @@ test("the catalog declares five distinct least-authority profiles", () => {
   });
   assert.deepEqual(profiles.batch.grants, ["batch.input.read", "batch.output.write"]);
 
-  for (const id of ["conversational", "telegram-conversational", "github-pr-review", "batch"]) {
+  for (const id of ["conversational", "telegram-assistant", "telegram-conversational", "github-pr-review", "batch"]) {
     assert.equal(profiles[id].state?.workspace, "none", `${id} has no project workspace`);
     assert.deepEqual(profiles[id].limits?.workspaceClasses, [], `${id} has no workspace class`);
     assert(!profiles[id].grants?.some((grant: any) => grant.startsWith("coding.")), `${id} has no coding grant`);
   }
-  assert.equal(new Set(Object.values(profiles).map(value => JSON.stringify(authority(value)))).size, 5);
+  assert.equal(new Set(Object.values(profiles).map(value => JSON.stringify(authority(value)))).size, 6);
 });
 
 test("public profiles and fixtures contain no private deployment state", () => {
@@ -146,6 +176,7 @@ test("trigger fixtures are reusable configuration and cannot widen profile autho
   assert.deepEqual(profile("coding").triggers?.map((item: any) => item.class), ["manual"]);
   assert.deepEqual(profile("conversational").triggers?.map((item: any) => item.class), ["message"]);
   assert.deepEqual(profile("telegram-conversational").triggers?.map((item: any) => item.class), ["message"]);
+  assert.deepEqual(profile("telegram-assistant").triggers?.map((item: any) => item.class), ["message"]);
   assert.deepEqual(profile("github-pr-review").triggers?.map((item: any) => item.class), ["webhook"]);
   assert.deepEqual(profile("batch").triggers?.map((item: any) => item.class), ["manual", "schedule"]);
 });
@@ -166,7 +197,7 @@ test("the compatibility manifest binds the coordinated catalog version and profi
   const workspace = json("package.json");
   const catalog = json("profiles/catalog.json");
   const lock = json("compatibility/dsh-applications-lock.json");
-  assert.equal(workspace.version, "0.6.0");
+  assert.equal(workspace.version, "0.7.0");
   assert.equal(catalog.version, workspace.version);
   assert.equal(lock.application_version, workspace.version);
   assert.equal(lock.profile_catalog.path, "profiles/catalog.json");

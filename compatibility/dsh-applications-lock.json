@@ -1,9 +1,9 @@
 {
   "schema_version": "dsh-applications.compatibility-lock.v1",
-  "application_version": "0.6.0",
+  "application_version": "0.7.0",
   "profile_catalog": {
     "path": "profiles/catalog.json",
-    "digest": "sha256:3770f84fc6ffb149a56895615c642c30e3919c9c740a5fffeb5422f752b22f0a"
+    "digest": "sha256:df14ff509ef7014d8f50e9010a3c2f47bb0d67e3a59b80c0dd80f0dab8ab5a62"
   },
   "runtime_kit": {
     "package": "@sympoies/dsh-runtime-kit",

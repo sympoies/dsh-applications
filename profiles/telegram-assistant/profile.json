@@ -1,0 +1,123 @@
+{
+  "apiVersion": "runtime.sympoies.dev/v1",
+  "kind": "BotProfile",
+  "metadata": {
+    "id": "telegram-assistant",
+    "version": "0.7.0",
+    "digest": "sha256:f131a659c8aeb2aa71a5958cdb3e33a4f97411c46bfcd8e469668aa7e36a8e49",
+    "purpose": "Persistent Telegram assistant with bounded reads and governed private actions, without project or shell authority"
+  },
+  "workload": {
+    "class": "conversational-service",
+    "scopeClass": "non-project"
+  },
+  "plugins": [
+    { "id": "assistant-market-read", "range": ">=0.7.0 <1.0.0" },
+    { "id": "assistant-recent-community-read", "range": ">=0.7.0 <1.0.0" },
+    { "id": "assistant-steam-catalog-read", "range": ">=0.7.0 <1.0.0" },
+    { "id": "assistant-taiwan-discussion-read", "range": ">=0.7.0 <1.0.0" },
+    { "id": "assistant-weather-read", "range": ">=0.7.0 <1.0.0" },
+    { "id": "assistant-web-read", "range": ">=0.7.0 <1.0.0" },
+    { "id": "conversation-agent", "range": ">=0.7.0 <1.0.0" },
+    { "id": "conversation-group-notes", "range": ">=0.7.0 <1.0.0" },
+    { "id": "external-agent-memory", "range": ">=0.7.0 <1.0.0" },
+    { "id": "governed-agent-session", "range": ">=0.7.0 <1.0.0" },
+    { "id": "organization-calendar", "range": ">=0.7.0 <1.0.0" },
+    { "id": "organization-work-recommendation", "range": ">=0.7.0 <1.0.0" },
+    { "id": "telegram-channel", "range": "=0.5.1" },
+    { "id": "telegram-location-input", "range": ">=0.7.0 <1.0.0" },
+    { "id": "telegram-media-input", "range": ">=0.7.0 <1.0.0" },
+    { "id": "telegram-vision", "range": ">=0.7.0 <1.0.0" }
+  ],
+  "grants": [
+    "agent-memory.candidate-add",
+    "agent-memory.recall",
+    "agent-session.attach-metadata",
+    "agent-session.cancel",
+    "agent-session.continue",
+    "agent-session.create",
+    "agent-session.status",
+    "assistant.market.lookup",
+    "assistant.research.recent-community",
+    "assistant.research.taiwan-public-discussion",
+    "assistant.steam.catalog.lookup",
+    "assistant.weather.lookup",
+    "assistant.web.lookup",
+    "channel.telegram.ingress",
+    "conversation.group-notes.read",
+    "conversation.group-notes.write",
+    "conversation.memory",
+    "conversation.reply",
+    "organization.calendar.read",
+    "organization.calendar.write",
+    "organization.work-recommendation.read",
+    "telegram.location.input",
+    "telegram.media.input",
+    "telegram.vision.inspect"
+  ],
+  "requiredHealth": [
+    "assistant-market-read.ready",
+    "assistant-recent-community-read.ready",
+    "assistant-steam-catalog-read.ready",
+    "assistant-taiwan-discussion-read.ready",
+    "assistant-weather-read.ready",
+    "assistant-web-read.ready",
+    "conversation-agent.ready",
+    "conversation-group-notes.ready",
+    "external-agent-memory.ready",
+    "governed-agent-session.ready",
+    "organization-calendar.ready",
+    "organization-work-recommendation.ready",
+    "telegram-channel.ready",
+    "telegram-location-input.ready",
+    "telegram-media-input.ready",
+    "telegram-vision.ready"
+  ],
+  "artifacts": {
+    "instructions": "profiles/telegram-assistant/instructions.md",
+    "skills": [],
+    "inputSchemaDigest": "sha256:54a3088359428b8c3ff255677a92e9be30794ef4a9ec6a8266a16bdfae98532d",
+    "outputSchemaDigest": "sha256:58dca61ee8e91b0296f4afa9edf48abac7f8172940435e9e63264b709d9a512c"
+  },
+  "modelRouteClass": "conversation-bounded",
+  "state": {
+    "session": "persistent",
+    "memory": "persistent",
+    "workspace": "none",
+    "retentionSeconds": 2592000,
+    "restart": "resume"
+  },
+  "approvals": {
+    "requiredFor": ["write", "destructive", "open-world"]
+  },
+  "limits": {
+    "actions": 32,
+    "networkClasses": [
+      "public-community-data",
+      "public-market-data",
+      "public-steam-catalog",
+      "public-taiwan-discussion",
+      "public-weather-data",
+      "public-web-data",
+      "telegram-api"
+    ],
+    "workspaceClasses": [],
+    "budgetUnits": 1000,
+    "ratePerMinute": 60
+  },
+  "triggers": [
+    {
+      "class": "message",
+      "inputSchemaDigest": "sha256:54a3088359428b8c3ff255677a92e9be30794ef4a9ec6a8266a16bdfae98532d"
+    }
+  ],
+  "execution": {
+    "concurrency": 64,
+    "overlap": "allow",
+    "timeoutMs": 300000,
+    "retry": { "maxAttempts": 3, "backoffMs": 1000 },
+    "cancellation": "cooperative",
+    "interrupt": "supported",
+    "drain": "required"
+  }
+}
