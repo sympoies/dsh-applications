@@ -1,11 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Telegram assistant message",
+  "title": "Telegram assistant input",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "message"
-  ],
   "properties": {
     "message": {
       "type": "string",
@@ -34,6 +31,107 @@
         "isGroup": {
           "type": "boolean"
         }
+      }
+    },
+    "media": {
+      "$ref": "#/$defs/media"
+    },
+    "location": {
+      "$ref": "#/$defs/location"
+    }
+  },
+  "anyOf": [
+    { "required": ["message"], "properties": { "message": true } },
+    { "required": ["media"], "properties": { "media": true } },
+    { "required": ["location"], "properties": { "location": true } }
+  ],
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "pattern": "^ref:[0-9a-f]{64}$"
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "attachmentRef", "mediaType", "bytes", "width", "height"],
+      "properties": {
+        "kind": { "enum": ["photo", "image-document"] },
+        "attachmentRef": { "$ref": "#/$defs/ref" },
+        "mediaType": { "enum": ["image/gif", "image/jpeg", "image/png", "image/webp"] },
+        "bytes": { "type": "integer", "minimum": 1, "maximum": 20971520 },
+        "width": { "type": "integer", "minimum": 1, "maximum": 2000 },
+        "height": { "type": "integer", "minimum": 1, "maximum": 2000 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "photo" } }, "required": ["kind"] },
+          "then": { "properties": { "mediaType": { "const": "image/jpeg" } } }
+        }
+      ]
+    },
+    "text": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "attachmentRef", "mediaType", "bytes", "text", "truncated"],
+      "properties": {
+        "kind": { "const": "text-document" },
+        "attachmentRef": { "$ref": "#/$defs/ref" },
+        "mediaType": {
+          "anyOf": [
+            { "type": "string", "pattern": "^text/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$" },
+            { "enum": ["application/javascript", "application/json", "application/sql", "application/toml", "application/typescript", "application/x-yaml", "application/xml", "application/yaml"] }
+          ]
+        },
+        "bytes": { "type": "integer", "minimum": 1, "maximum": 20971520 },
+        "text": { "type": "string", "maxLength": 60000 },
+        "truncated": { "type": "boolean" }
+      }
+    },
+    "attachment": {
+      "oneOf": [
+        { "$ref": "#/$defs/image" },
+        { "$ref": "#/$defs/text" }
+      ]
+    },
+    "media": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "attachments"],
+      "properties": {
+        "mode": { "enum": ["single", "album"] },
+        "albumRef": { "$ref": "#/$defs/ref" },
+        "caption": { "type": "string", "maxLength": 1024 },
+        "attachments": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/attachment" }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "mode": { "const": "single" } }, "required": ["mode"] },
+          "then": {
+            "properties": { "attachments": { "type": "array", "maxItems": 1 } },
+            "not": { "properties": { "albumRef": {} }, "required": ["albumRef"] }
+          },
+          "else": {
+            "required": ["albumRef"],
+            "properties": { "attachments": { "type": "array", "minItems": 2, "maxItems": 10 } }
+          }
+        }
+      ]
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "latitude", "longitude"],
+      "properties": {
+        "kind": { "const": "static" },
+        "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+        "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+        "horizontalAccuracyMeters": { "type": "number", "minimum": 0, "maximum": 1500 }
       }
     }
   }

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
+import { Ajv2020 } from "ajv/dist/2020.js";
 import { defineTrigger, type TriggerDescriptor } from "../packages/plugin-sdk/src/index.ts";
 
 const root = resolve(import.meta.dirname, "..");
@@ -179,6 +180,37 @@ test("trigger fixtures are reusable configuration and cannot widen profile autho
   assert.deepEqual(profile("telegram-assistant").triggers?.map((item: any) => item.class), ["message"]);
   assert.deepEqual(profile("github-pr-review").triggers?.map((item: any) => item.class), ["webhook"]);
   assert.deepEqual(profile("batch").triggers?.map((item: any) => item.class), ["manual", "schedule"]);
+});
+
+test("the Telegram assistant trigger accepts only supported text, media, or location events", () => {
+  const validate = new Ajv2020({ allErrors: true, strict: true }).compile(
+    json("profiles/telegram-assistant/input.schema.json"),
+  );
+  const ref = `ref:${"a".repeat(64)}`;
+
+  assert.equal(validate({ message: "hello" }), true);
+  assert.equal(validate({
+    media: {
+      mode: "single",
+      attachments: [{
+        kind: "photo",
+        attachmentRef: ref,
+        mediaType: "image/jpeg",
+        bytes: 1024,
+        width: 640,
+        height: 480,
+      }],
+    },
+  }), true, JSON.stringify(validate.errors));
+  assert.equal(validate({
+    location: {
+      kind: "static",
+      latitude: 25.033,
+      longitude: 121.5654,
+    },
+  }), true, JSON.stringify(validate.errors));
+  assert.equal(validate({}), false);
+  assert.equal(validate({ unsupported: true }), false);
 });
 
 test("manual and scheduled batch invocation preserve one authority document", () => {

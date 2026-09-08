@@ -4,7 +4,7 @@
   "metadata": {
     "id": "telegram-assistant",
     "version": "0.7.0",
-    "digest": "sha256:f131a659c8aeb2aa71a5958cdb3e33a4f97411c46bfcd8e469668aa7e36a8e49",
+    "digest": "sha256:d7975690630fc95ab17cc28f2df3e93ee33c0b84b965a04ed029eebd65e474ff",
     "purpose": "Persistent Telegram assistant with bounded reads and governed private actions, without project or shell authority"
   },
   "workload": {
@@ -76,7 +76,7 @@
   "artifacts": {
     "instructions": "profiles/telegram-assistant/instructions.md",
     "skills": [],
-    "inputSchemaDigest": "sha256:54a3088359428b8c3ff255677a92e9be30794ef4a9ec6a8266a16bdfae98532d",
+    "inputSchemaDigest": "sha256:b66a689bc47413636583d8c79e2ea30efc286c95d9a99432b61663bac6b54b2b",
     "outputSchemaDigest": "sha256:58dca61ee8e91b0296f4afa9edf48abac7f8172940435e9e63264b709d9a512c"
   },
   "modelRouteClass": "conversation-bounded",
@@ -108,7 +108,7 @@
   "triggers": [
     {
       "class": "message",
-      "inputSchemaDigest": "sha256:54a3088359428b8c3ff255677a92e9be30794ef4a9ec6a8266a16bdfae98532d"
+      "inputSchemaDigest": "sha256:b66a689bc47413636583d8c79e2ea30efc286c95d9a99432b61663bac6b54b2b"
     }
   ],
   "execution": {
