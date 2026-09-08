@@ -392,6 +392,100 @@ test("result validation enforces request output, source, and input-derived limit
   }
 });
 
+test("weather supports an authorized bounded hourly projection", () => {
+  const weather = "assistant.weather.lookup";
+  const hourlyInput = { location: "Taipei", units: "metric", days: 3, hourlyHours: 24 };
+  const hourlyAuthorization = authorizeAssistantReadInvocation(
+    admission(weather),
+    invocation(weather, { input: hourlyInput }),
+  );
+  const hourly = Array.from({ length: 24 }, (_, index) => ({
+    at: `2026-09-08T${String(index).padStart(2, "0")}:00:00Z`,
+    temperature: 29,
+    condition: "cloudy",
+    precipitationProbability: index / 24,
+  }));
+  const hourlyResult = {
+    ...result(weather),
+    data: { ...result(weather).data, hourly },
+  };
+
+  assert.equal(schemaValidator(weather, "input")(hourlyInput), true);
+  assert.equal(schemaValidator(weather, "output")(hourlyResult), true);
+  assert.equal(validateAssistantReadResult(hourlyAuthorization, hourlyResult).status, "completed");
+
+  for (const hourlyHours of [0, 25, 1.5]) {
+    const invalidInput = { ...hourlyInput, hourlyHours };
+    assert.equal(schemaValidator(weather, "input")(invalidInput), false);
+    assert.throws(
+      () => authorizeAssistantReadInvocation(admission(weather), invocation(weather, { input: invalidInput })),
+      /hourly|integer|bounded/i,
+    );
+  }
+
+  const overAuthorized = {
+    ...hourlyResult,
+    data: { ...hourlyResult.data, hourly: [...hourly.slice(0, 1), hourly[1]] },
+  };
+  const oneHourAuthorization = authorizeAssistantReadInvocation(
+    admission(weather),
+    invocation(weather, { input: { ...hourlyInput, hourlyHours: 1 } }),
+  );
+  assert.throws(
+    () => validateAssistantReadResult(oneHourAuthorization, overAuthorized),
+    /hourly.*authorized/i,
+  );
+
+  const unauthorizedHourly = {
+    ...result(weather),
+    data: { ...result(weather).data, hourly: hourly.slice(0, 1) },
+  };
+  assert.throws(
+    () => validateAssistantReadResult(authorization(weather), unauthorizedHourly),
+    /hourly.*authorized/i,
+  );
+
+  const tooManyHours = {
+    ...hourlyResult,
+    data: { ...hourlyResult.data, hourly: [...hourly, hourly[0]] },
+  };
+  assert.equal(schemaValidator(weather, "output")(tooManyHours), false);
+  assert.throws(
+    () => validateAssistantReadResult(hourlyAuthorization, tooManyHours),
+    /hourly.*authorized/i,
+  );
+
+  for (const invalidEntry of [
+    { ...hourly[0], at: "2026-02-30T00:00:00Z" },
+    { ...hourly[0], temperature: 151 },
+    { ...hourly[0], condition: "x".repeat(129) },
+    { ...hourly[0], precipitationProbability: 1.01 },
+    { ...hourly[0], credentialHandle: "opaque" },
+  ]) {
+    const invalidResult = {
+      ...hourlyResult,
+      data: { ...hourlyResult.data, hourly: [invalidEntry] },
+    };
+    assert.equal(schemaValidator(weather, "output")(invalidResult), false);
+    assert.throws(
+      () => validateAssistantReadResult(hourlyAuthorization, invalidResult),
+      /hourly|timestamp|temperature|condition|precipitation|unknown/i,
+    );
+  }
+
+  for (const status of ["cancelled", "timed-out"] as const) {
+    const terminal = {
+      status,
+      asOf: null,
+      summary: status,
+      sources: [],
+      data: null,
+    };
+    assert.equal(schemaValidator(weather, "output")(terminal), true);
+    assert.equal(validateAssistantReadResult(hourlyAuthorization, terminal).status, status);
+  }
+});
+
 test("unadmitted capability, wrong implementation, and wrong audience fail closed", () => {
   assert.throws(
     () => authorizeAssistantReadInvocation(admission(capabilityIds[0]), invocation(capabilityIds[1])),

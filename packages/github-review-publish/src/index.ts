@@ -412,7 +412,7 @@ export function createGitHubReviewPublishPluginDescriptor(runtimeKit: RuntimeKit
   const descriptor = {
     apiVersion: "runtime.sympoies.dev/v1",
     kind: "PluginDescriptor",
-    metadata: { id: "github-review-publish", version: "0.5.0", digest: `sha256:${"0".repeat(64)}` },
+    metadata: { id: "github-review-publish", version: "0.6.0", digest: `sha256:${"0".repeat(64)}` },
     artifact: {
       package: "@sympoies/dsh-github-review-publish",
       digest: artifact.digest,

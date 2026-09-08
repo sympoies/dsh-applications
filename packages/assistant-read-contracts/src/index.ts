@@ -130,8 +130,8 @@ const contracts: Record<AssistantReadCapabilityId, AssistantReadCapabilityContra
     pluginId: "assistant-weather-read",
     actionId: "assistant.weather.lookup",
     schemaStem: "weather",
-    inputSchemaDigest: "sha256:9ab7c92dbea779baa66b36bd39279c2b4d3d9a54ee0f63e0650bbee61281663c",
-    outputSchemaDigest: "sha256:820061331e14260c0d3b46b2e665ec931785fe8fb7ff7be2fe1830d7e7d3f54f",
+    inputSchemaDigest: "sha256:b642b58aef4a7a977de7b2d7b8c65759cc83ae663d8cfee5964eefa260a4860a",
+    outputSchemaDigest: "sha256:d0c99839a89c87dcaa5d808317db4f9dbf8a810c1eb4dcc698f1158b1bde1bde",
     hostActionClasses: ["provider-read"],
     networkClasses: ["public-weather-data"],
     budgets: { inputBytes: 2_048, outputBytes: 32_768, timeoutMs: 10_000, sources: 4 },
@@ -384,10 +384,11 @@ function boundedUniqueStrings(
 
 function validateWeatherInput(value: unknown): void {
   const input = record(value, "weather input");
-  exactKeys(input, ["location", "units", "days"], [], "weather input");
+  exactKeys(input, ["location", "units", "days"], ["hourlyHours"], "weather input");
   boundedString(input.location, "weather input.location", 256);
   if (!['metric', 'imperial'].includes(input.units as string)) fail("weather input.units is unsupported");
   integer(input.days, "weather input.days", 1, 10);
+  if (input.hourlyHours !== undefined) integer(input.hourlyHours, "weather input.hourlyHours", 1, 24);
 }
 
 function validateMarketInput(value: unknown): void {
@@ -611,7 +612,7 @@ function validateFinding(value: unknown, label: string, sourceCount: number): vo
 function validateWeatherData(value: unknown, inputValue: JsonValue): void {
   const input = record(inputValue, "authorized weather input");
   const data = record(value, "weather result.data");
-  exactKeys(data, ["location", "units", "current", "daily"], [], "weather result.data");
+  exactKeys(data, ["location", "units", "current", "daily"], ["hourly"], "weather result.data");
   boundedString(data.location, "weather result.data.location", 256);
   if (data.location !== input.location) fail("weather result.data.location does not match the authorized request");
   if (!['metric', 'imperial'].includes(data.units as string)) fail("weather result.data.units is unsupported");
@@ -632,6 +633,30 @@ function validateWeatherData(value: unknown, inputValue: JsonValue): void {
     if (day.low > day.high) fail(`weather result.data.daily[${index}] has an inverted range`);
     boundedString(day.condition, `weather result.data.daily[${index}].condition`, 128, false);
   });
+  if (data.hourly !== undefined) {
+    if (input.hourlyHours === undefined) fail("weather result.data.hourly was not authorized");
+    if (!Array.isArray(data.hourly) || data.hourly.length > (input.hourlyHours as number)) {
+      fail("weather result.data.hourly exceeds the authorized hourly horizon");
+    }
+    data.hourly.forEach((candidate, index) => {
+      const hour = record(candidate, `weather result.data.hourly[${index}]`);
+      exactKeys(
+        hour,
+        ["at", "temperature", "condition", "precipitationProbability"],
+        [],
+        `weather result.data.hourly[${index}]`,
+      );
+      dateTime(hour.at, `weather result.data.hourly[${index}].at`);
+      finiteNumber(hour.temperature, `weather result.data.hourly[${index}].temperature`, -150, 150);
+      boundedString(hour.condition, `weather result.data.hourly[${index}].condition`, 128, false);
+      finiteNumber(
+        hour.precipitationProbability,
+        `weather result.data.hourly[${index}].precipitationProbability`,
+        0,
+        1,
+      );
+    });
+  }
 }
 
 function validateMarketData(value: unknown, inputValue: JsonValue, asOfMs: number): void {
@@ -858,7 +883,7 @@ export function createAssistantReadPluginDescriptor(runtimeKitValue: unknown, ca
   const descriptor = {
     apiVersion: "runtime.sympoies.dev/v1",
     kind: "PluginDescriptor",
-    metadata: { id: contract.pluginId, version: "0.5.0", digest: `sha256:${"0".repeat(64)}` },
+    metadata: { id: contract.pluginId, version: "0.6.0", digest: `sha256:${"0".repeat(64)}` },
     artifact: {
       package: "@sympoies/dsh-assistant-read-contracts",
       digest: artifact.digest,

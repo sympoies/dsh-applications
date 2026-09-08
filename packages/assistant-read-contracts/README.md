@@ -5,6 +5,12 @@ capabilities: weather, market/exchange, Steam catalog prices, ordinary Web
 lookup/extraction, recent community research, and Taiwan-focused public-
 discussion research.
 
+Weather callers may optionally authorize `hourlyHours` from 1 through 24. A
+completed result can then include at most that many hourly entries, each with a
+canonical UTC timestamp, bounded temperature and condition, and precipitation
+probability from 0 through 1. Requests that omit `hourlyHours` retain the
+current/daily result shape and do not authorize an hourly projection.
+
 Each capability has its own stable ID, action, strict input/output schemas,
 network class, timeout, byte/source budgets, and separately constructed
 `PluginDescriptor`. A descriptor carries only this coordinated public package;

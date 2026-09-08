@@ -3,8 +3,8 @@
   "kind": "BotProfile",
   "metadata": {
     "id": "batch",
-    "version": "0.5.0",
-    "digest": "sha256:b4d73af37f29726bb9bcc85c9077ffa1ec706c4b1e06e5b1913930e82beb4c60",
+    "version": "0.6.0",
+    "digest": "sha256:23b1fe00cdaa82d84dc77d29023709008c1833043a632746ecfdeb7dced58ea5",
     "purpose": "Bounded one-shot work shared by manual and scheduled invocation"
   },
   "workload": {
