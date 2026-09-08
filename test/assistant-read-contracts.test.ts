@@ -456,6 +456,7 @@ test("weather supports an authorized bounded hourly projection", () => {
   );
 
   for (const invalidHourly of [
+    [{ ...hourly[0], at: "2026-09-07T23:59:59Z" }],
     [{ ...hourly[0], at: "9999-12-31T23:59:59Z" }],
     [hourly[0], hourly[0]],
     [hourly[1], hourly[0]],
@@ -469,6 +470,13 @@ test("weather supports an authorized bounded hourly projection", () => {
       /hourly.*(?:horizon|order|increasing)/i,
     );
   }
+  assert.throws(
+    () => validateAssistantReadResult(oneHourAuthorization, {
+      ...hourlyResult,
+      data: { ...hourlyResult.data, hourly: [{ ...hourly[0], at: "2026-09-08T01:00:00Z" }] },
+    }),
+    /hourly.*horizon/i,
+  );
 
   for (const invalidEntry of [
     { ...hourly[0], at: "2026-02-30T00:00:00Z" },
