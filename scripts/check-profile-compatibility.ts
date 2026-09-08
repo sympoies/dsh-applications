@@ -7,7 +7,20 @@ import { pathToFileURL } from "node:url";
 import { createGitHubReadPluginDescriptor, type RuntimeKitPluginDescriptorOwner } from "../packages/github-read/src/index.ts";
 import { createGitHubReviewPublishPluginDescriptor } from "../packages/github-review-publish/src/index.ts";
 import { createConversationAgentPluginDescriptor } from "../packages/conversation-agent/src/index.ts";
-import { createTelegramChannelPluginDescriptor } from "../packages/telegram-channel/src/index.ts";
+import { createAssistantReadPluginDescriptor } from "../packages/assistant-read-contracts/src/index.ts";
+import {
+  createAgentMemoryPluginDescriptor,
+  createAgentSessionPluginDescriptor,
+  createCalendarPluginDescriptor,
+  createGroupNotesPluginDescriptor,
+  createWorkRecommendationPluginDescriptor,
+} from "../packages/governed-action-contracts/src/index.ts";
+import {
+  createTelegramChannelPluginDescriptor,
+  createTelegramLocationInputPluginDescriptor,
+  createTelegramMediaInputPluginDescriptor,
+  createTelegramVisionPluginDescriptor,
+} from "../packages/telegram-channel/src/index.ts";
 import { defineTrigger, type TriggerDescriptor } from "../packages/plugin-sdk/src/index.ts";
 
 const root = resolve(import.meta.dirname, "..");
@@ -105,7 +118,7 @@ const reviewPlugins = [
 ];
 const reviewPublisher = reviewPlugins.find(plugin => plugin.metadata.id === "github-review-publish");
 assert(reviewPublisher, "the actual github-review-publish descriptor is required");
-assert.equal(reviewPublisher.metadata.version, "0.6.0");
+assert.equal(reviewPublisher.metadata.version, "0.7.0");
 assert.equal(composition.versionSatisfies(reviewPublisher.metadata.version, reviewPublisherRange), true);
 const reviewPolicy = {
   digest: `sha256:${"0".repeat(64)}`,
@@ -131,7 +144,7 @@ const resolvedReview = composition.resolveComposition({
 });
 assert.deepEqual(
   resolvedReview.composition.plugins.map((plugin: { id: string; version: string }) => [plugin.id, plugin.version]),
-  [["github-read", "0.6.0"], ["github-review-publish", "0.6.0"]],
+  [["github-read", "0.7.0"], ["github-review-publish", "0.7.0"]],
 );
 
 const telegramProfile = load(resolve(root, "profiles/telegram-conversational/profile.json"));
@@ -163,13 +176,66 @@ const resolvedTelegram = composition.resolveComposition({
 });
 assert.deepEqual(
   resolvedTelegram.composition.plugins.map((plugin: { id: string; version: string }) => [plugin.id, plugin.version]),
-  [["conversation-agent", "0.6.0"], ["telegram-channel", "0.5.1"]],
+  [["conversation-agent", "0.7.0"], ["telegram-channel", "0.5.1"]],
 );
 assert.deepEqual(resolvedTelegram.composition.authorityCeiling, {
   capabilities: ["conversation.memory", "conversation.reply"],
   networkClasses: ["telegram-api"],
   workspaceClasses: [],
 });
+
+const telegramAssistantProfile = load(resolve(root, "profiles/telegram-assistant/profile.json"));
+const assistantPlugins = [
+  createConversationAgentPluginDescriptor(composition, reviewArtifact),
+  createTelegramChannelPluginDescriptor(composition),
+  ...([
+    "assistant.market.lookup",
+    "assistant.research.recent-community",
+    "assistant.research.taiwan-public-discussion",
+    "assistant.steam.catalog.lookup",
+    "assistant.weather.lookup",
+    "assistant.web.lookup",
+  ] as const).map(capability => createAssistantReadPluginDescriptor(composition, capability, reviewArtifact)),
+  createCalendarPluginDescriptor(composition, reviewArtifact),
+  createGroupNotesPluginDescriptor(composition, reviewArtifact),
+  createWorkRecommendationPluginDescriptor(composition, reviewArtifact),
+  createAgentSessionPluginDescriptor(composition, reviewArtifact),
+  createAgentMemoryPluginDescriptor(composition, reviewArtifact),
+  createTelegramMediaInputPluginDescriptor(composition, reviewArtifact),
+  createTelegramVisionPluginDescriptor(composition, reviewArtifact),
+  createTelegramLocationInputPluginDescriptor(composition, reviewArtifact),
+];
+const assistantPolicy = {
+  digest: `sha256:${"0".repeat(64)}`,
+  grants: [...telegramAssistantProfile.grants],
+  networkClasses: [...telegramAssistantProfile.limits.networkClasses],
+  workspaceClasses: [],
+  resourceClasses: ["shared"],
+};
+assistantPolicy.digest = composition.computePublicPolicyDigest(assistantPolicy);
+const resolvedAssistant = composition.resolveComposition({
+  profile: telegramAssistantProfile,
+  plugins: assistantPlugins,
+  runtime: {
+    dshVersion: lock.dsh.version,
+    runtimeKitVersion: "0.0.0",
+    pluginApiVersion: "1.0.0",
+    platform: "linux-x64",
+    resolverVersion: "1.0.0",
+  },
+  publicPolicy: assistantPolicy,
+  catalogSnapshotDigest: composition.computeCatalogSnapshotDigest(assistantPlugins),
+  reason: "initial",
+});
+assert.deepEqual(resolvedAssistant.composition.authorityCeiling, {
+  capabilities: [...telegramAssistantProfile.grants],
+  networkClasses: [...telegramAssistantProfile.limits.networkClasses],
+  workspaceClasses: [],
+});
+assert.deepEqual(
+  resolvedAssistant.composition.plugins.map((plugin: { id: string }) => plugin.id).sort(),
+  telegramAssistantProfile.plugins.map((plugin: { id: string }) => plugin.id).sort(),
+);
 
 const triggerMappings = new Map<string, string>();
 for (const entry of catalog.triggerFixtures as Array<{ id: string; path: string }>) {

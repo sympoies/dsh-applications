@@ -390,7 +390,7 @@ test("every governed action descriptor shares the coordinated release version", 
     createAgentSessionPluginDescriptor,
     createAgentMemoryPluginDescriptor,
   ]) {
-    assert.equal(createDescriptor(runtimeKit, artifactIdentity).metadata.version, "0.6.0");
+    assert.equal(createDescriptor(runtimeKit, artifactIdentity).metadata.version, "0.7.0");
   }
 });
 
@@ -414,7 +414,7 @@ test("exact-runtime descriptors keep each capability independently selectable", 
     "agent-session.create", "agent-session.status",
   ]);
   for (const descriptor of descriptors) {
-    assert.equal(descriptor.metadata.version, "0.6.0");
+    assert.equal(descriptor.metadata.version, "0.7.0");
     assert.equal(descriptor.metadata.digest, runtimeKit.computeDocumentDigest(descriptor));
     assert.equal(descriptor.artifact.entrypoint, "packages/governed-action-contracts/src/index.ts");
     assert(Object.isFrozen(descriptor));

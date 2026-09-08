@@ -24,3 +24,11 @@ input. The native fragment's own README documents its fail-closed installation
 path: `npm ci --ignore-scripts` consumes the committed nested lockfile. DSH
 plugin-management commands are intentionally excluded because they register
 the upstream bundle as active composition.
+
+The `telegram-assistant` profile composes that bounded conversation channel
+with the public assistant-read, Telegram media/location, organization-data,
+external-memory-candidate, and governed agent-session contracts. It is the
+portable authority ceiling for a private assistant deployment: implementations,
+audience bindings, provider identities, credentials, and host action adapters
+remain private. The profile grants no shell, arbitrary subprocess, project
+workspace, or ambient skill authority.
