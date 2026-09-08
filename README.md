@@ -39,7 +39,9 @@ fail-closed Telegram conversational profile and its reviewed public channel
 package contract. Version `0.5.0` adds bounded weather, market/exchange, Steam
 catalog, Web lookup/extraction, recent-community, Taiwan public-discussion,
 governed action, media, vision, and location contracts without embedding their
-private providers.
+private providers. Version `0.6.0` adds an optional, request-bound 24-hour
+projection to the public weather contract while preserving existing
+current/daily consumers.
 
 ## Development
 

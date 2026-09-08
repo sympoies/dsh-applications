@@ -1,6 +1,6 @@
 {
   "name": "@sympoies/dsh-telegram-conversational-profile",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "dsh": {
     "profile": {
