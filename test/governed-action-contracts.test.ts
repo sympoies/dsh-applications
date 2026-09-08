@@ -380,6 +380,20 @@ test("checked-in action schemas are unconditionally digest-bound", () => {
   }
 });
 
+test("every governed action descriptor shares the coordinated release version", () => {
+  const runtimeKit: any = createOwnerRuntimeKit();
+  runtimeKit.computeDocumentDigest = () => DIGEST;
+  for (const createDescriptor of [
+    createCalendarPluginDescriptor,
+    createGroupNotesPluginDescriptor,
+    createWorkRecommendationPluginDescriptor,
+    createAgentSessionPluginDescriptor,
+    createAgentMemoryPluginDescriptor,
+  ]) {
+    assert.equal(createDescriptor(runtimeKit, artifactIdentity).metadata.version, "0.5.0");
+  }
+});
+
 test("exact-runtime descriptors keep each capability independently selectable", {
   skip: !exactRuntimeKitAvailable,
 }, async () => {
@@ -400,6 +414,7 @@ test("exact-runtime descriptors keep each capability independently selectable", 
     "agent-session.create", "agent-session.status",
   ]);
   for (const descriptor of descriptors) {
+    assert.equal(descriptor.metadata.version, "0.5.0");
     assert.equal(descriptor.metadata.digest, runtimeKit.computeDocumentDigest(descriptor));
     assert.equal(descriptor.artifact.entrypoint, "packages/governed-action-contracts/src/index.ts");
     assert(Object.isFrozen(descriptor));

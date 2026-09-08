@@ -674,7 +674,7 @@ function descriptor(
   const value = {
     apiVersion: "runtime.sympoies.dev/v1",
     kind: "PluginDescriptor",
-    metadata: { id: spec.id, version: "0.4.0", digest: `sha256:${"0".repeat(64)}` },
+    metadata: { id: spec.id, version: "0.5.0", digest: `sha256:${"0".repeat(64)}` },
     artifact: {
       package: "@sympoies/dsh-governed-action-contracts",
       digest: artifact.digest,

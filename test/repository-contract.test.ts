@@ -41,6 +41,13 @@ function filesBelow(path: string): string[] {
   return files;
 }
 
+function workspacePackagePaths(): string[] {
+  return readdirSync(join(root, "packages"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && existsSync(join(root, "packages", entry.name, "package.json")))
+    .map((entry) => `packages/${entry.name}`)
+    .sort();
+}
+
 test("repository carries its public governance boundary", () => {
   for (const path of [
     "AGENTS.md",
@@ -69,7 +76,7 @@ test("repository carries its public governance boundary", () => {
 test("workspace metadata is exact, private at the root, and release-safe", () => {
   const pkg = json("package.json");
   assert.equal(pkg.name, "@sympoies/dsh-applications-workspace");
-  assert.equal(pkg.version, "0.4.0");
+  assert.equal(pkg.version, "0.5.0");
   assert.equal(pkg.private, true);
   assert.deepEqual(pkg.workspaces, ["packages/*"]);
   assert.equal(pkg.packageManager, "npm@11.6.2");
@@ -98,13 +105,22 @@ test("workspace metadata is exact, private at the root, and release-safe", () =>
   assert.equal(packageLock.packages[""].name, pkg.name);
   assert.deepEqual(packageLock.packages[""].workspaces, pkg.workspaces);
   assert.equal(packageLock.packages[""].version, pkg.version);
-  for (const path of [
-    "packages/plugin-sdk", "packages/manager", "packages/dsh-rc2-adapter",
-    "packages/github-read", "packages/github-review-publish",
-    "packages/conversation-agent", "packages/telegram-channel",
-    "packages/assistant-read-contracts",
-  ]) {
-    assert.equal(packageLock.packages[path].version, pkg.version);
+  const packagePaths = workspacePackagePaths();
+  assert.deepEqual(
+    Object.keys(packageLock.packages).filter((path) => /^packages\/[^/]+$/u.test(path)).sort(),
+    packagePaths,
+    "the lock must cover every discovered workspace package exactly once",
+  );
+  const workspaceNames = new Set(packagePaths.map((path) => json(`${path}/package.json`).name));
+  for (const path of packagePaths) {
+    const manifest = json(`${path}/package.json`);
+    assert.equal(manifest.version, pkg.version, `${path} manifest must share the release version`);
+    assert.equal(packageLock.packages[path].version, pkg.version, `${path} lock entry must share the release version`);
+    for (const [dependency, version] of Object.entries(manifest.dependencies ?? {})) {
+      if (workspaceNames.has(dependency)) {
+        assert.equal(version, pkg.version, `${path} must pin ${dependency} to the release version`);
+      }
+    }
   }
 });
 
@@ -143,12 +159,9 @@ test("workspace packages ship erasable TypeScript sources that Node executes wit
     assert.equal(tsconfig.compilerOptions[option], expected, `tsconfig ${option}`);
   }
 
-  for (const name of [
-    "plugin-sdk", "manager", "dsh-rc2-adapter",
-    "conversation-agent", "github-read", "github-review-publish", "telegram-channel",
-    "assistant-read-contracts",
-  ]) {
-    const manifest = json(`packages/${name}/package.json`);
+  for (const path of workspacePackagePaths()) {
+    const name = path.slice("packages/".length);
+    const manifest = json(`${path}/package.json`);
     assert.deepEqual(manifest.exports["."], { import: "./src/index.ts" }, `${name} must export its TypeScript source`);
     assert(!manifest.files.includes("index.d.ts"), `${name} must not ship a hand-written declaration file`);
     assert.equal(statSync(join(root, `packages/${name}/src/index.ts`)).isFile(), true);
@@ -188,6 +201,12 @@ test("repository-owned JavaScript entrypoints are TypeScript and typechecked", (
 });
 
 test("a downstream TypeScript consumer compiles the shipped sources under stricter options without the DSH peers", () => {
+  const consumerSource = read("test/fixtures/typescript-consumer/consumer.ts");
+  for (const path of workspacePackagePaths()) {
+    const packageName = json(`${path}/package.json`).name;
+    assert.match(consumerSource, new RegExp(`from ["']${packageName.replaceAll("/", "\\/")}["']`, "u"),
+      `${packageName} must be represented in the strict downstream consumer`);
+  }
   const temporaryRoot = mkdtempSync(join(tmpdir(), "dsh-applications-consumer-"));
   try {
     const configPath = join(temporaryRoot, "tsconfig.json");
@@ -197,6 +216,7 @@ test("a downstream TypeScript consumer compiles the shipped sources under strict
         lib: ["ES2024"],
         module: "NodeNext",
         moduleResolution: "NodeNext",
+        allowImportingTsExtensions: true,
         types: ["node"],
         typeRoots: [join(root, "node_modules", "@types")],
         strict: true,
@@ -223,7 +243,7 @@ test("a downstream TypeScript consumer compiles the shipped sources under strict
 });
 
 test("installed workspace resolves every actual public package specifier", async () => {
-  for (const [specifier, exported] of [
+  const publicExports = [
     ["@sympoies/dsh-application-manager", "createApplicationManager"],
     ["@sympoies/dsh-plugin-sdk", "definePlugin"],
     ["@sympoies/dsh-rc2-adapter", "createDshRc2Adapter"],
@@ -232,7 +252,14 @@ test("installed workspace resolves every actual public package specifier", async
     ["@sympoies/dsh-conversation-agent", "validateConversationTurn"],
     ["@sympoies/dsh-telegram-channel", "createTelegramChannelPluginDescriptor"],
     ["@sympoies/dsh-assistant-read-contracts", "authorizeAssistantReadInvocation"],
-  ] as const) {
+    ["@sympoies/dsh-governed-action-contracts", "createCalendarPluginDescriptor"],
+  ] as const;
+  assert.deepEqual(
+    publicExports.map(([specifier]) => specifier).sort(),
+    workspacePackagePaths().map((path) => json(`${path}/package.json`).name).sort(),
+    "the installed import check must cover every discovered workspace package",
+  );
+  for (const [specifier, exported] of publicExports) {
     const module = await import(specifier);
     assert.equal(typeof module[exported], "function", `${specifier} must resolve from the installed workspace`);
   }
@@ -245,10 +272,10 @@ test("installed workspace resolves every actual public package specifier", async
 test("compatibility lock pins the accepted runtime-kit and DSH identities", () => {
   const lock = json("compatibility/dsh-applications-lock.json");
   assert.equal(lock.schema_version, "dsh-applications.compatibility-lock.v1");
-  assert.equal(lock.application_version, "0.4.0");
+  assert.equal(lock.application_version, "0.5.0");
   assert.deepEqual(lock.profile_catalog, {
     path: "profiles/catalog.json",
-    digest: "sha256:a3554d77c9683039157a483ee90ae4a64a0b88a60236c15ad3f49f9a79c67110",
+    digest: "sha256:ac67fd6b524ff10126d96404183a1f6f0641730c54c16cfadba16c52a55209fc",
   });
   assert.deepEqual(lock.runtime_kit, {
     package: "@sympoies/dsh-runtime-kit",

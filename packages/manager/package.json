@@ -1,6 +1,6 @@
 {
   "name": "@sympoies/dsh-application-manager",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Public ten-operation manager for governed DSH applications",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
     "README.md"
   ],
   "dependencies": {
-    "@sympoies/dsh-plugin-sdk": "0.4.0"
+    "@sympoies/dsh-plugin-sdk": "0.5.0"
   },
   "engines": {
     "node": ">=24.0.0"

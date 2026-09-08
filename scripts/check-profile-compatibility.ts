@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createGitHubReadPluginDescriptor, type RuntimeKitPluginDescriptorOwner } from "../packages/github-read/src/index.ts";
@@ -105,7 +105,7 @@ const reviewPlugins = [
 ];
 const reviewPublisher = reviewPlugins.find(plugin => plugin.metadata.id === "github-review-publish");
 assert(reviewPublisher, "the actual github-review-publish descriptor is required");
-assert.equal(reviewPublisher.metadata.version, "0.4.0");
+assert.equal(reviewPublisher.metadata.version, "0.5.0");
 assert.equal(composition.versionSatisfies(reviewPublisher.metadata.version, reviewPublisherRange), true);
 const reviewPolicy = {
   digest: `sha256:${"0".repeat(64)}`,
@@ -131,7 +131,7 @@ const resolvedReview = composition.resolveComposition({
 });
 assert.deepEqual(
   resolvedReview.composition.plugins.map((plugin: { id: string; version: string }) => [plugin.id, plugin.version]),
-  [["github-read", "0.4.0"], ["github-review-publish", "0.4.0"]],
+  [["github-read", "0.5.0"], ["github-review-publish", "0.5.0"]],
 );
 
 const telegramProfile = load(resolve(root, "profiles/telegram-conversational/profile.json"));
@@ -163,7 +163,7 @@ const resolvedTelegram = composition.resolveComposition({
 });
 assert.deepEqual(
   resolvedTelegram.composition.plugins.map((plugin: { id: string; version: string }) => [plugin.id, plugin.version]),
-  [["conversation-agent", "0.4.0"], ["telegram-channel", "0.5.1"]],
+  [["conversation-agent", "0.5.0"], ["telegram-channel", "0.5.1"]],
 );
 assert.deepEqual(resolvedTelegram.composition.authorityCeiling, {
   capabilities: ["conversation.memory", "conversation.reply"],
@@ -189,15 +189,10 @@ for (const entry of catalog.profiles as Array<{ path: string }>) {
   for (const trigger of profile.triggers) assert(triggerMappings.has(trigger.class));
 }
 
-for (const relative of [
-  "packages/plugin-sdk/package.json",
-  "packages/manager/package.json",
-  "packages/dsh-rc2-adapter/package.json",
-  "packages/github-read/package.json",
-  "packages/github-review-publish/package.json",
-  "packages/conversation-agent/package.json",
-  "packages/telegram-channel/package.json",
-]) {
+for (const relative of readdirSync(resolve(root, "packages"), { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && existsSync(resolve(root, "packages", entry.name, "package.json")))
+  .map((entry) => `packages/${entry.name}/package.json`)
+  .sort()) {
   assert.equal(load(resolve(root, relative)).version, workspace.version, `${relative} must share the release version`);
 }
 

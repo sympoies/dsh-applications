@@ -46,12 +46,22 @@ import {
   type RuntimeStore,
 } from "@sympoies/dsh-application-manager";
 import {
+  GOVERNED_ACTION_SCHEMA_DIGESTS,
+  createCalendarPluginDescriptor,
+  type GovernedActionId,
+} from "@sympoies/dsh-governed-action-contracts";
+import {
   defineDigest,
   definePlugin,
   defineTrigger,
   type PluginDescriptor,
   type Sha256Digest,
 } from "@sympoies/dsh-plugin-sdk";
+import {
+  TELEGRAM_PLUGIN_VERSION,
+  createTelegramChannelPluginDescriptor,
+  type TelegramAudienceBehavior,
+} from "@sympoies/dsh-telegram-channel";
 
 declare const ctx: Context;
 declare const runtimeKit: RuntimeKitBoundary;
@@ -102,11 +112,18 @@ const firstOperation: "validate" = PUBLIC_MANAGER_OPERATIONS[0];
 const firstDenial: "env" = REQUIRED_AMBIENT_DENIALS[0];
 const authorizedRead = authorizeAssistantReadInvocation(assistantAdmission, assistantInvocation);
 const checkedAssistantResult = validateAssistantReadResult(authorizedRead, assistantResult);
+const governedAction: GovernedActionId = "organization.calendar.read";
+const telegramAudience: TelegramAudienceBehavior = "private-dm";
 
 void definePlugin(runtimeKit, descriptor);
 void createGitHubReadPluginDescriptor;
 void createConversationAgentPluginDescriptor;
 void createAssistantReadPluginDescriptor;
+void createCalendarPluginDescriptor;
+void GOVERNED_ACTION_SCHEMA_DIGESTS[governedAction].input;
+void createTelegramChannelPluginDescriptor;
+void TELEGRAM_PLUGIN_VERSION;
+void telegramAudience;
 void isCompatibilityReviewTrigger(bundleCopy.trigger);
 void ASSISTANT_READ_CONTRACTS[authorizedRead.capabilityId].budgets.timeoutMs;
 void checkedAssistantResult;
