@@ -132,6 +132,15 @@ function exactKeys(value: Fields, required: readonly string[], optional: readonl
   for (const key of required) if (!Object.hasOwn(value, key)) fail(`${label}.${key} is required`);
 }
 
+function ownOptionalField(value: Fields, key: string, label: string): unknown {
+  const descriptor = Object.getOwnPropertyDescriptor(value, key);
+  if (descriptor === undefined) return undefined;
+  if (descriptor.get !== undefined || descriptor.set !== undefined || descriptor.enumerable !== true) {
+    fail(`${label}.${key} must be plain JSON data`);
+  }
+  return descriptor.value;
+}
+
 function opaqueRef(value: unknown, label: string): asserts value is string {
   if (typeof value !== "string" || !REF.test(value)) fail(`${label} must be an opaque deployment-scoped ref`);
 }
@@ -305,10 +314,11 @@ function normalizedMediaRequest(input: unknown) {
   const scope = validatedScope(value.scope, "telegram.media.input request.scope");
   if (value.mode !== "single" && value.mode !== "album") fail("telegram.media.input request.mode is unsupported");
   const mode = value.mode;
-  const caption = value.caption;
+  const albumRefValue = ownOptionalField(value, "albumRef", "telegram.media.input request");
+  const caption = ownOptionalField(value, "caption", "telegram.media.input request");
   if (caption !== undefined) boundedText(caption, "telegram.media.input request.caption", TELEGRAM_MEDIA_LIMITS.maxCaptionCharacters, true);
   const rawAttachments = boundedArray(value.attachments, "telegram.media.input request.attachments", 1, TELEGRAM_MEDIA_LIMITS.maxAttachments);
-  if (mode === "single" && (rawAttachments.length !== 1 || value.albumRef !== undefined)) {
+  if (mode === "single" && (rawAttachments.length !== 1 || albumRefValue !== undefined)) {
     fail("a single media request must have one item and no album ref");
   }
   let albumRef: string | undefined;
@@ -316,7 +326,7 @@ function normalizedMediaRequest(input: unknown) {
     if (rawAttachments.length < 2 || rawAttachments.length > TELEGRAM_MEDIA_LIMITS.maxAlbumParts) {
       fail("an album must remain within the album part bound");
     }
-    albumRef = value.albumRef as string;
+    albumRef = albumRefValue as string;
     opaqueRef(albumRef, "telegram.media.input request.albumRef");
   }
   const attachmentRefs = new Set<string>();
@@ -352,10 +362,13 @@ function normalizedMediaRequest(input: unknown) {
 
 export function computeTelegramMediaInputDigest(input: unknown): string {
   const normalized = normalizedMediaRequest(input);
+  const normalizedFields = normalized as Fields;
+  const albumRef = ownOptionalField(normalizedFields, "albumRef", "normalized telegram.media.input request");
+  const caption = ownOptionalField(normalizedFields, "caption", "normalized telegram.media.input request");
   return contentDigest("telegram-media-input-v1", {
     mode: normalized.mode,
-    ...(normalized.albumRef === undefined ? {} : { albumRef: normalized.albumRef }),
-    ...(normalized.caption === undefined ? {} : { caption: normalized.caption }),
+    ...(albumRef === undefined ? {} : { albumRef }),
+    ...(caption === undefined ? {} : { caption }),
     attachments: normalized.attachments,
   });
 }
@@ -418,7 +431,7 @@ function normalizedVisionRequest(input: unknown) {
     return candidate;
   });
   if (new Set(imageRefs).size !== imageRefs.length) fail("telegram.vision.inspect request image refs must be unique");
-  const instruction = value.instruction;
+  const instruction = ownOptionalField(value, "instruction", "telegram.vision.inspect request");
   if (instruction !== undefined) boundedText(instruction, "telegram.vision.inspect request.instruction", TELEGRAM_VISION_LIMITS.maxInstructionCharacters);
   return {
     action: "telegram.vision.inspect" as const,
@@ -509,7 +522,11 @@ function normalizedLocationRequest(input: unknown) {
   const longitude = location.longitude;
   boundedNumber(latitude, "telegram.location.input request.location.latitude", TELEGRAM_LOCATION_LIMITS.minimumLatitude, TELEGRAM_LOCATION_LIMITS.maximumLatitude);
   boundedNumber(longitude, "telegram.location.input request.location.longitude", TELEGRAM_LOCATION_LIMITS.minimumLongitude, TELEGRAM_LOCATION_LIMITS.maximumLongitude);
-  const horizontalAccuracyMeters = location.horizontalAccuracyMeters;
+  const horizontalAccuracyMeters = ownOptionalField(
+    location,
+    "horizontalAccuracyMeters",
+    "telegram.location.input request.location",
+  );
   if (horizontalAccuracyMeters !== undefined) {
     boundedNumber(horizontalAccuracyMeters, "telegram.location.input request.location.horizontalAccuracyMeters", 0, TELEGRAM_LOCATION_LIMITS.maximumHorizontalAccuracyMeters);
   }

@@ -142,6 +142,30 @@ function locationContext(request = locationRequest()) {
   };
 }
 
+function assertInheritedOptionalIgnored(
+  key: string,
+  inheritedValue: unknown,
+  validate: () => void,
+): void {
+  const retained = Object.getOwnPropertyDescriptor(Object.prototype, key);
+  let reads = 0;
+  Object.defineProperty(Object.prototype, key, {
+    configurable: true,
+    enumerable: false,
+    get() {
+      reads += 1;
+      return inheritedValue;
+    },
+  });
+  try {
+    validate();
+    assert.equal(reads, 0, `inherited ${key} getter must not be evaluated`);
+  } finally {
+    if (retained === undefined) delete (Object.prototype as Record<string, unknown>)[key];
+    else Object.defineProperty(Object.prototype, key, retained);
+  }
+}
+
 test("media input admits only trusted bounded photos, documents, captions, and albums", () => {
   const request = mediaRequest();
   const admitted = validateTelegramMediaInput(request, mediaContext(request));
@@ -346,6 +370,36 @@ test("input bounds reject before eager descriptor or code-point materialization"
   } finally {
     Object.defineProperty(String.prototype, Symbol.iterator, iteratorDescriptor);
   }
+});
+
+test("optional input fields never read inherited getters", () => {
+  const vision = visionRequest();
+  assert.equal(Reflect.deleteProperty(vision, "instruction"), true);
+  const admittedVision = visionContext(vision);
+  assertInheritedOptionalIgnored("instruction", "injected instruction", () => {
+    assert.deepEqual(validateTelegramVisionRequest(vision, admittedVision), vision);
+  });
+
+  const mediaWithoutCaption = mediaRequest();
+  assert.equal(Reflect.deleteProperty(mediaWithoutCaption, "caption"), true);
+  const admittedMediaWithoutCaption = mediaContext(mediaWithoutCaption);
+  assertInheritedOptionalIgnored("caption", "injected caption", () => {
+    assert.deepEqual(validateTelegramMediaInput(mediaWithoutCaption, admittedMediaWithoutCaption), mediaWithoutCaption);
+  });
+
+  const singleMedia = mediaRequest({ mode: "single", attachments: [mediaPayload.attachments[0]] });
+  assert.equal(Reflect.deleteProperty(singleMedia, "albumRef"), true);
+  const admittedSingleMedia = mediaContext(singleMedia);
+  assertInheritedOptionalIgnored("albumRef", ref("injected-album"), () => {
+    assert.deepEqual(validateTelegramMediaInput(singleMedia, admittedSingleMedia), singleMedia);
+  });
+
+  const location = locationRequest();
+  assert.equal(Reflect.deleteProperty(location.location, "horizontalAccuracyMeters"), true);
+  const admittedLocation = locationContext(location);
+  assertInheritedOptionalIgnored("horizontalAccuracyMeters", 12, () => {
+    assert.deepEqual(validateTelegramLocationInput(location, admittedLocation), location);
+  });
 });
 
 test("media receipts preserve the admitted digest and exact attachment order", () => {
