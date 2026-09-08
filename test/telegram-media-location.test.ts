@@ -289,6 +289,22 @@ test("location input admits only trusted static coordinates and bounded accuracy
 test("input bounds reject before eager descriptor or code-point materialization", () => {
   const request = visionRequest();
   const context = visionContext(request);
+  const hiddenFieldRequest = { ...request };
+  Object.defineProperty(hiddenFieldRequest, "provider", { value: "private", enumerable: false });
+  assert.throws(() => validateTelegramVisionRequest(hiddenFieldRequest, context), /unknown field/i);
+
+  let hiddenGetterRead = false;
+  const hiddenAccessorRequest = { ...request };
+  Object.defineProperty(hiddenAccessorRequest, "provider", {
+    enumerable: false,
+    get() {
+      hiddenGetterRead = true;
+      throw new Error("hidden accessor evaluated");
+    },
+  });
+  assert.throws(() => validateTelegramVisionRequest(hiddenAccessorRequest, context), /unknown field/i);
+  assert.equal(hiddenGetterRead, false);
+
   const wideRequest: Record<string, unknown> = { unexpected: true, ...request };
   for (let index = 0; index < 10_000; index += 1) wideRequest[`excess${index}`] = index;
 

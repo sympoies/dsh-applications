@@ -121,10 +121,11 @@ function exactKeys(value: Fields, required: readonly string[], optional: readonl
       fail(`${label}.${key} must be plain JSON data`);
     }
   }
-  for (const key of allowed) {
+  for (const key of Object.getOwnPropertyNames(value)) {
+    if (!allowed.has(key)) fail(`${label} has unknown field ${key}`);
     const descriptor = Object.getOwnPropertyDescriptor(value, key);
-    if (descriptor !== undefined && (descriptor.get !== undefined || descriptor.set !== undefined
-      || descriptor.enumerable !== true)) {
+    if (descriptor === undefined || descriptor.get !== undefined || descriptor.set !== undefined
+      || descriptor.enumerable !== true) {
       fail(`${label}.${key} must be plain JSON data`);
     }
   }
