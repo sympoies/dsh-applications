@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createGitHubReadPluginDescriptor, type RuntimeKitPluginDescriptorOwner } from "../packages/github-read/src/index.ts";
@@ -189,15 +189,10 @@ for (const entry of catalog.profiles as Array<{ path: string }>) {
   for (const trigger of profile.triggers) assert(triggerMappings.has(trigger.class));
 }
 
-for (const relative of [
-  "packages/plugin-sdk/package.json",
-  "packages/manager/package.json",
-  "packages/dsh-rc2-adapter/package.json",
-  "packages/github-read/package.json",
-  "packages/github-review-publish/package.json",
-  "packages/conversation-agent/package.json",
-  "packages/telegram-channel/package.json",
-]) {
+for (const relative of readdirSync(resolve(root, "packages"), { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && existsSync(resolve(root, "packages", entry.name, "package.json")))
+  .map((entry) => `packages/${entry.name}/package.json`)
+  .sort()) {
   assert.equal(load(resolve(root, relative)).version, workspace.version, `${relative} must share the release version`);
 }
 
