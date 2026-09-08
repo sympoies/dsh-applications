@@ -93,13 +93,15 @@ action contracts for private adapters:
 
 Each request and receipt repeats an opaque deployment, audience, conversation,
 event, and request tuple. The caller must pass the independently trusted tuple
-and the action admitted for it. Media and location additionally bind a
-domain-separated digest of their normalized content; vision compares the
-trusted route and ordered image refs directly. Missing context, a sibling
-action, tuple substitution, changed content, reordered refs, additional
-fields, accessors, and non-JSON data fail closed. Opaque refs must be minted by
-the deployment owner from authenticated source data; they are not Telegram
-chat, user, message, media-group, or file identifiers.
+and the action admitted for it. Media, vision, and location additionally bind
+a domain-separated digest of their normalized input. The vision digest covers
+the route, ordered image refs, and the explicit presence or absence of its
+optional instruction; its trusted context also preserves the route and image
+refs needed to validate results. Missing context, a sibling action, tuple
+substitution, changed content, reordered refs, additional fields, accessors,
+and non-JSON data fail closed. Opaque refs must be minted by the deployment
+owner from authenticated source data; they are not Telegram chat, user,
+message, media-group, or file identifiers.
 
 The media ceiling is 10 attachments and 10 album parts, 20 MiB per item and
 20 MiB in total, 60,000 text characters across the request, a 1,024-character
@@ -142,6 +144,7 @@ infrastructure still owns admission and actual execution.
 
 Compatibility is exact DSH `0.1.1-rc.2`, runtime-kit contract `0.0.0`, plugin
 API `1.0.0`, and Linux x64. Repository owner tests verify the external identity,
-disabled composition, descriptor digest, schema digest, and public/private
-boundary. The companion native fragment commits its complete npm graph and is
-installed only with `npm ci --ignore-scripts`.
+disabled composition, descriptor digest, strict schema compilation and runtime
+conformance, schema digest, and public/private boundary. The companion native
+fragment commits its complete npm graph and is installed only with
+`npm ci --ignore-scripts`.

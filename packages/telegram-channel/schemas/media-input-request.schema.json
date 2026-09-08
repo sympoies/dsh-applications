@@ -23,8 +23,17 @@
   "allOf": [
     {
       "if": { "properties": { "mode": { "const": "single" } }, "required": ["mode"] },
-      "then": { "properties": { "attachments": { "maxItems": 1 } }, "not": { "required": ["albumRef"] } },
-      "else": { "required": ["albumRef"], "properties": { "attachments": { "minItems": 2, "maxItems": 10 } } }
+      "then": {
+        "properties": { "attachments": { "type": "array", "maxItems": 1 } },
+        "not": { "properties": { "albumRef": {} }, "required": ["albumRef"] }
+      },
+      "else": {
+        "required": ["albumRef"],
+        "properties": {
+          "albumRef": { "$ref": "#/$defs/ref" },
+          "attachments": { "type": "array", "minItems": 2, "maxItems": 10 }
+        }
+      }
     }
   ],
   "$defs": {

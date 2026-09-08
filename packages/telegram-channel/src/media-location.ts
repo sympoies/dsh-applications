@@ -33,7 +33,7 @@ export const TELEGRAM_CAPABILITY_BUNDLE_CEILING_DIGEST =
 
 export const TELEGRAM_INPUT_SCHEMA_DIGESTS = Object.freeze({
   "telegram.media.input": Object.freeze({
-    input: "sha256:4b734b48926ef5d63794d1d385640ef0efda81993efd4ba5bf91e519200a35e4",
+    input: "sha256:d0974fbb7fb8879ef4802cb1c1cc8380051a8e33cb2b5806bc32b517fd3d21b3",
     output: "sha256:9b8ec41510e7df2f89576e1e2f4b85582f14442dd8b8fcf69e3baa0769b31be6",
   }),
   "telegram.vision.inspect": Object.freeze({
@@ -66,7 +66,7 @@ export interface TelegramDigestedInputContext<Action extends TelegramInputAction
   readonly inputDigest: string;
 }
 
-export interface TelegramVisionContext extends TelegramInputContext<"telegram.vision.inspect"> {
+export interface TelegramVisionContext extends TelegramDigestedInputContext<"telegram.vision.inspect"> {
   readonly modelRouteRef: string;
   readonly imageRefs: readonly string[];
 }
@@ -107,18 +107,28 @@ function record(value: unknown, label: string): Fields {
   const prototype = Object.getPrototypeOf(value);
   if (prototype !== Object.prototype && prototype !== null) fail(`${label} must be a plain object`);
   if (Object.getOwnPropertySymbols(value).length !== 0) fail(`${label} has unknown symbol fields`);
-  for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(value))) {
-    if (descriptor.get !== undefined || descriptor.set !== undefined || descriptor.enumerable !== true) {
-      fail(`${label}.${key} must be plain JSON data`);
-    }
-  }
   return value as Fields;
 }
 
 function exactKeys(value: Fields, required: readonly string[], optional: readonly string[], label: string): void {
   const allowed = new Set([...required, ...optional]);
-  for (const key of Object.keys(value)) if (!allowed.has(key)) fail(`${label} has unknown field ${key}`);
-  for (const key of required) if (!(key in value)) fail(`${label}.${key} is required`);
+  for (const key in value) {
+    if (!Object.hasOwn(value, key)) continue;
+    if (!allowed.has(key)) fail(`${label} has unknown field ${key}`);
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (descriptor === undefined || descriptor.get !== undefined || descriptor.set !== undefined
+      || descriptor.enumerable !== true) {
+      fail(`${label}.${key} must be plain JSON data`);
+    }
+  }
+  for (const key of allowed) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (descriptor !== undefined && (descriptor.get !== undefined || descriptor.set !== undefined
+      || descriptor.enumerable !== true)) {
+      fail(`${label}.${key} must be plain JSON data`);
+    }
+  }
+  for (const key of required) if (!Object.hasOwn(value, key)) fail(`${label}.${key} is required`);
 }
 
 function opaqueRef(value: unknown, label: string): asserts value is string {
@@ -130,9 +140,23 @@ function sha256Digest(value: unknown, label: string): asserts value is string {
 }
 
 function boundedText(value: unknown, label: string, maximum: number, allowEmpty = false): asserts value is string {
-  if (typeof value !== "string" || (!allowEmpty && value.length === 0) || [...value].length > maximum) {
+  if (typeof value !== "string" || (!allowEmpty && value.length === 0)) {
     fail(`${label} is invalid or exceeds its character bound`);
   }
+  let characters = 0;
+  for (const _character of value) {
+    characters += 1;
+    if (characters > maximum) fail(`${label} is invalid or exceeds its character bound`);
+  }
+}
+
+function boundedCharacterCount(value: string, maximum: number): number {
+  let characters = 0;
+  for (const _character of value) {
+    characters += 1;
+    if (characters > maximum) return characters;
+  }
+  return characters;
 }
 
 function boundedInteger(value: unknown, label: string, maximum: number): asserts value is number {
@@ -209,9 +233,10 @@ function validateContext<Action extends TelegramInputActionId>(
 ): { value: Fields; requestRef: string; eventRef: string; scope: TelegramInputScope } {
   if (expected === null || typeof expected !== "object") fail("trusted context is required");
   const context = record(expected, "trusted context");
-  const contextOptional = action === "telegram.vision.inspect" ? ["modelRouteRef", "imageRefs"] : ["inputDigest"];
-  exactKeys(context, ["admittedAction", "requestRef", "eventRef", "scope", ...contextOptional], [], "trusted context");
+  const contextSpecific = action === "telegram.vision.inspect" ? ["modelRouteRef", "imageRefs"] : [];
+  exactKeys(context, ["admittedAction", "requestRef", "eventRef", "scope", "inputDigest", ...contextSpecific], [], "trusted context");
   if (context.admittedAction !== action) fail("trusted context admitted action does not match the request action");
+  sha256Digest(context.inputDigest, "trusted context.inputDigest");
   const expectedRequestRef = context.requestRef;
   const expectedEventRef = context.eventRef;
   opaqueRef(expectedRequestRef, "trusted context.requestRef");
@@ -229,7 +254,6 @@ function validateContext<Action extends TelegramInputActionId>(
   }
   if (options.digest !== undefined) {
     const expectedDigest = context.inputDigest;
-    sha256Digest(expectedDigest, "trusted context.inputDigest");
     if (options.digest !== expectedDigest) fail(`${action} input digest mismatch`);
   }
   return { value, requestRef, eventRef, scope };
@@ -307,7 +331,12 @@ function normalizedMediaRequest(input: unknown) {
     if (attachmentRefs.has(attachment.attachmentRef)) fail("telegram.media.input request attachment refs must be unique");
     attachmentRefs.add(attachment.attachmentRef);
     totalBytes += attachment.bytes;
-    if (attachment.kind === "text-document") totalTextCharacters += [...attachment.text].length;
+    if (attachment.kind === "text-document") {
+      totalTextCharacters += boundedCharacterCount(
+        attachment.text,
+        TELEGRAM_MEDIA_LIMITS.maxTextCharacters - totalTextCharacters,
+      );
+    }
     return attachment;
   });
   if (totalBytes > TELEGRAM_MEDIA_LIMITS.maxTotalBytes) fail("telegram.media.input request exceeds its total byte bound");
@@ -371,11 +400,15 @@ export function validateTelegramMediaReceipt(input: unknown, expected: TelegramM
   });
 }
 
-export function validateTelegramVisionRequest(input: unknown, expected: TelegramVisionContext) {
+function normalizedVisionRequest(input: unknown) {
   const value = record(input, "telegram.vision.inspect request");
   exactKeys(value, ["action", "requestRef", "eventRef", "scope", "modelRouteRef", "imageRefs"], ["instruction"], "telegram.vision.inspect request");
   if (value.action !== "telegram.vision.inspect") fail("telegram.vision.inspect request action is unsupported");
-  const head = validateContext(value, "telegram.vision.inspect", expected);
+  const requestRef = value.requestRef;
+  const eventRef = value.eventRef;
+  opaqueRef(requestRef, "telegram.vision.inspect request.requestRef");
+  opaqueRef(eventRef, "telegram.vision.inspect request.eventRef");
+  const scope = validatedScope(value.scope, "telegram.vision.inspect request.scope");
   const modelRouteRef = value.modelRouteRef;
   opaqueRef(modelRouteRef, "telegram.vision.inspect request.modelRouteRef");
   const rawImageRefs = boundedArray(value.imageRefs, "telegram.vision.inspect request.imageRefs", 1, TELEGRAM_VISION_LIMITS.maxImages);
@@ -384,25 +417,37 @@ export function validateTelegramVisionRequest(input: unknown, expected: Telegram
     return candidate;
   });
   if (new Set(imageRefs).size !== imageRefs.length) fail("telegram.vision.inspect request image refs must be unique");
-  const context = expected as TelegramVisionContext;
-  opaqueRef(context.modelRouteRef, "trusted context.modelRouteRef");
-  const expectedImageRefs = boundedArray(context.imageRefs, "trusted context.imageRefs", 1, TELEGRAM_VISION_LIMITS.maxImages);
-  expectedImageRefs.forEach((candidate, index) => opaqueRef(candidate, `trusted context.imageRefs[${index}]`));
-  if (modelRouteRef !== context.modelRouteRef || imageRefs.length !== expectedImageRefs.length
-    || imageRefs.some((candidate, index) => candidate !== expectedImageRefs[index])) {
-    fail("telegram.vision.inspect model-route or image-ref binding mismatch");
-  }
   const instruction = value.instruction;
   if (instruction !== undefined) boundedText(instruction, "telegram.vision.inspect request.instruction", TELEGRAM_VISION_LIMITS.maxInstructionCharacters);
-  return freezeClone({
+  return {
     action: "telegram.vision.inspect" as const,
-    requestRef: head.requestRef,
-    eventRef: head.eventRef,
-    scope: head.scope,
+    requestRef,
+    eventRef,
+    scope,
     modelRouteRef,
     imageRefs,
     ...(instruction === undefined ? {} : { instruction }),
+  };
+}
+
+export function computeTelegramVisionInputDigest(input: unknown): string {
+  return contentDigest("telegram-vision-input-v1", normalizedVisionRequest(input));
+}
+
+export function validateTelegramVisionRequest(input: unknown, expected: TelegramVisionContext) {
+  const normalized = normalizedVisionRequest(input);
+  validateContext(normalized, "telegram.vision.inspect", expected, {
+    digest: computeTelegramVisionInputDigest(normalized),
   });
+  opaqueRef(expected.modelRouteRef, "trusted context.modelRouteRef");
+  const expectedImageRefs = boundedArray(expected.imageRefs, "trusted context.imageRefs", 1, TELEGRAM_VISION_LIMITS.maxImages);
+  expectedImageRefs.forEach((candidate, index) => opaqueRef(candidate, `trusted context.imageRefs[${index}]`));
+  if (normalized.modelRouteRef !== expected.modelRouteRef
+    || normalized.imageRefs.length !== expectedImageRefs.length
+    || normalized.imageRefs.some((candidate, index) => candidate !== expectedImageRefs[index])) {
+    fail("telegram.vision.inspect model-route or image-ref binding mismatch");
+  }
+  return freezeClone(normalized);
 }
 
 export function validateTelegramVisionReceipt(input: unknown, expected: TelegramVisionContext) {
@@ -427,7 +472,10 @@ export function validateTelegramVisionReceipt(input: unknown, expected: Telegram
     opaqueRef(imageRef, `telegram.vision.inspect receipt.results[${index}].imageRef`);
     boundedText(text, `telegram.vision.inspect receipt.results[${index}].text`, TELEGRAM_VISION_LIMITS.maxResultCharacters, true);
     if (imageRef !== expected.imageRefs[index]) fail("telegram.vision.inspect receipt image-ref binding mismatch");
-    totalCharacters += [...text].length;
+    totalCharacters += boundedCharacterCount(
+      text,
+      TELEGRAM_VISION_LIMITS.maxTotalResultCharacters - totalCharacters,
+    );
     return { imageRef, text };
   });
   if (totalCharacters > TELEGRAM_VISION_LIMITS.maxTotalResultCharacters) {
