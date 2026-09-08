@@ -455,6 +455,21 @@ test("weather supports an authorized bounded hourly projection", () => {
     /hourly.*authorized/i,
   );
 
+  for (const invalidHourly of [
+    [{ ...hourly[0], at: "9999-12-31T23:59:59Z" }],
+    [hourly[0], hourly[0]],
+    [hourly[1], hourly[0]],
+    [{ ...hourly[0], at: "2026-09-09T00:00:00Z" }],
+  ]) {
+    assert.throws(
+      () => validateAssistantReadResult(hourlyAuthorization, {
+        ...hourlyResult,
+        data: { ...hourlyResult.data, hourly: invalidHourly },
+      }),
+      /hourly.*(?:horizon|order|increasing)/i,
+    );
+  }
+
   for (const invalidEntry of [
     { ...hourly[0], at: "2026-02-30T00:00:00Z" },
     { ...hourly[0], temperature: 151 },
@@ -484,6 +499,52 @@ test("weather supports an authorized bounded hourly projection", () => {
     assert.equal(schemaValidator(weather, "output")(terminal), true);
     assert.equal(validateAssistantReadResult(hourlyAuthorization, terminal).status, status);
   }
+});
+
+test("inherited optional weather fields cannot grant or inject hourly data", () => {
+  const weather = "assistant.weather.lookup";
+  const hourlyEntry = {
+    at: "2026-09-08T00:00:00Z",
+    temperature: 29,
+    condition: "cloudy",
+    precipitationProbability: 0.25,
+  };
+  let getterCalls = 0;
+
+  Object.defineProperty(Object.prototype, "hourlyHours", {
+    configurable: true,
+    get() {
+      getterCalls += 1;
+      return 1;
+    },
+  });
+  try {
+    const noHourlyAuthorization = authorization(weather);
+    assert.throws(
+      () => validateAssistantReadResult(noHourlyAuthorization, {
+        ...result(weather),
+        data: { ...result(weather).data, hourly: [hourlyEntry] },
+      }),
+      /hourly.*authorized/i,
+    );
+  } finally {
+    Reflect.deleteProperty(Object.prototype, "hourlyHours");
+  }
+
+  Object.defineProperty(Object.prototype, "hourly", {
+    configurable: true,
+    get() {
+      getterCalls += 1;
+      return [hourlyEntry];
+    },
+  });
+  try {
+    assert.equal(validateAssistantReadResult(authorization(weather), result(weather)).status, "completed");
+  } finally {
+    Reflect.deleteProperty(Object.prototype, "hourly");
+  }
+
+  assert.equal(getterCalls, 0);
 });
 
 test("unadmitted capability, wrong implementation, and wrong audience fail closed", () => {

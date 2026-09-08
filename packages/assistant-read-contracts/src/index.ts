@@ -219,7 +219,16 @@ function record(value: unknown, label: string): Fields {
 function exactKeys(value: Fields, required: readonly string[], optional: readonly string[], label: string): void {
   const allowed = new Set([...required, ...optional]);
   for (const key of Object.keys(value)) if (!allowed.has(key)) fail(`${label} has unknown field ${key}`);
-  for (const key of required) if (!(key in value)) fail(`${label}.${key} is required`);
+  for (const key of required) if (!Object.hasOwn(value, key)) fail(`${label}.${key} is required`);
+}
+
+function ownValue(value: Fields, key: string, label: string): unknown {
+  const descriptor = Object.getOwnPropertyDescriptor(value, key);
+  if (descriptor === undefined) return undefined;
+  if (descriptor.get !== undefined || descriptor.set !== undefined || descriptor.enumerable !== true) {
+    fail(`${label}.${key} must be plain data`);
+  }
+  return descriptor.value;
 }
 
 function boundedString(value: unknown, label: string, characters: number, nonempty = true): asserts value is string {
@@ -388,7 +397,8 @@ function validateWeatherInput(value: unknown): void {
   boundedString(input.location, "weather input.location", 256);
   if (!['metric', 'imperial'].includes(input.units as string)) fail("weather input.units is unsupported");
   integer(input.days, "weather input.days", 1, 10);
-  if (input.hourlyHours !== undefined) integer(input.hourlyHours, "weather input.hourlyHours", 1, 24);
+  const hourlyHours = ownValue(input, "hourlyHours", "weather input");
+  if (hourlyHours !== undefined) integer(hourlyHours, "weather input.hourlyHours", 1, 24);
 }
 
 function validateMarketInput(value: unknown): void {
@@ -574,11 +584,12 @@ function validateSource(value: unknown, label: string, asOfMs: number): void {
   publicUrl(source.url, `${label}.url`);
   boundedString(source.title, `${label}.title`, 1_024, false);
   dateTime(source.retrievedAt, `${label}.retrievedAt`);
-  if (source.publishedAt !== undefined) dateTime(source.publishedAt, `${label}.publishedAt`);
+  const publishedAt = ownValue(source, "publishedAt", label);
+  if (publishedAt !== undefined) dateTime(publishedAt, `${label}.publishedAt`);
   digest(source.contentDigest, `${label}.contentDigest`);
   const retrievedAtMs = Date.parse(source.retrievedAt);
   if (retrievedAtMs > asOfMs) fail(`${label}.retrievedAt must not be after result.asOf`);
-  if (source.publishedAt !== undefined && Date.parse(source.publishedAt) > retrievedAtMs) {
+  if (publishedAt !== undefined && Date.parse(publishedAt as string) > retrievedAtMs) {
     fail(`${label}.publishedAt must not be after retrievedAt`);
   }
 }
@@ -609,7 +620,7 @@ function validateFinding(value: unknown, label: string, sourceCount: number): vo
   if (!['low', 'medium', 'high'].includes(finding.confidence as string)) fail(`${label}.confidence is unsupported`);
 }
 
-function validateWeatherData(value: unknown, inputValue: JsonValue): void {
+function validateWeatherData(value: unknown, inputValue: JsonValue, asOfMs: number): void {
   const input = record(inputValue, "authorized weather input");
   const data = record(value, "weather result.data");
   exactKeys(data, ["location", "units", "current", "daily"], ["hourly"], "weather result.data");
@@ -633,12 +644,16 @@ function validateWeatherData(value: unknown, inputValue: JsonValue): void {
     if (day.low > day.high) fail(`weather result.data.daily[${index}] has an inverted range`);
     boundedString(day.condition, `weather result.data.daily[${index}].condition`, 128, false);
   });
-  if (data.hourly !== undefined) {
-    if (input.hourlyHours === undefined) fail("weather result.data.hourly was not authorized");
-    if (!Array.isArray(data.hourly) || data.hourly.length > (input.hourlyHours as number)) {
+  const hourly = ownValue(data, "hourly", "weather result.data");
+  if (hourly !== undefined) {
+    const hourlyHours = ownValue(input, "hourlyHours", "authorized weather input");
+    if (hourlyHours === undefined) fail("weather result.data.hourly was not authorized");
+    if (!Array.isArray(hourly) || hourly.length > (hourlyHours as number)) {
       fail("weather result.data.hourly exceeds the authorized hourly horizon");
     }
-    data.hourly.forEach((candidate, index) => {
+    const horizonExclusiveMs = asOfMs + (hourlyHours as number) * 60 * 60 * 1_000;
+    let previousAtMs = asOfMs - 1;
+    hourly.forEach((candidate, index) => {
       const hour = record(candidate, `weather result.data.hourly[${index}]`);
       exactKeys(
         hour,
@@ -647,6 +662,12 @@ function validateWeatherData(value: unknown, inputValue: JsonValue): void {
         `weather result.data.hourly[${index}]`,
       );
       dateTime(hour.at, `weather result.data.hourly[${index}].at`);
+      const atMs = Date.parse(hour.at as string);
+      if (atMs < asOfMs || atMs >= horizonExclusiveMs) {
+        fail("weather result.data.hourly exceeds the authorized temporal horizon");
+      }
+      if (atMs <= previousAtMs) fail("weather result.data.hourly timestamps must be strictly increasing");
+      previousAtMs = atMs;
       finiteNumber(hour.temperature, `weather result.data.hourly[${index}].temperature`, -150, 150);
       boundedString(hour.condition, `weather result.data.hourly[${index}].condition`, 128, false);
       finiteNumber(
@@ -842,7 +863,7 @@ export function validateAssistantReadResult(authorizationValue: unknown, resultV
   if (result.sources.length < 1) fail("completed assistant read result requires source freshness metadata");
   if (result.data === null) fail("completed assistant read result.data is required");
   switch (capabilityId) {
-    case "assistant.weather.lookup": validateWeatherData(result.data, authorization.input); break;
+    case "assistant.weather.lookup": validateWeatherData(result.data, authorization.input, asOfMs); break;
     case "assistant.market.lookup": validateMarketData(result.data, authorization.input, asOfMs); break;
     case "assistant.steam.catalog.lookup": validateSteamData(result.data, authorization.input, asOfMs); break;
     case "assistant.web.lookup": validateWebData(result.data, authorization.input); break;

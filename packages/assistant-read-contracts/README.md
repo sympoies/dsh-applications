@@ -8,7 +8,9 @@ discussion research.
 Weather callers may optionally authorize `hourlyHours` from 1 through 24. A
 completed result can then include at most that many hourly entries, each with a
 canonical UTC timestamp, bounded temperature and condition, and precipitation
-probability from 0 through 1. Requests that omit `hourlyHours` retain the
+probability from 0 through 1. Timestamps must be strictly increasing and fall
+within the half-open interval from the result's `asOf` instant through the
+authorized number of hours. Requests that omit `hourlyHours` retain the
 current/daily result shape and do not authorize an hourly projection.
 
 Each capability has its own stable ID, action, strict input/output schemas,
