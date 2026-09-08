@@ -107,7 +107,7 @@ const IDENTIFIER = /^[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?$/u;
 const CURRENCY = /^[A-Z]{3}$/u;
 const COUNTRY = /^[A-Z]{2}$/u;
 const DATE = /^(\d{4})-(\d{2})-(\d{2})$/u;
-const DATE_TIME = /^(\d{4})-(\d{2})-(\d{2})[Tt](?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:[Zz]|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/u;
+const DATE_TIME = /^(\d{4})-(\d{2})-(\d{2})T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,3})?Z$/u;
 const CONFIG_SCHEMA_DIGEST = "sha256:38b8c506be2495292e2ad894e044b5ab83e31df2bb190a9665d645f831748c41";
 
 export const ASSISTANT_READ_TRANSPORT_REQUIREMENTS = Object.freeze({
@@ -131,7 +131,7 @@ const contracts: Record<AssistantReadCapabilityId, AssistantReadCapabilityContra
     actionId: "assistant.weather.lookup",
     schemaStem: "weather",
     inputSchemaDigest: "sha256:9ab7c92dbea779baa66b36bd39279c2b4d3d9a54ee0f63e0650bbee61281663c",
-    outputSchemaDigest: "sha256:ce0feceece3caff517386514db23f3cca06150e83dddb854590f2ae95f7c5d75",
+    outputSchemaDigest: "sha256:820061331e14260c0d3b46b2e665ec931785fe8fb7ff7be2fe1830d7e7d3f54f",
     hostActionClasses: ["provider-read"],
     networkClasses: ["public-weather-data"],
     budgets: { inputBytes: 2_048, outputBytes: 32_768, timeoutMs: 10_000, sources: 4 },
@@ -144,7 +144,7 @@ const contracts: Record<AssistantReadCapabilityId, AssistantReadCapabilityContra
     actionId: "assistant.market.lookup",
     schemaStem: "market",
     inputSchemaDigest: "sha256:32c4b14dc09cddeecce3ff22aff2ebf68e9b6501515ea6ddea99c0274b3e1f94",
-    outputSchemaDigest: "sha256:ad3c0a097216e6b1b2faa74fad89fffde6fe2408f5ea9db46dd0ee9252087ecb",
+    outputSchemaDigest: "sha256:5b39b4fea7655206a57901bf3234ede18e6f9e524ac0d70e72d59ed74d981b26",
     hostActionClasses: ["provider-read"],
     networkClasses: ["public-market-data"],
     budgets: { inputBytes: 4_096, outputBytes: 49_152, timeoutMs: 12_000, sources: 8 },
@@ -157,7 +157,7 @@ const contracts: Record<AssistantReadCapabilityId, AssistantReadCapabilityContra
     actionId: "assistant.steam.catalog.lookup",
     schemaStem: "steam",
     inputSchemaDigest: "sha256:c5bfb3e707461fec4b687b0f3fbfd0dc9b31fca319d55990bbb5cd00fcce7396",
-    outputSchemaDigest: "sha256:4cde06c9eee1694855a7d936df385bd139cd1dc3404b7c09ec47080376390ecc",
+    outputSchemaDigest: "sha256:4ae9be1a9d2de576a6d7297e63a5e102e040db751a382856cb86509056986fa8",
     hostActionClasses: ["provider-read"],
     networkClasses: ["public-steam-catalog"],
     budgets: { inputBytes: 4_096, outputBytes: 65_536, timeoutMs: 12_000, sources: 8 },
@@ -170,7 +170,7 @@ const contracts: Record<AssistantReadCapabilityId, AssistantReadCapabilityContra
     actionId: "assistant.web.lookup",
     schemaStem: "web",
     inputSchemaDigest: "sha256:2b353dc15f558607ad9ff44dd0e2a2ad3ce8e502628f99893db96c545641ee20",
-    outputSchemaDigest: "sha256:c94eb6ac3908022092a8203ee3673081168585972d8c189d202a5219276e31c8",
+    outputSchemaDigest: "sha256:81f0479fbf225f0413c77c0c21074d6f363fecc49dac45ffd9c2814033f41c76",
     hostActionClasses: ["provider-read"],
     networkClasses: ["public-web-data"],
     budgets: { inputBytes: 8_192, outputBytes: 131_072, timeoutMs: 30_000, sources: 12 },
@@ -182,8 +182,8 @@ const contracts: Record<AssistantReadCapabilityId, AssistantReadCapabilityContra
     pluginId: "assistant-recent-community-read",
     actionId: "assistant.research.recent-community",
     schemaStem: "recent-community",
-    inputSchemaDigest: "sha256:f18ddfc526fea9920d77ab0a61567ca3034477eb782862b9d7765459d18ae768",
-    outputSchemaDigest: "sha256:c94887d2d3da45b9db6eb682f7c49f0af10bd4a2fccd7da69fe458fead9ed083",
+    inputSchemaDigest: "sha256:a24a654056721b99b54b24ce7e36a1d1adee855024ff0150656d0e4b5903ce28",
+    outputSchemaDigest: "sha256:69ea2ffda6f38cc14b817fbca923079b2b2ea9cd99434994917969cae5da5638",
     hostActionClasses: ["provider-read"],
     networkClasses: ["public-community-data"],
     budgets: { inputBytes: 8_192, outputBytes: 131_072, timeoutMs: 120_000, sources: 32 },
@@ -195,8 +195,8 @@ const contracts: Record<AssistantReadCapabilityId, AssistantReadCapabilityContra
     pluginId: "assistant-taiwan-discussion-read",
     actionId: "assistant.research.taiwan-public-discussion",
     schemaStem: "taiwan-public-discussion",
-    inputSchemaDigest: "sha256:3b270bcc2d6ddc2a704715cdaadac0314219b56cbcaeeb047eea2ff4118acbc2",
-    outputSchemaDigest: "sha256:55ee41a7bc742620cdbce59253dc07ef9a349526bd13c5bd663997d022ae35b4",
+    inputSchemaDigest: "sha256:25b4770d3a387f16e07f1e4afee3509582003dd7026f64d94e294f54e1d0921e",
+    outputSchemaDigest: "sha256:2bd8b8fa930997aee5c3d2064a23aea667c46df4bb9d1fd12c9ef97bb34bdd95",
     hostActionClasses: ["provider-read"],
     networkClasses: ["public-taiwan-discussion"],
     budgets: { inputBytes: 8_192, outputBytes: 131_072, timeoutMs: 120_000, sources: 32 },

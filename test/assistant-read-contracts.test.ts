@@ -714,27 +714,29 @@ test("JSON Schemas and direct validators conform on expressible constraints", ()
   }
 
   const research = "assistant.research.recent-community";
-  const extendedRfc3339Input = {
-    ...inputByCapability[research],
-    since: "2026-08-02t00:00:00z",
-    until: "2026-09-01T00:00:00.123456789Z",
-  };
-  assert.equal(schemaValidator(research, "input")(extendedRfc3339Input), true);
-  assert.doesNotThrow(
-    () => authorizeAssistantReadInvocation(admission(research), invocation(research, { input: extendedRfc3339Input })),
-  );
   const weather = "assistant.weather.lookup";
-  const extendedRfc3339Result = {
-    ...result(weather),
-    asOf: "2026-09-08T00:00:00.123456789Z",
-    sources: [{
-      ...source(),
-      publishedAt: "2026-09-07t23:59:59z",
-      retrievedAt: "2026-09-08t00:00:00z",
-    }],
-  };
-  assert.equal(schemaValidator(weather, "output")(extendedRfc3339Result), true);
-  assert.doesNotThrow(() => validateAssistantReadResult(authorization(weather), extendedRfc3339Result));
+  for (const timestamp of [
+    "2026-08-02t00:00:00z",
+    "2026-09-01T00:00:00.1234Z",
+    "2026-09-01 00:00:00Z",
+    "1990-12-31T23:59:60Z",
+  ]) {
+    const nonCanonicalInput = { ...inputByCapability[research], since: timestamp };
+    assert.equal(schemaValidator(research, "input")(nonCanonicalInput), false, timestamp);
+    assert.throws(
+      () => authorizeAssistantReadInvocation(admission(research), invocation(research, { input: nonCanonicalInput })),
+      /timestamp|calendar|date/i,
+      timestamp,
+    );
+
+    const nonCanonicalResult = { ...result(weather), asOf: timestamp };
+    assert.equal(schemaValidator(weather, "output")(nonCanonicalResult), false, timestamp);
+    assert.throws(
+      () => validateAssistantReadResult(authorization(weather), nonCanonicalResult),
+      /timestamp|calendar|date/i,
+      timestamp,
+    );
+  }
 
   const web = "assistant.web.lookup";
   for (const url of [

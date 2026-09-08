@@ -6,7 +6,7 @@
   "required": ["status", "asOf", "summary", "sources", "data"],
   "properties": {
     "status": { "enum": ["completed", "cancelled", "timed-out"] },
-    "asOf": { "type": ["string", "null"], "format": "date-time" },
+    "asOf": { "type": ["string", "null"], "format": "date-time", "pattern": "^\\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\\d|3[01])T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,3})?Z$" },
     "summary": { "type": "string", "maxLength": 8192 },
     "sources": { "$ref": "#/$defs/sources" },
     "data": {
@@ -65,8 +65,8 @@
       "properties": {
         "url": { "type": "string", "format": "uri", "maxLength": 2048, "pattern": "^[Hh][Tt][Tt][Pp][Ss]?://(?![^/?#]*@)" },
         "title": { "type": "string", "maxLength": 1024 },
-        "retrievedAt": { "type": "string", "format": "date-time" },
-        "publishedAt": { "type": "string", "format": "date-time" },
+        "retrievedAt": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\\d|3[01])T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,3})?Z$" },
+        "publishedAt": { "type": "string", "format": "date-time", "pattern": "^\\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\\d|3[01])T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,3})?Z$" },
         "contentDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
       }
     }
