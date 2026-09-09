@@ -38,6 +38,9 @@ follow-ups.
 
 ## Index
 
+- [Web search provider selection](web-search-provider-selection.md) — 2026-09-10 — reference
+  the narrow Brave provider; keep downstream credential and activation gates
+
 - [Weather lookup](weather-lookup.md) — 2026-09-08 — build
 - [Market and exchange-rate lookup](market-exchange-lookup.md) — 2026-09-08 — build
 - [Steam catalog and price lookup](steam-catalog-lookup.md) — 2026-09-08 — build
