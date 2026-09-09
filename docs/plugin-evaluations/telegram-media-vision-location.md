@@ -4,6 +4,33 @@
 - Author: maintainer session (evaluate-dsh-plugin skill)
 - Decision: adopt
 
+## 2026-09-10 follow-up: native vision before additional routers
+
+The adoption decision remains unchanged: use the pinned Telegram transport and
+the selected model's native image input when supported. First verify attachment
+download, normalization, storage, and model delivery independently; a storage
+failure before model invocation is not evidence that another vision provider
+is needed.
+
+An npm `dsh vision` survey found `dsh-vision-router@2.1.4` (MIT; published
+2026-09-08; 59,866 downloads for 2026-08-08 through 2026-09-06, observed
+2026-09-10) and `dsh-vision-recognizer@0.2.0` (MIT; published 2026-08-21;
+1,453 downloads over the same period). The router's documented anonymous
+fallback chain and screenshot/browser scope need explicit authority; popularity
+is not sufficient to forward images to additional services.
+
+Recognizer's exact readable tarball SHA-256 is
+`6df013a533aeb45a45b2d04079590e138e7967fbea4d6689dd98d01ee082a792`.
+It has one dependency, `schemastery ^3.18.0`, no declared peers, and no
+install/postinstall script. Its native multimodal pass-through is relevant,
+but it also defaults to local Ollama discovery and persists provider/key
+configuration separately. It passed the locked 0.1.1-rc.2 disabled probe after
+removal of its self-registering bundle row. No provider was invoked.
+Do not adopt this additional router for a native-image-capable route.
+
+References: [router](https://github.com/ysr666/dsh-vision-router),
+[recognizer](https://github.com/kaixinbaba/dsh-vision-recognizer).
+
 ## Survey
 
 The broader Telegram transport survey and exact locked-DSH probes are retained
