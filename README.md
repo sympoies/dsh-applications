@@ -44,7 +44,9 @@ projection to the public weather contract while preserving existing
 current/daily consumers. Version `0.7.0` adds the portable Telegram assistant
 profile that composes those read contracts with governed organization data,
 agent sessions, candidate memory, and media/location input without adding
-shell or project-workspace authority.
+shell or project-workspace authority. Version `0.8.0` adds the portable,
+channel-neutral host-to-batch invocation contract with exact correlated
+request and terminal-result bytes for Linux and macOS callers.
 
 ## Development
 
