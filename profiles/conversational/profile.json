@@ -3,8 +3,8 @@
   "kind": "BotProfile",
   "metadata": {
     "id": "conversational",
-    "version": "0.7.0",
-    "digest": "sha256:14a6ceccb1c1a6edeefcbd41ed5e6cd21824e7dccc4ccd5ac6c9a0d47fc43110",
+    "version": "0.8.0",
+    "digest": "sha256:d1e39e087e05726caffa01d8997729c62bc6a9a3c49467813184f7d649bc19cb",
     "purpose": "Persistent channel conversation without project or shell authority"
   },
   "workload": {
