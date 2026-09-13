@@ -28,7 +28,7 @@ reviewed, digest-addressed GitHub release is the distribution boundary.
 
 The workspace contains the public plugin declaration helpers, the isolated DSH
 `0.1.1-rc.2` adapter, the generic ten-operation application manager, portable
-GitHub read/review-result contracts, six least-authority bot profiles, six
+host-to-batch invocation contracts, GitHub read/review-result contracts, six least-authority bot profiles, six
 independently admitted read-only assistant capability contracts, and reusable
 manual, GitHub-event, channel, and schedule trigger fixtures. Version
 `0.1.3` is the first published coordinated catalog release; `0.2.0` adds the

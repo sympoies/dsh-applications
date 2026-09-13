@@ -4,6 +4,13 @@
 // under a stricter consumer configuration without the optional DSH peers.
 import type { Context } from "@deepseek-ai/cordis";
 import {
+  createBatchInvocationRequest,
+  createBatchInvocationResult,
+  decodeBatchInvocationResult,
+  type BatchInvocationRequest,
+  validateBatchInvocationResult,
+} from "@sympoies/dsh-batch-invocation";
+import {
   ASSISTANT_READ_CONTRACTS,
   authorizeAssistantReadInvocation,
   createAssistantReadPluginDescriptor,
@@ -114,6 +121,45 @@ const authorizedRead = authorizeAssistantReadInvocation(assistantAdmission, assi
 const checkedAssistantResult = validateAssistantReadResult(authorizedRead, assistantResult);
 const governedAction: GovernedActionId = "organization.calendar.read";
 const telegramAudience: TelegramAudienceBehavior = "private-dm";
+const batchRequest: BatchInvocationRequest = createBatchInvocationRequest({
+  invocationId: "strict-consumer",
+  attempt: 1,
+  application: {
+    id: "example",
+    digest,
+    inputSchemaDigest: digest,
+    outputSchemaDigest: digest,
+  },
+  input: { value: "bounded" },
+});
+createBatchInvocationResult(batchRequest, {
+  terminal: "succeeded",
+  recovery: "fresh",
+  runtimeReceiptDigest: digest,
+  output: { message: "done" },
+});
+createBatchInvocationResult(batchRequest, {
+  terminal: "cancelled",
+  recovery: "fresh",
+  runtimeReceiptDigest: digest,
+});
+// @ts-expect-error successful results require output
+createBatchInvocationResult(batchRequest, {
+  terminal: "succeeded",
+  recovery: "fresh",
+  runtimeReceiptDigest: digest,
+});
+// @ts-expect-error failed results forbid output
+createBatchInvocationResult(batchRequest, {
+  terminal: "cancelled",
+  recovery: "fresh",
+  runtimeReceiptDigest: digest,
+  output: { message: "not allowed" },
+});
+// @ts-expect-error public result decoding requires exact request correlation
+decodeBatchInvocationResult(new Uint8Array());
+// @ts-expect-error public result validation requires exact request correlation
+validateBatchInvocationResult({});
 
 void definePlugin(runtimeKit, descriptor);
 void createGitHubReadPluginDescriptor;
@@ -128,6 +174,12 @@ void isCompatibilityReviewTrigger(bundleCopy.trigger);
 void ASSISTANT_READ_CONTRACTS[authorizedRead.capabilityId].budgets.timeoutMs;
 void checkedAssistantResult;
 void DEFAULT_PLUGIN_PAYLOAD_LIMITS.inputBytes;
+void createBatchInvocationResult(batchRequest, {
+  terminal: "succeeded",
+  recovery: "fresh",
+  runtimeReceiptDigest: digest,
+  output: { accepted: true },
+});
 void sandbox;
 void turn;
 void reply;

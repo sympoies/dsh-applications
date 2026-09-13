@@ -5,8 +5,8 @@
 `dsh-applications` is the reusable public application layer above
 `dsh-runtime-kit`. It contains public plugin helpers, trigger and output
 contracts, a public per-instance application manager, one isolated adapter for
-the exact DSH rc2 public services, and the coordinated public bot-profile and
-trigger-fixture catalog.
+the exact DSH rc2 public services, a portable host-to-batch byte contract, and
+the coordinated public bot-profile and trigger-fixture catalog.
 
 The dependency direction is one way:
 
@@ -70,6 +70,17 @@ the exact runtime-kit validator. The SDK exposes a typed canonical-digest
 constructor and exact descriptor inputs while retaining runtime validation for
 untyped callers. Trigger and output helpers are immutable
 application configuration only; neither can grant or widen authority.
+
+The batch-invocation package is the portable byte seam above those runtime
+owners. It canonicalizes one schema-bound input and validates one terminal
+result against the same invocation, attempt, complete application identity,
+and input digest.
+An owner-supplied callback performs the actual runtime invocation. This keeps
+Linux and macOS callers identical without adding a scheduler, daemon, DSH loop,
+deployment binding, or lifecycle store to the public application artifact.
+Timeout, cancellation, model unavailability, overlap refusal, and interrupted
+recovery remain typed observations of runtime-owned behavior rather than a
+second implementation of it.
 
 The GitHub packages expose no provider client or bearer material. The read
 contract treats pull-request content as untrusted and echoes only broker-issued

@@ -90,6 +90,7 @@ test("workspace metadata is exact, private at the root, and release-safe", () =>
   assert.equal(pkg.scripts["test:integration"], "node --test test/integration.test.ts");
   assert.equal(pkg.scripts["test:github-contracts"], "node --test test/github-contracts.test.ts");
   assert.equal(pkg.scripts["test:assistant-read-contracts"], "node --test test/assistant-read-contracts.test.ts");
+  assert.equal(pkg.scripts["test:batch-invocation"], "node --test test/batch-invocation.test.ts");
   assert.equal(pkg.scripts["check:compatibility"], "node scripts/check-compatibility.ts");
   assert.equal(pkg.scripts["verify:package-reproducibility"], "node scripts/check-package-reproducibility.ts");
   assert.equal(pkg.scripts["test:package"], "npm run check:compatibility -- --manifest-only && npm run verify:package-reproducibility && npm pack --dry-run --ignore-scripts");
@@ -253,6 +254,7 @@ test("installed workspace resolves every actual public package specifier", async
     ["@sympoies/dsh-telegram-channel", "createTelegramChannelPluginDescriptor"],
     ["@sympoies/dsh-assistant-read-contracts", "authorizeAssistantReadInvocation"],
     ["@sympoies/dsh-governed-action-contracts", "createCalendarPluginDescriptor"],
+    ["@sympoies/dsh-batch-invocation", "createBatchInvocationRequest"],
   ] as const;
   assert.deepEqual(
     publicExports.map(([specifier]) => specifier).sort(),
@@ -313,7 +315,7 @@ test("CI verifies the repository and exact compatibility checkouts", () => {
   assert.match(workflow, /permissions:\n\s+contents: read/);
   assert.match(workflow, /npm ci --ignore-scripts/);
   assert.match(workflow, /npm install --global npm@11\.6\.2 --ignore-scripts/);
-  assert.equal((workflow.match(/node-version: 24\.16\.0/g) ?? []).length, 2);
+  assert.equal((workflow.match(/node-version: 24\.16\.0/g) ?? []).length, 3);
   assert.match(workflow, /npm run test:repository-contract/);
   assert.match(workflow, /npm run test:manager-contract/);
   assert.match(workflow, /npm run test:manager-faults/);
@@ -321,6 +323,8 @@ test("CI verifies the repository and exact compatibility checkouts", () => {
   assert.match(workflow, /npm run test:profiles/);
   assert.match(workflow, /npm run test:integration/);
   assert.match(workflow, /npm run test:github-contracts/);
+  assert.match(workflow, /batch-invocation-portability:[\s\S]*ubuntu-latest[\s\S]*macos-15/);
+  assert.match(workflow, /npm run test:batch-invocation/);
   assert.match(workflow, /npm test/);
   assert.match(workflow, new RegExp(`repository: sympoies/dsh-runtime-kit[\\s\\S]*ref: ${expectedRuntimeKitRevision}`));
   assert.match(workflow, new RegExp(`repository: deepseek-ai/deepseek-harness[\\s\\S]*ref: ${expectedDshRevision}`));
@@ -550,6 +554,9 @@ test("the repository package is reproducible and contains the public coordinated
   assert(paths.includes("fixtures/triggers/manual.json"));
   assert(paths.includes("fixtures/triggers/schedule.json"));
   assert(paths.includes("packages/plugin-sdk/src/index.ts"));
+  assert(paths.includes("packages/batch-invocation/schemas/invocation-request.schema.json"));
+  assert(paths.includes("packages/batch-invocation/schemas/invocation-result.schema.json"));
+  assert(paths.includes("packages/batch-invocation/src/index.ts"));
   assert(paths.includes("packages/telegram-channel/src/index.ts"));
   assert(!paths.some((path: string) => /^packages\/[^/]+\/index\.d\.ts$/.test(path) || path.endsWith("/src/index.js")));
   assert(paths.includes("packages/dsh-rc2-adapter/types/dsh-peer-fallbacks.d.ts"));

@@ -10,6 +10,9 @@ released together as one coordinated public application artifact.
   instance-bound DSH confinement.
 - `manager` provides the exact ten-operation facade, authenticated internal
   control construction, and runtime-kit-mediated plugin action gateway.
+- `batch-invocation` defines canonical host-to-batch request bytes, exact
+  request/result correlation, and typed terminal outcomes without owning the
+  runtime adapter, scheduler, or lifecycle.
 - `github-read` validates a bounded, model-safe projection of a broker-admitted
   pull request without provider access or authority.
 - `github-review-publish` constructs the strict, canonical, non-bearer public
