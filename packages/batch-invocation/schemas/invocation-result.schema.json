@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DSH batch invocation terminal result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "apiVersion",
+    "kind",
+    "invocationId",
+    "attempt",
+    "applicationDigest",
+    "applicationIdentityDigest",
+    "inputDigest",
+    "terminal",
+    "retryable",
+    "recovery",
+    "runtimeReceiptDigest"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "applications.sympoies.dev/v1"
+    },
+    "kind": {
+      "const": "BatchInvocationResult"
+    },
+    "invocationId": {
+      "type": "string",
+      "pattern": "^[a-z0-9](?:[a-z0-9._:-]{0,126}[a-z0-9])?$"
+    },
+    "attempt": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3
+    },
+    "applicationDigest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "applicationIdentityDigest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "inputDigest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "terminal": {
+      "enum": [
+        "succeeded",
+        "invalid-input",
+        "invalid-output",
+        "timed-out",
+        "cancelled",
+        "model-unavailable",
+        "overlap-refused",
+        "interrupted"
+      ]
+    },
+    "retryable": {
+      "type": "boolean"
+    },
+    "recovery": {
+      "enum": [
+        "fresh",
+        "resumed"
+      ]
+    },
+    "runtimeReceiptDigest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "output": true,
+    "outputDigest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  },
+  "oneOf": [
+    {
+      "required": [
+        "terminal",
+        "retryable",
+        "output",
+        "outputDigest"
+      ],
+      "properties": {
+        "terminal": {
+          "const": "succeeded"
+        },
+        "retryable": {
+          "const": false
+        },
+        "output": true,
+        "outputDigest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    {
+      "required": [
+        "terminal",
+        "retryable"
+      ],
+      "properties": {
+        "terminal": {
+          "enum": [
+            "invalid-input",
+            "invalid-output",
+            "cancelled"
+          ]
+        },
+        "retryable": {
+          "const": false
+        },
+        "output": false,
+        "outputDigest": false
+      }
+    },
+    {
+      "required": [
+        "terminal",
+        "retryable"
+      ],
+      "properties": {
+        "terminal": {
+          "enum": [
+            "timed-out",
+            "model-unavailable",
+            "overlap-refused",
+            "interrupted"
+          ]
+        },
+        "retryable": {
+          "const": true
+        },
+        "output": false,
+        "outputDigest": false
+      }
+    }
+  ]
+}

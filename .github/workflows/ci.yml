@@ -154,3 +154,28 @@ jobs:
         env:
           DSH_ROOT: ../deepseek-harness
         run: npm run test:exact-dsh
+
+  batch-invocation-portability:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-15
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - name: Check out applications
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.16.0
+          cache: npm
+      - name: Activate exact npm
+        run: |
+          npm install --global npm@11.6.2 --ignore-scripts
+          test "$(npm --version)" = "11.6.2"
+      - name: Install without lifecycle scripts
+        run: npm ci --ignore-scripts
+      - name: Prove identical batch invocation bytes
+        run: npm run test:batch-invocation

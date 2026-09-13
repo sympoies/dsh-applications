@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DSH batch invocation request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "apiVersion",
+    "kind",
+    "invocationId",
+    "attempt",
+    "application",
+    "input",
+    "inputDigest"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "applications.sympoies.dev/v1"
+    },
+    "kind": {
+      "const": "BatchInvocationRequest"
+    },
+    "invocationId": {
+      "type": "string",
+      "pattern": "^[a-z0-9](?:[a-z0-9._:-]{0,126}[a-z0-9])?$"
+    },
+    "attempt": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3
+    },
+    "application": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "digest",
+        "inputSchemaDigest",
+        "outputSchemaDigest"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?$"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "inputSchemaDigest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "outputSchemaDigest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "input": true,
+    "inputDigest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

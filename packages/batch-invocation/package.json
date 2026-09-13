@@ -1,0 +1,21 @@
+{
+  "name": "@sympoies/dsh-batch-invocation",
+  "version": "0.7.0",
+  "description": "Portable request and terminal-result contract for host-invoked DSH batch applications",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts"
+    }
+  },
+  "files": [
+    "src",
+    "schemas",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "license": "MIT"
+}
