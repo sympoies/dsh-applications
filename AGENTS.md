@@ -62,19 +62,12 @@ DeepSeek Harness (DSH).
 
 ## Development log
 
-- `docs/devlog/` is the append-only narrative for notable work: what changed,
-  why, the evidence, and links worth keeping. It complements commit messages
-  and the normative docs; it does not replace keeping those docs current.
-- After non-trivial development work with future debugging or decision value,
-  append an entry through the `project-devlog` skill before declaring the task
-  complete. Skip transient or same-turn fixes with no durable outcome.
-- Keep entries English, newest-first by month, and safe for a public repo. Do
-  not record credentials, private skill contents, personal identifiers,
-  internal hostnames, private topology, or machine-local paths.
+- This repository's log is `docs/devlog/`; its conventions and month index live
+  in `docs/devlog/README.md`.
+- When to read it, when to append, what the mechanism is, and what must never
+  go into it belong to the `project-dev` devlog capability
+  (`core/policies/devlog-capability.md` in the agent home), not to this file.
 
 ## Project skills
 
-- Project-local skills live under `.agents/skills/<name>/`; the canonical
-  source for this workflow is `project-devlog`.
-- Search existing entries with
-  `scripts/devlog-search.sh <term> [YYYY-MM]` before adding a new one.
+- Project-local skills live under `.agents/skills/<name>/`.
