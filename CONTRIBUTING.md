@@ -46,12 +46,18 @@ npm run test:repository-contract
 npm test
 npm run check:compatibility -- --manifest-only
 npm run verify:package-reproducibility
-npm pack --dry-run
+npm pack --dry-run --ignore-scripts
 ```
 
 Compatibility changes must update the machine-readable lock, both exact CI
 checkout refs, contract expectations, and documentation in one reviewed pull
 request. Version-range widening without evidence is not accepted.
+
+For material application, profile, compatibility, packaging, or
+development-policy work, use the repository-local
+`project-application-development` skill and follow the
+[layered development and testing policy](docs/development-testing.md). Use the
+separate `evaluate-dsh-plugin` skill before building a new DSH capability.
 
 ## Review and release
 

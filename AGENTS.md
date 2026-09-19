@@ -32,12 +32,18 @@ DeepSeek Harness (DSH).
 
 ## Changes and validation
 
+- Use the project-local `project-application-development` skill and read
+  `docs/development-testing.md` for material application, profile,
+  compatibility, packaging, or development-policy work. Start at the earliest
+  layer that can prove the observable delta.
+- Before building a new DSH capability, use the separate
+  `evaluate-dsh-plugin` skill and retain its adopt/reference/build decision.
 - Add or change testable behavior with a meaningful failing owner test first,
   then make the same command pass.
 - Run `npm ci --ignore-scripts`, the affected focused tests, `npm test`,
   `npm run check:compatibility -- --manifest-only`,
-  `npm run verify:package-reproducibility`, and `npm pack --dry-run` before
-  delivery.
+  `npm run verify:package-reproducibility`, and
+  `npm pack --dry-run --ignore-scripts` before delivery.
 - Keep workspace dependencies exact. Compatibility-pin changes are deliberate
   review events and must update the lock, CI checkout identities, tests, and
   release notes together.
@@ -45,6 +51,8 @@ DeepSeek Harness (DSH).
   public owner, API boundary, compatibility, and tests before it becomes a
   release component. All workspace components share the root coordinated
   version and publish as one application artifact.
+- Release, private consumer repin, hosted acceptance, and deployment remain
+  separate authority boundaries.
 
 ## Releases
 

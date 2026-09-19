@@ -1,0 +1,53 @@
+# Repository-local routing for agents contributing to dsh-applications.
+
+[[document]]
+context = "project-dev"
+scope = "project"
+path = "docs/development-testing.md"
+product = ["codex", "claude", "hermes"]
+phase = ["edit", "delivery"]
+required = true
+when = "always"
+notes = "Mandatory layered application validation, evidence, owner-routing, and self-improvement policy."
+
+[[document]]
+context = "project-dev"
+scope = "project"
+path = "CONTRIBUTING.md"
+product = ["codex", "claude", "hermes"]
+phase = ["edit", "delivery"]
+required = false
+when = "always"
+notes = "Concise contributor setup and public application change contract."
+
+[[document]]
+context = "project-dev"
+scope = "project"
+path = "docs/ownership.md"
+product = ["codex", "claude", "hermes"]
+phase = ["edit", "delivery"]
+required = false
+when = "always"
+notes = "Normative public/private and cross-repository ownership boundary."
+
+[[document]]
+context = "project-dev"
+scope = "project"
+path = "docs/releases.md"
+product = ["codex", "claude", "hermes"]
+phase = "delivery"
+required = false
+when = "always"
+notes = "Coordinated release contract for explicitly authorized publication work."
+
+[[validation]]
+context = "project-dev"
+product = ["codex", "claude", "hermes", "dsh"]
+commands = ["npm ci --ignore-scripts", "npm test", "npm run typecheck", "npm run check:compatibility -- --manifest-only", "npm run verify:package-reproducibility", "npm pack --dry-run --ignore-scripts"]
+description = "Run the complete routine repository gate once for the stable candidate."
+
+[path_classes]
+production = [".gitignore", ".node-version", ".npmrc", "AGENT_DOCS.toml", "package.json", "package-lock.json", "tsconfig.json", "tsconfig.tools.json", ".agents/**", ".github/workflows/**", "compatibility/**", "fixtures/**", "profiles/**", "packages/**", "scripts/**"]
+test = ["test/**"]
+docs = ["AGENTS.md", "CLAUDE.md", "CONTRIBUTING.md", "README.md", "LICENSE", "SECURITY.md", "docs/**"]
+unmatched = "unknown"
