@@ -72,6 +72,10 @@ npm run check:compatibility -- --manifest-only
 npm run test:package
 ```
 
+Contributors making material application, profile, compatibility, or packaging
+changes should follow the
+[layered development and testing policy](docs/development-testing.md).
+
 The workspace packages are written in erasable TypeScript that Node.js 24
 executes directly through its built-in type stripping. There is no build step:
 `exports` point at the `.ts` sources, the shipped tarball is the reviewed
