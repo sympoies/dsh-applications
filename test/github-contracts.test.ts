@@ -180,7 +180,7 @@ test("release-bound GitHub packages construct exact runtime-kit PluginDescriptor
   const codexSubscription = createCodexSubscriptionProviderDescriptor(runtimeKit);
   assert.equal(read.metadata.id, "github-read");
   assert.equal(publish.metadata.id, "github-review-publish");
-  assert.equal(publish.metadata.version, "0.9.1");
+  assert.equal(publish.metadata.version, "0.9.2");
   assert.equal(runtimeKit.versionSatisfies(publish.metadata.version, reviewPublisherRange), true);
   assert.equal(read.metadata.digest, runtimeKit.computeDocumentDigest(read));
   assert.equal(publish.metadata.digest, runtimeKit.computeDocumentDigest(publish));
@@ -228,8 +228,8 @@ test("release-bound GitHub packages construct exact runtime-kit PluginDescriptor
   assert.deepEqual(
     resolved.composition.plugins.map((plugin: any) => [plugin.id, plugin.version]),
     [
-      ["github-read", "0.9.1"],
-      ["github-review-publish", "0.9.1"],
+      ["github-read", "0.9.2"],
+      ["github-review-publish", "0.9.2"],
       ["llm-codex-subscription", "0.1.2"],
     ],
   );

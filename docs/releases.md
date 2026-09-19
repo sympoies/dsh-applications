@@ -21,6 +21,10 @@ records its immutable npm and source identities in the public compatibility
 lock, and keeps the native profile install compatible with its reviewed peer
 dependency graph.
 
+Version `0.9.2` advances the Telegram transport to
+`@sympoies/dsh-telegram@0.6.2`, which repairs session-picker polling without
+changing the public application capability or authority boundary.
+
 Workspace dependencies and external compatibility are exact. A dependency
 promotion requires reviewed compatibility evidence and changes every pinned
 identity that enforces the selection. A release never resolves `latest`, a
@@ -53,11 +57,11 @@ exact pinned invocation with `--execute`:
 
 ```sh
 .agents/scripts/release.sh --dry-run \
-  --version 0.9.1 \
+  --version 0.9.2 \
   --expected-head <full-main-commit> \
   --repository sympoies/dsh-applications
 .agents/scripts/release.sh --execute \
-  --version 0.9.1 \
+  --version 0.9.2 \
   --expected-head <same-full-main-commit> \
   --repository sympoies/dsh-applications
 ```
