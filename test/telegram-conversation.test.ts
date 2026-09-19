@@ -33,14 +33,19 @@ test("the Telegram conversation profile adds only the reviewed channel to the co
   assert.equal(profile.metadata.id, "telegram-conversational");
   assert.deepEqual(profile.plugins, [
     { id: "conversation-agent", range: ">=0.3.0 <1.0.0" },
+    { id: "llm-codex-subscription", range: "=0.1.2" },
     { id: "telegram-channel", range: "=0.5.1" },
   ]);
   assert.deepEqual(profile.grants, ["conversation.memory", "conversation.reply"]);
-  assert.deepEqual(profile.requiredHealth, ["conversation-agent.ready", "telegram-channel.ready"]);
+  assert.deepEqual(profile.requiredHealth, [
+    "conversation-agent.ready",
+    "llm-codex-subscription.ready",
+    "telegram-channel.ready",
+  ]);
   assert.deepEqual(profile.artifacts.skills, []);
   assert.equal(profile.state.workspace, "none");
   assert.deepEqual(profile.limits.workspaceClasses, []);
-  assert.deepEqual(profile.limits.networkClasses, ["telegram-api"]);
+  assert.deepEqual(profile.limits.networkClasses, ["codex-subscription-provider", "telegram-api"]);
   assert.deepEqual(profile.triggers.map((trigger: any) => trigger.class), ["message"]);
   assert.equal(profile.state.restart, "resume");
   assert.equal(profile.execution.cancellation, "cooperative");
@@ -69,8 +74,8 @@ test("the adopted Telegram artifact identity and native DSH composition are exac
   ]);
   assert.equal(dshManifest.dsh.profile.bundles.includes("@ashafizullah/dsh-telegram"), false);
   assert.equal(dshManifest.dependencies["@ashafizullah/dsh-telegram"], "0.5.1");
-  assert.equal(dshManifest.dependencies["@deepseek-ai/dsh-base"], "0.1.1-rc.2");
-  assert.equal(dshManifest.dependencies["@deepseek-ai/dsh-headless"], "0.1.1-rc.2");
+  assert.equal(dshManifest.dependencies["@deepseek-ai/dsh-base"], "0.1.2-rc.1");
+  assert.equal(dshManifest.dependencies["@deepseek-ai/dsh-headless"], "0.1.2-rc.1");
   assert.equal(requireFile(join(profileRoot, "dsh-profile/.npmrc")), "ignore-scripts=true\n");
   const patch = requireFile(join(profileRoot, "dsh-profile/cordis.patch.yml"));
   assert.match(patch, /name: '@ashafizullah\/dsh-telegram'/u);
@@ -87,8 +92,8 @@ test("a clean native profile install consumes the reviewed locked graph without 
   assert.equal(lock.lockfileVersion, 3);
   assert.deepEqual(lock.packages[""].dependencies, {
     "@ashafizullah/dsh-telegram": "0.5.1",
-    "@deepseek-ai/dsh-base": "0.1.1-rc.2",
-    "@deepseek-ai/dsh-headless": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-base": "0.1.2-rc.1",
+    "@deepseek-ai/dsh-headless": "0.1.2-rc.1",
   });
 
   const expected = new Map([
@@ -97,12 +102,12 @@ test("a clean native profile install consumes the reviewed locked graph without 
       integrity: "sha512-/bFEveB+vafAFoM2MW6vTCTPEHBMDnblAfKaFIs221Jh27cvfFrtHyhwi5vzxByqeoqMN/g/2I23+gI4NU1lLg==",
     }],
     ["@deepseek-ai/dsh-base", {
-      version: "0.1.1-rc.2",
-      integrity: "sha512-DT1kSaseoTZ0b8pwZ5biRkqez2K8AnsLataRiCPsn3uUuxupZOjM1e8x9W+kpkWWFykWy1mbCPhzDRVJ+pLCbg==",
+      version: "0.1.2-rc.1",
+      integrity: "sha512-ir6FKWuuO40E5HgB1vsXKUk9oDxrPIlE39TBwazPc8qkgg42NeSM1OmlpCDo4/wdZh50xPxfdI4EVQI7fN8YMg==",
     }],
     ["@deepseek-ai/dsh-headless", {
-      version: "0.1.1-rc.2",
-      integrity: "sha512-Pk50xwmUUehOxNe8DJ2/tThj7Aw1MmJQeUkfAQh9miF7Tm+WOOxiOOei/H4wjH9cf+FuqtbLDw6jrHmGotfhjw==",
+      version: "0.1.2-rc.1",
+      integrity: "sha512-tKJ1/7wHAwDY2mBz5DJnEq2JvkusN3srbyH5kCXUW8131bwvJkkMLMyUfGnf5ASlFe9vmBapF8sYU9KPWUgh0g==",
     }],
   ]);
   for (const [name, identity] of expected) {
@@ -112,7 +117,7 @@ test("a clean native profile install consumes the reviewed locked graph without 
   }
   for (const [path, entry] of Object.entries(lock.packages) as Array<[string, any]>) {
     if (/(?:^|\/)node_modules\/@deepseek-ai\/dsh-[^/]+$/u.test(path)) {
-      assert.equal(entry.version, "0.1.1-rc.2", `${path} must stay on the exact reviewed DSH line`);
+      assert.equal(entry.version, "0.1.2-rc.1", `${path} must stay on the exact reviewed DSH line`);
     }
   }
 

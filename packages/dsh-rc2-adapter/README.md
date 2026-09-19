@@ -1,6 +1,6 @@
 # DSH rc2 adapter
 
-This package is the only direct DeepSeek Harness `0.1.1-rc.2` integration
+This package is the only direct DeepSeek Harness `0.1.2-rc.1` integration
 surface. It uses public agent create/resume handles, cancellation, idle and
 flush checkpoints. Cold resume authenticates the one requested persisted
 session with a point inspection, then delegates reconstruction to

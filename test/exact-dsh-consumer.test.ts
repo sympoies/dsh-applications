@@ -23,6 +23,7 @@ test("the adapter composes and executes through the exact pinned DSH agent tool 
     { Context },
     { default: LlmRuntime },
     { default: SessionStore, SessionId },
+    { default: SessionProjectionRegistry },
     { default: SystemPrompt },
     { default: ToolRuntime },
     { default: AgentRegistry },
@@ -32,6 +33,7 @@ test("the adapter composes and executes through the exact pinned DSH agent tool 
     load("vendor/cordis/lib/index.js"),
     load("packages/llm/llm/lib/index.js"),
     load("packages/core/session/lib/index.js"),
+    load("packages/session/session-projection/lib/index.js"),
     load("packages/core/system-prompt/lib/index.js"),
     load("packages/core/tools/lib/index.js"),
     load("packages/core/agent/lib/index.js"),
@@ -45,6 +47,7 @@ test("the adapter composes and executes through the exact pinned DSH agent tool 
   try {
     await ctx.plugin(LlmRuntime);
     await ctx.plugin(SessionStore);
+    await ctx.plugin(SessionProjectionRegistry);
     await ctx.plugin(SystemPrompt);
     await ctx.plugin(ToolRuntime);
     await ctx.plugin(AgentRegistry);

@@ -3,8 +3,8 @@
   "kind": "BotProfile",
   "metadata": {
     "id": "batch",
-    "version": "0.8.0",
-    "digest": "sha256:af91cf13295470984d8467587d386fc4fe1a6e5ae537275f1ad937571407c32b",
+    "version": "0.9.0",
+    "digest": "sha256:6dbf09bac9458bd8fe1f7df68ef358cf3d735c062c6aa2b78aa36da399515568",
     "purpose": "Bounded one-shot work shared by manual and scheduled invocation"
   },
   "workload": {
@@ -15,6 +15,10 @@
     {
       "id": "batch-agent",
       "range": ">=1.0.0 <2.0.0"
+    },
+    {
+      "id": "llm-codex-subscription",
+      "range": "=0.1.2"
     }
   ],
   "grants": [
@@ -22,7 +26,8 @@
     "batch.output.write"
   ],
   "requiredHealth": [
-    "batch-agent.ready"
+    "batch-agent.ready",
+    "llm-codex-subscription.ready"
   ],
   "artifacts": {
     "instructions": "profiles/batch/instructions.md",
@@ -46,7 +51,9 @@
   },
   "limits": {
     "actions": 64,
-    "networkClasses": [],
+    "networkClasses": [
+      "codex-subscription-provider"
+    ],
     "workspaceClasses": [],
     "budgetUnits": 2000,
     "ratePerMinute": 30

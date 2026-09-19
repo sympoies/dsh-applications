@@ -15,8 +15,8 @@ import test from "node:test";
 
 const root = resolve(import.meta.dirname, "..");
 const expectedRuntimeKitRevision =
-  "2cd14d5fdd73e0758d366d8b671f71ee768d857f";
-const expectedDshRevision = "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e";
+  "aa60655ddce3a0a5e56c331af41aa3cfbb3e88d4";
+const expectedDshRevision = "a66e4702047846cdaa10c66c9d3df3951f5ea70d";
 const reviewedFixtureCommit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 function read(path: string) {
@@ -76,7 +76,7 @@ test("repository carries its public governance boundary", () => {
 test("workspace metadata is exact, private at the root, and release-safe", () => {
   const pkg = json("package.json");
   assert.equal(pkg.name, "@sympoies/dsh-applications-workspace");
-  assert.equal(pkg.version, "0.8.0");
+  assert.equal(pkg.version, "0.9.0");
   assert.equal(pkg.private, true);
   assert.deepEqual(pkg.workspaces, ["packages/*"]);
   assert.equal(pkg.packageManager, "npm@11.6.2");
@@ -175,6 +175,13 @@ test("workspace packages ship erasable TypeScript sources that Node executes wit
   assert.match(read(".github/workflows/release.yml"), /npm run typecheck/);
 
   const adapter = json("packages/dsh-rc2-adapter/package.json");
+  assert.equal(adapter.peerDependencies["@deepseek-ai/cordis"], "4.0.2");
+  for (const dshPeer of [
+    "@deepseek-ai/dsh-agent",
+    "@deepseek-ai/dsh-session",
+    "@deepseek-ai/dsh-session-persistence",
+    "@deepseek-ai/dsh-tools",
+  ]) assert.equal(adapter.peerDependencies[dshPeer], "0.1.2-rc.1");
   assert(adapter.files.includes("types"), "the adapter ships its DSH peer fallback declarations");
   assert.equal(statSync(join(root, "packages/dsh-rc2-adapter/types/dsh-peer-fallbacks.d.ts")).isFile(), true);
 });
@@ -255,6 +262,7 @@ test("installed workspace resolves every actual public package specifier", async
     ["@sympoies/dsh-assistant-read-contracts", "authorizeAssistantReadInvocation"],
     ["@sympoies/dsh-governed-action-contracts", "createCalendarPluginDescriptor"],
     ["@sympoies/dsh-batch-invocation", "createBatchInvocationRequest"],
+    ["@sympoies/dsh-codex-subscription-provider", "createCodexSubscriptionProviderDescriptor"],
   ] as const;
   assert.deepEqual(
     publicExports.map(([specifier]) => specifier).sort(),
@@ -274,10 +282,10 @@ test("installed workspace resolves every actual public package specifier", async
 test("compatibility lock pins the accepted runtime-kit and DSH identities", () => {
   const lock = json("compatibility/dsh-applications-lock.json");
   assert.equal(lock.schema_version, "dsh-applications.compatibility-lock.v1");
-  assert.equal(lock.application_version, "0.8.0");
+  assert.equal(lock.application_version, "0.9.0");
   assert.deepEqual(lock.profile_catalog, {
     path: "profiles/catalog.json",
-    digest: "sha256:9ae87c54f092eca5f920e00798b8f2b65ada758f301034ecc9a42f96316b0ad8",
+    digest: "sha256:cd47afbf794db36b0642b9e3769c02126516ce3423afd066e3c141a0f68abbc7",
   });
   assert.deepEqual(lock.runtime_kit, {
     package: "@sympoies/dsh-runtime-kit",
@@ -288,9 +296,9 @@ test("compatibility lock pins the accepted runtime-kit and DSH identities", () =
   });
   assert.deepEqual(lock.dsh, {
     repository: "https://github.com/deepseek-ai/deepseek-harness",
-    ref: "refs/tags/dsh-v0.1.1-rc.2",
+    ref: "refs/tags/dsh-v0.1.2-rc.1",
     revision: expectedDshRevision,
-    version: "0.1.1-rc.2",
+    version: "0.1.2-rc.1",
   });
   assert.equal(lock.node, "24.16.0");
   assert.equal(lock.package_manager, "npm@11.6.2");

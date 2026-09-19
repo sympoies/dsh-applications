@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.sympoies.dev/dsh-applications/codex-subscription-provider/public-config.v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["route"],
+  "properties": {
+    "route": { "const": "codex-subscription" }
+  }
+}

@@ -3,8 +3,8 @@
   "kind": "BotProfile",
   "metadata": {
     "id": "coding",
-    "version": "0.8.0",
-    "digest": "sha256:af60943c71bb35d4b7283d1d2cba24098d81b1b5b974f75ef06fb8d119320772",
+    "version": "0.9.0",
+    "digest": "sha256:d8dcfd88ab2bef11c371d070f958f22cd8df1be8b2df5fdfc9a2fc727484e4c0",
     "purpose": "Interactive coding inside one admitted project workspace"
   },
   "workload": {
@@ -15,6 +15,10 @@
     {
       "id": "coding-agent",
       "range": ">=1.0.0 <2.0.0"
+    },
+    {
+      "id": "llm-codex-subscription",
+      "range": "=0.1.2"
     }
   ],
   "grants": [
@@ -24,7 +28,8 @@
     "coding.workspace"
   ],
   "requiredHealth": [
-    "coding-agent.ready"
+    "coding-agent.ready",
+    "llm-codex-subscription.ready"
   ],
   "artifacts": {
     "instructions": "profiles/coding/instructions.md",
@@ -50,6 +55,7 @@
   "limits": {
     "actions": 512,
     "networkClasses": [
+      "codex-subscription-provider",
       "package-registry",
       "repository-forge"
     ],

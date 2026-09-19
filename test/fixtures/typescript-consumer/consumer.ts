@@ -25,6 +25,7 @@ import {
   validateConversationTurn,
   type ConversationTurn,
 } from "@sympoies/dsh-conversation-agent";
+import { createCodexSubscriptionProviderDescriptor } from "@sympoies/dsh-codex-subscription-provider";
 import {
   createDshRc2Adapter,
   REQUIRED_AMBIENT_DENIALS,
@@ -164,6 +165,7 @@ validateBatchInvocationResult({});
 void definePlugin(runtimeKit, descriptor);
 void createGitHubReadPluginDescriptor;
 void createConversationAgentPluginDescriptor;
+void createCodexSubscriptionProviderDescriptor;
 void createAssistantReadPluginDescriptor;
 void createCalendarPluginDescriptor;
 void GOVERNED_ACTION_SCHEMA_DIGESTS[governedAction].input;

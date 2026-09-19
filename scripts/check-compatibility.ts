@@ -6,8 +6,8 @@ import { pathToFileURL } from "node:url";
 
 const root = resolve(import.meta.dirname, "..");
 const expectedRuntimeKitRevision =
-  "2cd14d5fdd73e0758d366d8b671f71ee768d857f";
-const expectedDshRevision = "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e";
+  "aa60655ddce3a0a5e56c331af41aa3cfbb3e88d4";
+const expectedDshRevision = "a66e4702047846cdaa10c66c9d3df3951f5ea70d";
 
 type CompatibilityOptions = {
   manifestOnly: boolean;
@@ -82,8 +82,8 @@ assert.match(lock.runtime_kit.revision, /^[0-9a-f]{40}$/);
 assert.match(lock.dsh.revision, /^[0-9a-f]{40}$/);
 assert.equal(normalizeRepository(lock.runtime_kit.repository), "https://github.com/sympoies/dsh-runtime-kit");
 assert.equal(normalizeRepository(lock.dsh.repository), "https://github.com/deepseek-ai/deepseek-harness");
-assert.equal(lock.dsh.ref, "refs/tags/dsh-v0.1.1-rc.2");
-assert.equal(lock.dsh.version, "0.1.1-rc.2");
+assert.equal(lock.dsh.ref, "refs/tags/dsh-v0.1.2-rc.1");
+assert.equal(lock.dsh.version, "0.1.2-rc.1");
 assert.deepEqual(lock.runtime_kit.required_exports, ["./composition", "./manager"]);
 
 if (!options.manifestOnly) {
@@ -127,6 +127,19 @@ if (!options.manifestOnly) {
     revision: lock.dsh.revision,
     version: lock.dsh.version,
   });
+  const adapterPackage = load(resolve(root, "packages/dsh-rc2-adapter/package.json"));
+  assert.equal(
+    adapterPackage.peerDependencies?.["@deepseek-ai/cordis"],
+    runtimeCompatibility.public_packages?.["@deepseek-ai/cordis"]?.peer,
+  );
+  for (const dshPeer of [
+    "@deepseek-ai/dsh-agent",
+    "@deepseek-ai/dsh-session",
+    "@deepseek-ai/dsh-session-persistence",
+    "@deepseek-ai/dsh-tools",
+  ]) {
+    assert.equal(adapterPackage.peerDependencies?.[dshPeer], lock.dsh.version);
+  }
 
   const dshPackage = load(resolve(dshRoot, "package.json"));
   assert.equal(dshPackage.name, "@deepseek-ai/dsh-root");

@@ -84,7 +84,11 @@ test("the conversational profile carries no repository, shell, workspace, or amb
   for (const grant of profile.grants) {
     assert.doesNotMatch(grant, /coding|repository|shell|workspace|network|publish|review/u);
   }
-  assert.deepEqual(profile.limits.networkClasses, [], "no ambient network class");
+  assert.deepEqual(
+    profile.limits.networkClasses,
+    ["codex-subscription-provider"],
+    "only the reviewed model provider network class",
+  );
   assert.deepEqual(profile.limits.workspaceClasses, [], "no workspace class");
   assert.equal(profile.state.workspace, "none", "no project or dummy repository");
   assert.equal(profile.state.session, "persistent");

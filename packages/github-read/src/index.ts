@@ -211,7 +211,7 @@ export function createGitHubReadPluginDescriptor(runtimeKit: RuntimeKitPluginDes
   const descriptor = {
     apiVersion: "runtime.sympoies.dev/v1",
     kind: "PluginDescriptor",
-    metadata: { id: "github-read", version: "0.8.0", digest: `sha256:${"0".repeat(64)}` },
+    metadata: { id: "github-read", version: "0.9.0", digest: `sha256:${"0".repeat(64)}` },
     artifact: {
       package: "@sympoies/dsh-github-read",
       digest: artifact.digest,
@@ -220,7 +220,7 @@ export function createGitHubReadPluginDescriptor(runtimeKit: RuntimeKitPluginDes
       attestationIdentity: artifact.attestationIdentity,
     },
     compatibility: {
-      dsh: "=0.1.1-rc.2", runtimeKit: "=0.0.0", pluginApi: "=1.0.0", platforms: ["linux-x64"],
+      dsh: "=0.1.2-rc.1", runtimeKit: "=0.0.0", pluginApi: "=1.0.0", platforms: ["linux-x64"],
     },
     capabilities: {
       provides: ["github.pull-request.read"], requires: [], tools: [], skills: [], services: [], dependencies: [],

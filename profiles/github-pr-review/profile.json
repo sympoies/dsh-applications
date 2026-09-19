@@ -3,8 +3,8 @@
   "kind": "BotProfile",
   "metadata": {
     "id": "github-pr-review",
-    "version": "0.8.0",
-    "digest": "sha256:7a6b91aac7de5ece2f181055b9ec4ab9955af6d2e72dc1e6bab8fd963ebf3d4f",
+    "version": "0.9.0",
+    "digest": "sha256:d068ccdff2c6944d64868bc5fbe556ec782dcd53d46c3c224e3e15e7eefa9e51",
     "purpose": "Credential-free review of one broker-admitted pull request capsule"
   },
   "workload": {
@@ -19,6 +19,10 @@
     {
       "id": "github-review-publish",
       "range": ">=0.3.0 <1.0.0"
+    },
+    {
+      "id": "llm-codex-subscription",
+      "range": "=0.1.2"
     }
   ],
   "grants": [
@@ -27,7 +31,8 @@
   ],
   "requiredHealth": [
     "github-read.ready",
-    "github-review-publish.ready"
+    "github-review-publish.ready",
+    "llm-codex-subscription.ready"
   ],
   "artifacts": {
     "instructions": "profiles/github-pr-review/instructions.md",
@@ -51,7 +56,9 @@
   },
   "limits": {
     "actions": 16,
-    "networkClasses": [],
+    "networkClasses": [
+      "codex-subscription-provider"
+    ],
     "workspaceClasses": [],
     "budgetUnits": 500,
     "ratePerMinute": 16

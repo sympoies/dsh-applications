@@ -20,7 +20,7 @@ test("the batch profile declares one authority shared by manual and scheduled in
   assert.equal(profile.workload.class, "batch");
   assert.equal(profile.workload.scopeClass, "non-project");
   assert.deepEqual([...profile.grants].sort(), ["batch.input.read", "batch.output.write"]);
-  assert.deepEqual(profile.limits.networkClasses, []);
+  assert.deepEqual(profile.limits.networkClasses, ["codex-subscription-provider"]);
   assert.deepEqual(profile.limits.workspaceClasses, []);
   assert.equal(profile.state.session, "ephemeral");
   assert.equal(profile.state.memory, "none");

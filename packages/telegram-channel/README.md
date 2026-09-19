@@ -142,7 +142,7 @@ descriptors contain no host effects. The native channel continues to own its
 separately reviewed Telegram API and credential-handle mediation; private
 infrastructure still owns admission and actual execution.
 
-Compatibility is exact DSH `0.1.1-rc.2`, runtime-kit contract `0.0.0`, plugin
+Compatibility is exact DSH `0.1.2-rc.1`, runtime-kit contract `0.0.0`, plugin
 API `1.0.0`, and Linux x64. Repository owner tests verify the external identity,
 disabled composition, descriptor digest, strict schema compilation and runtime
 conformance, schema digest, and public/private boundary. The companion native

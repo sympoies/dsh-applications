@@ -3,8 +3,8 @@
   "kind": "BotProfile",
   "metadata": {
     "id": "conversational",
-    "version": "0.8.0",
-    "digest": "sha256:d1e39e087e05726caffa01d8997729c62bc6a9a3c49467813184f7d649bc19cb",
+    "version": "0.9.0",
+    "digest": "sha256:30802218315465d9a35fcbcbea73ae45459aa638d78c895d8c54878052f9d966",
     "purpose": "Persistent channel conversation without project or shell authority"
   },
   "workload": {
@@ -15,6 +15,10 @@
     {
       "id": "conversation-agent",
       "range": ">=0.3.0 <1.0.0"
+    },
+    {
+      "id": "llm-codex-subscription",
+      "range": "=0.1.2"
     }
   ],
   "grants": [
@@ -22,7 +26,8 @@
     "conversation.reply"
   ],
   "requiredHealth": [
-    "conversation-agent.ready"
+    "conversation-agent.ready",
+    "llm-codex-subscription.ready"
   ],
   "artifacts": {
     "instructions": "profiles/conversational/instructions.md",
@@ -46,7 +51,9 @@
   },
   "limits": {
     "actions": 32,
-    "networkClasses": [],
+    "networkClasses": [
+      "codex-subscription-provider"
+    ],
     "workspaceClasses": [],
     "budgetUnits": 1000,
     "ratePerMinute": 60
