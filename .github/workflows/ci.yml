@@ -105,6 +105,11 @@ jobs:
         run: |
           npm install --global pnpm@11.7.0 --ignore-scripts
           test "$(pnpm --version)" = "11.7.0"
+      - name: Build exact runtime-kit
+        working-directory: dsh-runtime-kit
+        run: |
+          npm ci --ignore-scripts --legacy-peer-deps
+          npm run build:emit
       - name: Build exact DSH host libraries
         working-directory: deepseek-harness
         run: |
