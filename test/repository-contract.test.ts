@@ -339,6 +339,10 @@ test("CI verifies the repository and exact compatibility checkouts", () => {
   assert.match(workflow, /npm run check:compatibility --/);
   assert.match(workflow, /npm run test:profile-compatibility --/);
   assert.match(workflow, /npm run test:telegram-exact-dsh/);
+  assert.match(
+    workflow,
+    /working-directory: dsh-runtime-kit[\s\S]*npm ci --ignore-scripts --legacy-peer-deps[\s\S]*npm run build:emit/,
+  );
   assert.doesNotMatch(workflow, /uses:\s+[^\s@]+@(main|master|v\d+)\b/);
 });
 
@@ -348,6 +352,10 @@ test("tag release publishes digest-addressed, attested immutable assets", () => 
   assert.match(workflow, /tags:\n\s+- ['"]v\*['"]/);
   assert.match(workflow, /permissions:[\s\S]*contents: write[\s\S]*id-token: write[\s\S]*attestations: write/);
   assert.match(workflow, /verify-tag/);
+  assert.match(
+    workflow,
+    /working-directory: dsh-runtime-kit[\s\S]*npm ci --ignore-scripts --legacy-peer-deps[\s\S]*npm run build:emit/,
+  );
   const restoreTag = workflow.indexOf(
     'git fetch --force --no-tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"',
   );

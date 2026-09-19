@@ -425,9 +425,9 @@ test("media receipts preserve the admitted digest and exact attachment order", (
 });
 
 test("media, vision, and location descriptors are independently admitted and effect-free", {
-  skip: !existsSync(join(exactRuntimeKitRoot, "src/composition/index.js")),
+  skip: !existsSync(join(exactRuntimeKitRoot, "dist/src/composition/index.js")),
 }, async () => {
-  const runtimeKit = await import(pathToFileURL(join(exactRuntimeKitRoot, "src/composition/index.js")).href);
+  const runtimeKit = await import(pathToFileURL(join(exactRuntimeKitRoot, "dist/src/composition/index.js")).href);
   const artifact = {
     digest: `sha256:${"4".repeat(64)}`,
     sourceRevision: "3".repeat(40),

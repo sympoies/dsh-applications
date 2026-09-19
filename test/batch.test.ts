@@ -53,7 +53,7 @@ test("the batch profile declares one authority shared by manual and scheduled in
 const exactRoot = process.env.DSH_RUNTIME_KIT_ROOT
   ? resolve(process.env.DSH_RUNTIME_KIT_ROOT)
   : resolve(import.meta.dirname, "../../dsh-runtime-kit");
-const exactAvailable = existsSync(join(exactRoot, "src/manager/index.js"));
+const exactAvailable = existsSync(join(exactRoot, "dist/src/manager/index.js"));
 // A broken checkout layout must fail, never silently skip, when the exact
 // runtime-kit root was requested explicitly (the CI posture).
 assert(
@@ -62,9 +62,9 @@ assert(
 );
 
 async function exactHarness() {
-  const composition = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")).href);
-  const runtimeManager = await import(pathToFileURL(join(exactRoot, "src/manager/index.js")).href);
-  const fixtures = await import(pathToFileURL(join(exactRoot, "test/helpers/manager-fixtures.mjs")).href);
+  const composition = await import(pathToFileURL(join(exactRoot, "dist/src/composition/index.js")).href);
+  const runtimeManager = await import(pathToFileURL(join(exactRoot, "dist/src/manager/index.js")).href);
+  const fixtures = await import(pathToFileURL(join(exactRoot, "test/helpers/manager-fixtures.ts")).href);
   const runtimeKit = { ...composition, ...runtimeManager };
 
   // The admitted composition's authority is DERIVED FROM THE BATCH PROFILE

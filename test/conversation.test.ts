@@ -375,12 +375,12 @@ test("one separately granted read-only action is admitted while undeclared and m
 const exactRoot = process.env.DSH_RUNTIME_KIT_ROOT
   ? resolve(process.env.DSH_RUNTIME_KIT_ROOT)
   : resolve(import.meta.dirname, "../../dsh-runtime-kit");
-const exactAvailable = existsSync(join(exactRoot, "src/manager/index.js"));
+const exactAvailable = existsSync(join(exactRoot, "dist/src/manager/index.js"));
 
 test("exact runtime-kit retains the conversation instance across manager restarts", { skip: !exactAvailable }, async () => {
-  const composition = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")).href);
-  const runtimeManager = await import(pathToFileURL(join(exactRoot, "src/manager/index.js")).href);
-  const fixtures = await import(pathToFileURL(join(exactRoot, "test/helpers/manager-fixtures.mjs")).href);
+  const composition = await import(pathToFileURL(join(exactRoot, "dist/src/composition/index.js")).href);
+  const runtimeManager = await import(pathToFileURL(join(exactRoot, "dist/src/manager/index.js")).href);
+  const fixtures = await import(pathToFileURL(join(exactRoot, "test/helpers/manager-fixtures.ts")).href);
   const runtimeKit = { ...composition, ...runtimeManager };
 
   const resolved = fixtures.composition("non-project");

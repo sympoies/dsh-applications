@@ -106,6 +106,11 @@ jobs:
       - name: Install without lifecycle scripts
         working-directory: dsh-applications
         run: npm ci --ignore-scripts
+      - name: Build exact runtime-kit
+        working-directory: dsh-runtime-kit
+        run: |
+          npm ci --ignore-scripts --legacy-peer-deps
+          npm run build:emit
       - name: Verify source and compatibility
         working-directory: dsh-applications
         run: |

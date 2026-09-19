@@ -205,10 +205,10 @@ test("the clean native profile composes as one disabled Telegram mount in exact 
 });
 
 test("the Telegram descriptor declares bounded ingress mediation and no agent tools", {
-  skip: !existsSync(join(exactRuntimeKitRoot, "src/composition/index.js")),
+  skip: !existsSync(join(exactRuntimeKitRoot, "dist/src/composition/index.js")),
 }, async () => {
   assert.equal(existsSync(join(packageRoot, "src/index.ts")), true, "Telegram descriptor source must exist");
-  const runtimeKit = await import(pathToFileURL(join(exactRuntimeKitRoot, "src/composition/index.js")).href);
+  const runtimeKit = await import(pathToFileURL(join(exactRuntimeKitRoot, "dist/src/composition/index.js")).href);
   const telegram = await import(pathToFileURL(join(packageRoot, "src/index.ts")).href);
   const descriptor: any = telegram.createTelegramChannelPluginDescriptor(runtimeKit);
 
