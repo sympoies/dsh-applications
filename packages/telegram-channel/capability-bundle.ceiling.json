@@ -1,8 +1,8 @@
 {
   "schemaVersion": "dsh-applications.telegram-capability-bundle-ceiling.v1",
   "transport": {
-    "package": "@ashafizullah/dsh-telegram",
-    "version": "0.5.1"
+    "package": "@sympoies/dsh-telegram",
+    "version": "0.6.1"
   },
   "actions": [
     {

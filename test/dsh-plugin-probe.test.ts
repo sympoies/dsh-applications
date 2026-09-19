@@ -108,7 +108,7 @@ test("probe dry-run renders an isolated probe profile and the command plan", () 
 
 test("probe dry-run defaults the bundle pin from the compatibility lock", () => {
   const workdir = freshWorkdir();
-  const dryRun = probe("@ashafizullah/dsh-telegram", "--workdir", workdir, "--dry-run");
+  const dryRun = probe("@sympoies/dsh-telegram", "--workdir", workdir, "--dry-run");
   assert.equal(dryRun.status, 0, dryRun.stderr);
   const manifest = JSON.parse(
     readFileSync(join(workdir, "profiles", "probe", "package.json"), "utf8"),
@@ -118,6 +118,6 @@ test("probe dry-run defaults the bundle pin from the compatibility lock", () => 
   );
   assert.equal(manifest.dependencies["@deepseek-ai/dsh-base"], lock.dsh.version);
   // An unpinned candidate is installed at its latest published version.
-  assert.match(dryRun.stdout, /plugin --profile probe add @ashafizullah\/dsh-telegram\n|add @ashafizullah\/dsh-telegram(\s|$)/);
+  assert.match(dryRun.stdout, /plugin --profile probe add @sympoies\/dsh-telegram\n|add @sympoies\/dsh-telegram(\s|$)/);
   assert.equal(existsSync(join(workdir, "profiles", "probe", "node_modules")), false);
 });

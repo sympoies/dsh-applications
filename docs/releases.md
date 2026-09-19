@@ -16,6 +16,11 @@ workflow attempts and have no GitHub Release or consumable artifact. Version
 release. The private root prevents registry publication; the release workflow
 also rejects `0.0.0`, so a bootstrap revision cannot be published accidentally.
 
+Version `0.9.1` adopts the official `@sympoies/dsh-telegram@0.6.1` artifact,
+records its immutable npm and source identities in the public compatibility
+lock, and keeps the native profile install compatible with its reviewed peer
+dependency graph.
+
 Workspace dependencies and external compatibility are exact. A dependency
 promotion requires reviewed compatibility evidence and changes every pinned
 identity that enforces the selection. A release never resolves `latest`, a
@@ -48,11 +53,11 @@ exact pinned invocation with `--execute`:
 
 ```sh
 .agents/scripts/release.sh --dry-run \
-  --version 0.9.0 \
+  --version 0.9.1 \
   --expected-head <full-main-commit> \
   --repository sympoies/dsh-applications
 .agents/scripts/release.sh --execute \
-  --version 0.9.0 \
+  --version 0.9.1 \
   --expected-head <same-full-main-commit> \
   --repository sympoies/dsh-applications
 ```

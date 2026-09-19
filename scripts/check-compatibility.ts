@@ -74,6 +74,7 @@ function assertSourceMethods(contents: string, patterns: Record<string, RegExp>,
 
 const options = parseArguments(process.argv.slice(2));
 const lock = load(resolve(root, "compatibility/dsh-applications-lock.json"));
+const telegramPluginLock = load(resolve(root, "profiles/telegram-conversational/channel-plugin.lock.json"));
 
 assert.equal(lock.schema_version, "dsh-applications.compatibility-lock.v1");
 assert.equal(lock.runtime_kit.revision, expectedRuntimeKitRevision);
@@ -85,6 +86,13 @@ assert.equal(normalizeRepository(lock.dsh.repository), "https://github.com/deeps
 assert.equal(lock.dsh.ref, "refs/tags/dsh-v0.1.2-rc.1");
 assert.equal(lock.dsh.version, "0.1.2-rc.1");
 assert.deepEqual(lock.runtime_kit.required_exports, ["./composition", "./manager"]);
+assert.deepEqual(lock.telegram_plugin, {
+  package: telegramPluginLock.package,
+  version: telegramPluginLock.version,
+  tarball_sha256: telegramPluginLock.tarballSha256,
+  npm_integrity: telegramPluginLock.npmIntegrity,
+  source_revision: telegramPluginLock.sourceRevision,
+});
 
 if (!options.manifestOnly) {
   const runtimeKitRoot = options.runtimeKitRoot;
