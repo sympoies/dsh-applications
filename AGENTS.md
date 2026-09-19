@@ -40,10 +40,14 @@ DeepSeek Harness (DSH).
   `evaluate-dsh-plugin` skill and retain its adopt/reference/build decision.
 - Add or change testable behavior with a meaningful failing owner test first,
   then make the same command pass.
-- Run `npm ci --ignore-scripts`, the affected focused tests, `npm test`,
+- Run `npm ci --ignore-scripts`, `npm run test:repository-contract`, the
+  affected focused tests, `npm test`,
   `npm run check:compatibility -- --manifest-only`,
   `npm run verify:package-reproducibility`, and
   `npm pack --dry-run --ignore-scripts` before delivery.
+- The named repository-contract gate must precede the package rehearsal: it
+  proves that no package lifecycle script can make `--ignore-scripts` hide a
+  different artifact.
 - Keep workspace dependencies exact. Compatibility-pin changes are deliberate
   review events and must update the lock, CI checkout identities, tests, and
   release notes together.

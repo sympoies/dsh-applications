@@ -49,6 +49,10 @@ npm run verify:package-reproducibility
 npm pack --dry-run --ignore-scripts
 ```
 
+The repository-contract check must precede the package rehearsal. It rejects
+package lifecycle scripts, which is the precondition that makes the
+script-disabled dry run equivalent to the repository's real package inventory.
+
 Compatibility changes must update the machine-readable lock, both exact CI
 checkout refs, contract expectations, and documentation in one reviewed pull
 request. Version-range widening without evidence is not accepted.

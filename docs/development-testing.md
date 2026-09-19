@@ -80,11 +80,20 @@ is no generated build output and no `build`, `prepare`, or `prepack` script.
 Node.js must execute the source through built-in type stripping, while
 `npm run typecheck` separately proves the strict source and tool programs.
 
-Reproduce the archive from clean trees and inspect the dry-run package
-inventory. The root version coordinates every workspace component; packages
-are not versioned or released independently. Record the archive digest when a
-consumer needs it. Any shipped source, profile, fixture, compatibility file,
-or documentation change invalidates the old archive identity.
+Use `npm run verify:package-reproducibility` to prove that packing the current
+working tree twice produces the same bytes and inventory. This routine check
+does not prove that the tree is clean or bind the archive to a reviewed commit.
+Run the named repository-contract check first; it rejects `build`, `prepare`,
+`prepack`, and `postinstall` scripts, which is the precondition that makes the
+script-disabled package rehearsal representative.
+
+Consumer-facing clean-source evidence belongs to
+`scripts/package-release-artifact.ts`: run it through the documented release
+flow against an exact clean commit, and retain both that source commit and the
+archive digest in the receipt. The root version coordinates every workspace
+component; packages are not versioned or released independently. Any shipped
+source, profile, fixture, compatibility file, or documentation change
+invalidates the old archive identity.
 
 ### 5. Clean-profile and consumer acceptance
 
@@ -199,12 +208,17 @@ stable, run the complete routine gate once:
 
 ```sh
 npm ci --ignore-scripts
+npm run test:repository-contract
 npm test
 npm run typecheck
 npm run check:compatibility -- --manifest-only
 npm run verify:package-reproducibility
 npm pack --dry-run --ignore-scripts
 ```
+
+The repository-contract command is intentionally named even though the
+aggregate test glob currently includes it: it owns the lifecycle-free package
+precondition used by the final dry run.
 
 Add exact external checkouts, native DSH profiles, release, private consumer
 acceptance, or hosted rollout only when the change invalidates that evidence
