@@ -41,10 +41,14 @@ function fixture({ reviewState = "APPROVED" } = {}) {
   git(repository, "config", "user.email", "release-test@example.invalid");
   git(repository, "add", ".");
   git(repository, "commit", "-m", "test fixture");
+  rmSync(join(repository, "node_modules"), { recursive: true, force: true });
+  rmSync(join(repository, "pnpm-lock.yaml"), { force: true });
   const head = git(repository, "rev-parse", "HEAD");
   git(temporaryRoot, "init", "--bare", "--initial-branch=main", remote);
   git(repository, "remote", "add", "origin", remote);
   git(repository, "push", "-u", "origin", "main");
+  rmSync(join(repository, "node_modules"), { recursive: true, force: true });
+  rmSync(join(repository, "pnpm-lock.yaml"), { force: true });
 
   const fakeGh = join(bin, "gh");
   writeFileSync(

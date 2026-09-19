@@ -71,7 +71,7 @@ const descriptor = definePlugin(runtimeKit, {
     attestationIdentity: "build@example",
   },
   compatibility: {
-    dsh: "0.1.1-rc.2",
+    dsh: "0.1.2-rc.1",
     runtimeKit: "0.0.0",
     pluginApi: "runtime.sympoies.dev/v1",
     platforms: ["linux-x64"],

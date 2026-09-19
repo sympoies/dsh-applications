@@ -23,7 +23,7 @@ const root = resolve(import.meta.dirname, "..");
 const exactRoot = process.env.DSH_RUNTIME_KIT_ROOT
   ? resolve(process.env.DSH_RUNTIME_KIT_ROOT)
   : resolve(import.meta.dirname, "../../dsh-runtime-kit");
-const exactRuntimeKitAvailable = existsSync(join(exactRoot, "src/composition/index.js"));
+const exactRuntimeKitAvailable = existsSync(join(exactRoot, "dist/src/composition/index.js"));
 const ONE = `sha256:${"1".repeat(64)}` as const;
 const TWO = `sha256:${"2".repeat(64)}` as const;
 const THREE = `sha256:${"3".repeat(64)}` as const;
@@ -709,7 +709,7 @@ test("each capability creates one separately admitted read descriptor with no am
 });
 
 test("all six descriptors validate with the exact locked runtime-kit owner", { skip: !exactRuntimeKitAvailable }, async () => {
-  const runtimeKit = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")).href);
+  const runtimeKit = await import(pathToFileURL(join(exactRoot, "dist/src/composition/index.js")).href);
   for (const capabilityId of capabilityIds) {
     const descriptor = createAssistantReadPluginDescriptor(runtimeKit, capabilityId, {
       digest: ONE,

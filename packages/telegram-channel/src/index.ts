@@ -528,7 +528,7 @@ export function createTelegramChannelPluginDescriptor(runtimeKit: unknown): unkn
       attestationIdentity: TELEGRAM_PLUGIN_ATTESTATION,
     },
     compatibility: {
-      dsh: "=0.1.1-rc.2",
+      dsh: "=0.1.2-rc.1",
       runtimeKit: "=0.0.0",
       pluginApi: "=1.0.0",
       platforms: ["linux-x64"],

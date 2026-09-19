@@ -32,7 +32,7 @@ const root = resolve(import.meta.dirname, "..");
 const exactRoot = process.env.DSH_RUNTIME_KIT_ROOT
   ? resolve(process.env.DSH_RUNTIME_KIT_ROOT)
   : resolve(import.meta.dirname, "../../dsh-runtime-kit");
-const exactRuntimeKitAvailable = existsSync(join(exactRoot, "src/composition/index.ts"));
+const exactRuntimeKitAvailable = existsSync(join(exactRoot, "dist/src/composition/index.js"));
 const digestFile = (path: string) =>
   `sha256:${createHash("sha256").update(readFileSync(resolve(root, path))).digest("hex")}`;
 
@@ -390,14 +390,14 @@ test("every governed action descriptor shares the coordinated release version", 
     createAgentSessionPluginDescriptor,
     createAgentMemoryPluginDescriptor,
   ]) {
-    assert.equal(createDescriptor(runtimeKit, artifactIdentity).metadata.version, "0.8.0");
+    assert.equal(createDescriptor(runtimeKit, artifactIdentity).metadata.version, "0.9.0");
   }
 });
 
 test("exact-runtime descriptors keep each capability independently selectable", {
   skip: !exactRuntimeKitAvailable,
 }, async () => {
-  const runtimeKit = await import(pathToFileURL(join(exactRoot, "src/composition/index.ts")).href);
+  const runtimeKit = await import(pathToFileURL(join(exactRoot, "dist/src/composition/index.js")).href);
   const descriptors: any[] = [
     createCalendarPluginDescriptor(runtimeKit, artifactIdentity),
     createGroupNotesPluginDescriptor(runtimeKit, artifactIdentity),
@@ -414,7 +414,7 @@ test("exact-runtime descriptors keep each capability independently selectable", 
     "agent-session.create", "agent-session.status",
   ]);
   for (const descriptor of descriptors) {
-    assert.equal(descriptor.metadata.version, "0.8.0");
+    assert.equal(descriptor.metadata.version, "0.9.0");
     assert.equal(descriptor.metadata.digest, runtimeKit.computeDocumentDigest(descriptor));
     assert.equal(descriptor.artifact.entrypoint, "packages/governed-action-contracts/src/index.ts");
     assert(Object.isFrozen(descriptor));
@@ -441,7 +441,7 @@ test("exact-runtime descriptors keep each capability independently selectable", 
 test("every mutation is a separately mediated, approval-deniable, replay-safe action", {
   skip: !exactRuntimeKitAvailable,
 }, async () => {
-  const runtimeKit = await import(pathToFileURL(join(exactRoot, "src/composition/index.ts")).href);
+  const runtimeKit = await import(pathToFileURL(join(exactRoot, "dist/src/composition/index.js")).href);
   const descriptors: any[] = [
     createCalendarPluginDescriptor(runtimeKit, artifactIdentity),
     createGroupNotesPluginDescriptor(runtimeKit, artifactIdentity),

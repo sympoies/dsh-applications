@@ -207,7 +207,7 @@ export function pluginDescriptor(pluginId = "review"): PluginDescriptor {
       sourceRevision: "0123456789abcdef0123456789abcdef01234567",
       attestationIdentity: "https://github.com/sympoies/dsh-applications/actions@0123456789abcdef0123456789abcdef01234567",
     },
-    compatibility: { dsh: "=0.1.1-rc.2", runtimeKit: "=0.0.0", pluginApi: "=1.0.0", platforms: ["linux-x64"] },
+    compatibility: { dsh: "=0.1.2-rc.1", runtimeKit: "=0.0.0", pluginApi: "=1.0.0", platforms: ["linux-x64"] },
     capabilities: { provides: ["plugin.review"], requires: ["github.read"], tools: [], skills: [], services: [], dependencies: [] },
     actions: [{ id: "review.pull-request", class: "read", inputSchemaDigest: DIGEST, outputSchemaDigest: DIGEST, sideEffect: "none", idempotency: "supported", capability: "github.read" }],
     configuration: { schemaDigest: DIGEST, defaults: {} },

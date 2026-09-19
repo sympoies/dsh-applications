@@ -7,6 +7,7 @@ import { pathToFileURL } from "node:url";
 import { createGitHubReadPluginDescriptor, type RuntimeKitPluginDescriptorOwner } from "../packages/github-read/src/index.ts";
 import { createGitHubReviewPublishPluginDescriptor } from "../packages/github-review-publish/src/index.ts";
 import { createConversationAgentPluginDescriptor } from "../packages/conversation-agent/src/index.ts";
+import { createCodexSubscriptionProviderDescriptor } from "../packages/codex-subscription-provider/src/index.ts";
 import { createAssistantReadPluginDescriptor } from "../packages/assistant-read-contracts/src/index.ts";
 import {
   createAgentMemoryPluginDescriptor,
@@ -99,6 +100,26 @@ for (const entry of catalog.profiles as Array<{ id: string; path: string; digest
   assert.equal(digestFile(resolve(root, `profiles/${entry.id}/output.schema.json`)), profile.artifacts.outputSchemaDigest);
 }
 
+const codexProvider = createCodexSubscriptionProviderDescriptor(composition);
+for (const entry of catalog.profiles as Array<{ id: string; path: string }>) {
+  const profile = load(resolve(root, entry.path));
+  const requirement = profile.plugins.find((plugin: { id: string }) =>
+    plugin.id === codexProvider.metadata.id
+  );
+  assert(requirement, `${entry.id} must require the reviewed Codex provider`);
+  assert.equal(
+    composition.versionSatisfies(codexProvider.metadata.version, requirement.range),
+    true,
+    `${entry.id} must admit the exact provider version`,
+  );
+  for (const probe of codexProvider.health.probes) {
+    assert(profile.requiredHealth.includes(probe.id), `${entry.id} must require ${probe.id}`);
+  }
+  for (const networkClass of codexProvider.mediation.network) {
+    assert(profile.limits.networkClasses.includes(networkClass), `${entry.id} must admit ${networkClass}`);
+  }
+}
+
 const reviewProfile = load(resolve(root, "profiles/github-pr-review/profile.json"));
 const reviewPublisherRange = reviewProfile.plugins.find((plugin: { id: string; range: string }) => plugin.id === "github-review-publish")?.range;
 assert.equal(reviewPublisherRange, ">=0.3.0 <1.0.0");
@@ -115,15 +136,16 @@ const reviewArtifact = {
 const reviewPlugins = [
   createGitHubReadPluginDescriptor(composition, reviewArtifact),
   createGitHubReviewPublishPluginDescriptor(composition, reviewArtifact),
+  createCodexSubscriptionProviderDescriptor(composition),
 ];
 const reviewPublisher = reviewPlugins.find(plugin => plugin.metadata.id === "github-review-publish");
 assert(reviewPublisher, "the actual github-review-publish descriptor is required");
-assert.equal(reviewPublisher.metadata.version, "0.8.0");
+assert.equal(reviewPublisher.metadata.version, "0.9.0");
 assert.equal(composition.versionSatisfies(reviewPublisher.metadata.version, reviewPublisherRange), true);
 const reviewPolicy = {
   digest: `sha256:${"0".repeat(64)}`,
   grants: [...reviewProfile.grants],
-  networkClasses: [],
+  networkClasses: [...reviewProfile.limits.networkClasses],
   workspaceClasses: [],
   resourceClasses: ["shared"],
 };
@@ -144,12 +166,13 @@ const resolvedReview = composition.resolveComposition({
 });
 assert.deepEqual(
   resolvedReview.composition.plugins.map((plugin: { id: string; version: string }) => [plugin.id, plugin.version]),
-  [["github-read", "0.8.0"], ["github-review-publish", "0.8.0"]],
+  [["github-read", "0.9.0"], ["github-review-publish", "0.9.0"], ["llm-codex-subscription", "0.1.2"]],
 );
 
 const telegramProfile = load(resolve(root, "profiles/telegram-conversational/profile.json"));
 const telegramPlugins = [
   createConversationAgentPluginDescriptor(composition, reviewArtifact),
+  createCodexSubscriptionProviderDescriptor(composition),
   createTelegramChannelPluginDescriptor(composition),
 ];
 const telegramPolicy = {
@@ -176,17 +199,18 @@ const resolvedTelegram = composition.resolveComposition({
 });
 assert.deepEqual(
   resolvedTelegram.composition.plugins.map((plugin: { id: string; version: string }) => [plugin.id, plugin.version]),
-  [["conversation-agent", "0.8.0"], ["telegram-channel", "0.5.1"]],
+  [["conversation-agent", "0.9.0"], ["llm-codex-subscription", "0.1.2"], ["telegram-channel", "0.5.1"]],
 );
 assert.deepEqual(resolvedTelegram.composition.authorityCeiling, {
   capabilities: ["conversation.memory", "conversation.reply"],
-  networkClasses: ["telegram-api"],
+  networkClasses: ["codex-subscription-provider", "telegram-api"],
   workspaceClasses: [],
 });
 
 const telegramAssistantProfile = load(resolve(root, "profiles/telegram-assistant/profile.json"));
 const assistantPlugins = [
   createConversationAgentPluginDescriptor(composition, reviewArtifact),
+  createCodexSubscriptionProviderDescriptor(composition),
   createTelegramChannelPluginDescriptor(composition),
   ...([
     "assistant.market.lookup",

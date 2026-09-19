@@ -3,8 +3,8 @@
   "kind": "BotProfile",
   "metadata": {
     "id": "telegram-assistant",
-    "version": "0.8.0",
-    "digest": "sha256:b7fb3e5b27c7ad4f96a2c12f72dc93b59016cf4990952e6dc6bea85c4ed80102",
+    "version": "0.9.0",
+    "digest": "sha256:cb354abd3020027584c30d5602bf891fbe136b35cc6bcd187136484b9b5a3128",
     "purpose": "Persistent Telegram assistant with bounded reads and governed private actions, without project or shell authority"
   },
   "workload": {
@@ -12,22 +12,74 @@
     "scopeClass": "non-project"
   },
   "plugins": [
-    { "id": "assistant-market-read", "range": ">=0.7.0 <1.0.0" },
-    { "id": "assistant-recent-community-read", "range": ">=0.7.0 <1.0.0" },
-    { "id": "assistant-steam-catalog-read", "range": ">=0.7.0 <1.0.0" },
-    { "id": "assistant-taiwan-discussion-read", "range": ">=0.7.0 <1.0.0" },
-    { "id": "assistant-weather-read", "range": ">=0.7.0 <1.0.0" },
-    { "id": "assistant-web-read", "range": ">=0.7.0 <1.0.0" },
-    { "id": "conversation-agent", "range": ">=0.7.0 <1.0.0" },
-    { "id": "conversation-group-notes", "range": ">=0.7.0 <1.0.0" },
-    { "id": "external-agent-memory", "range": ">=0.7.0 <1.0.0" },
-    { "id": "governed-agent-session", "range": ">=0.7.0 <1.0.0" },
-    { "id": "organization-calendar", "range": ">=0.7.0 <1.0.0" },
-    { "id": "organization-work-recommendation", "range": ">=0.7.0 <1.0.0" },
-    { "id": "telegram-channel", "range": "=0.5.1" },
-    { "id": "telegram-location-input", "range": ">=0.7.0 <1.0.0" },
-    { "id": "telegram-media-input", "range": ">=0.7.0 <1.0.0" },
-    { "id": "telegram-vision", "range": ">=0.7.0 <1.0.0" }
+    {
+      "id": "assistant-market-read",
+      "range": ">=0.7.0 <1.0.0"
+    },
+    {
+      "id": "assistant-recent-community-read",
+      "range": ">=0.7.0 <1.0.0"
+    },
+    {
+      "id": "assistant-steam-catalog-read",
+      "range": ">=0.7.0 <1.0.0"
+    },
+    {
+      "id": "assistant-taiwan-discussion-read",
+      "range": ">=0.7.0 <1.0.0"
+    },
+    {
+      "id": "assistant-weather-read",
+      "range": ">=0.7.0 <1.0.0"
+    },
+    {
+      "id": "assistant-web-read",
+      "range": ">=0.7.0 <1.0.0"
+    },
+    {
+      "id": "conversation-agent",
+      "range": ">=0.7.0 <1.0.0"
+    },
+    {
+      "id": "conversation-group-notes",
+      "range": ">=0.7.0 <1.0.0"
+    },
+    {
+      "id": "external-agent-memory",
+      "range": ">=0.7.0 <1.0.0"
+    },
+    {
+      "id": "governed-agent-session",
+      "range": ">=0.7.0 <1.0.0"
+    },
+    {
+      "id": "llm-codex-subscription",
+      "range": "=0.1.2"
+    },
+    {
+      "id": "organization-calendar",
+      "range": ">=0.7.0 <1.0.0"
+    },
+    {
+      "id": "organization-work-recommendation",
+      "range": ">=0.7.0 <1.0.0"
+    },
+    {
+      "id": "telegram-channel",
+      "range": "=0.5.1"
+    },
+    {
+      "id": "telegram-location-input",
+      "range": ">=0.7.0 <1.0.0"
+    },
+    {
+      "id": "telegram-media-input",
+      "range": ">=0.7.0 <1.0.0"
+    },
+    {
+      "id": "telegram-vision",
+      "range": ">=0.7.0 <1.0.0"
+    }
   ],
   "grants": [
     "agent-memory.candidate-add",
@@ -66,6 +118,7 @@
     "conversation-group-notes.ready",
     "external-agent-memory.ready",
     "governed-agent-session.ready",
+    "llm-codex-subscription.ready",
     "organization-calendar.ready",
     "organization-work-recommendation.ready",
     "telegram-channel.ready",
@@ -88,11 +141,16 @@
     "restart": "resume"
   },
   "approvals": {
-    "requiredFor": ["write", "destructive", "open-world"]
+    "requiredFor": [
+      "write",
+      "destructive",
+      "open-world"
+    ]
   },
   "limits": {
     "actions": 32,
     "networkClasses": [
+      "codex-subscription-provider",
       "public-community-data",
       "public-market-data",
       "public-steam-catalog",
@@ -115,7 +173,10 @@
     "concurrency": 64,
     "overlap": "allow",
     "timeoutMs": 300000,
-    "retry": { "maxAttempts": 3, "backoffMs": 1000 },
+    "retry": {
+      "maxAttempts": 3,
+      "backoffMs": 1000
+    },
     "cancellation": "cooperative",
     "interrupt": "supported",
     "drain": "required"

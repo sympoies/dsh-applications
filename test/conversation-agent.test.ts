@@ -17,7 +17,7 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const exactRoot = process.env.DSH_RUNTIME_KIT_ROOT
   ? resolve(process.env.DSH_RUNTIME_KIT_ROOT)
   : resolve(import.meta.dirname, "../../dsh-runtime-kit");
-const exactRuntimeKitAvailable = existsSync(join(exactRoot, "src/composition/index.js"));
+const exactRuntimeKitAvailable = existsSync(join(exactRoot, "dist/src/composition/index.js"));
 const json = (path: string) => JSON.parse(readFileSync(resolve(root, path), "utf8"));
 const profile = json("profiles/conversational/profile.json");
 
@@ -190,7 +190,7 @@ test("the published schema digests match the schema files on disk", () => {
 test("the descriptor claims no filesystem, network, subprocess, or credential authority", {
   skip: !exactRuntimeKitAvailable,
 }, async () => {
-  const runtimeKit = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")).href);
+  const runtimeKit = await import(pathToFileURL(join(exactRoot, "dist/src/composition/index.js")).href);
   const descriptor: any = createConversationAgentPluginDescriptor(runtimeKit, {
     digest: `sha256:${"4".repeat(64)}`,
     sourceRevision: "3".repeat(40),

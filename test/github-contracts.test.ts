@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
 
+import { createCodexSubscriptionProviderDescriptor } from "../packages/codex-subscription-provider/src/index.ts";
 import * as reviewPublish from "../packages/github-review-publish/src/index.ts";
 import {
   GITHUB_PULL_REQUEST_READ_BUNDLE_SCHEMA_DIGEST,
@@ -33,7 +34,7 @@ const root = resolve(import.meta.dirname, "..");
 const exactRoot = process.env.DSH_RUNTIME_KIT_ROOT
   ? resolve(process.env.DSH_RUNTIME_KIT_ROOT)
   : resolve(import.meta.dirname, "../../dsh-runtime-kit");
-const exactRuntimeKitAvailable = existsSync(join(exactRoot, "src/composition/index.js"));
+const exactRuntimeKitAvailable = existsSync(join(exactRoot, "dist/src/composition/index.js"));
 const report = `<!-- agent-kit:specialist-review-report:v1 -->
 ## Review Report
 
@@ -156,7 +157,7 @@ test("plugin action schema digests bind the checked-in public contracts", () => 
 });
 
 test("github-pr-review resolver rejects pre-v0.3 publishers", { skip: !exactRuntimeKitAvailable }, async () => {
-  const runtimeKit = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")).href);
+  const runtimeKit = await import(pathToFileURL(join(exactRoot, "dist/src/composition/index.js")).href);
   const profile = JSON.parse(readFileSync(resolve(root, "profiles/github-pr-review/profile.json"), "utf8"));
   const range = profile.plugins.find((plugin: any) => plugin.id === "github-review-publish")?.range;
   assert.equal(range, ">=0.3.0 <1.0.0");
@@ -165,7 +166,7 @@ test("github-pr-review resolver rejects pre-v0.3 publishers", { skip: !exactRunt
 });
 
 test("release-bound GitHub packages construct exact runtime-kit PluginDescriptors", { skip: !exactRuntimeKitAvailable }, async () => {
-  const runtimeKit = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")).href);
+  const runtimeKit = await import(pathToFileURL(join(exactRoot, "dist/src/composition/index.js")).href);
   const profile = JSON.parse(readFileSync(resolve(root, "profiles/github-pr-review/profile.json"), "utf8"));
   const reviewPublisherRange = profile.plugins.find((plugin: any) => plugin.id === "github-review-publish")?.range;
   const revision = "3".repeat(40);
@@ -176,9 +177,10 @@ test("release-bound GitHub packages construct exact runtime-kit PluginDescriptor
   };
   const read = createGitHubReadPluginDescriptor(runtimeKit, artifactIdentity);
   const publish = createGitHubReviewPublishPluginDescriptor(runtimeKit, artifactIdentity);
+  const codexSubscription = createCodexSubscriptionProviderDescriptor(runtimeKit);
   assert.equal(read.metadata.id, "github-read");
   assert.equal(publish.metadata.id, "github-review-publish");
-  assert.equal(publish.metadata.version, "0.8.0");
+  assert.equal(publish.metadata.version, "0.9.0");
   assert.equal(runtimeKit.versionSatisfies(publish.metadata.version, reviewPublisherRange), true);
   assert.equal(read.metadata.digest, runtimeKit.computeDocumentDigest(read));
   assert.equal(publish.metadata.digest, runtimeKit.computeDocumentDigest(publish));
@@ -203,17 +205,17 @@ test("release-bound GitHub packages construct exact runtime-kit PluginDescriptor
   const publicPolicy = {
     digest: `sha256:${"0".repeat(64)}`,
     grants: [...profile.grants],
-    networkClasses: [],
+    networkClasses: [...profile.limits.networkClasses],
     workspaceClasses: [],
     resourceClasses: ["shared"],
   };
   publicPolicy.digest = runtimeKit.computePublicPolicyDigest(publicPolicy);
-  const plugins = [read, publish];
+  const plugins = [read, publish, codexSubscription];
   const resolved = runtimeKit.resolveComposition({
     profile,
     plugins,
     runtime: {
-      dshVersion: "0.1.1-rc.2",
+      dshVersion: "0.1.2-rc.1",
       runtimeKitVersion: "0.0.0",
       pluginApiVersion: "1.0.0",
       platform: "linux-x64",
@@ -225,7 +227,11 @@ test("release-bound GitHub packages construct exact runtime-kit PluginDescriptor
   });
   assert.deepEqual(
     resolved.composition.plugins.map((plugin: any) => [plugin.id, plugin.version]),
-    [["github-read", "0.8.0"], ["github-review-publish", "0.8.0"]],
+    [
+      ["github-read", "0.9.0"],
+      ["github-review-publish", "0.9.0"],
+      ["llm-codex-subscription", "0.1.2"],
+    ],
   );
 });
 

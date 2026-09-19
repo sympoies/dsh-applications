@@ -37,11 +37,11 @@ test("manager and sandbox compose runtime-kit and DSH seams without owning priva
 const exactRoot = process.env.DSH_RUNTIME_KIT_ROOT
   ? resolve(process.env.DSH_RUNTIME_KIT_ROOT)
   : resolve(import.meta.dirname, "../../dsh-runtime-kit");
-const exactAvailable = existsSync(join(exactRoot, "src/manager/index.js"));
+const exactAvailable = existsSync(join(exactRoot, "dist/src/manager/index.js"));
 
 test("SDK and manager construct against the exact runtime-kit owner surface", { skip: !exactAvailable }, async () => {
-  const composition = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")).href);
-  const runtimeManager = await import(pathToFileURL(join(exactRoot, "src/manager/index.js")).href);
+  const composition = await import(pathToFileURL(join(exactRoot, "dist/src/composition/index.js")).href);
+  const runtimeManager = await import(pathToFileURL(join(exactRoot, "dist/src/manager/index.js")).href);
   const runtimeKit = { ...composition, ...runtimeManager };
   const candidate = structuredClone(pluginDescriptor()) as any;
   candidate.metadata.digest = composition.computeDocumentDigest(candidate);
@@ -74,9 +74,9 @@ test("SDK and manager construct against the exact runtime-kit owner surface", { 
 });
 
 test("exact runtime-kit owns restart, replay, lifecycle ordering, and authenticated indeterminate recovery", { skip: !exactAvailable }, async () => {
-  const composition = await import(pathToFileURL(join(exactRoot, "src/composition/index.js")).href);
-  const runtimeManager = await import(pathToFileURL(join(exactRoot, "src/manager/index.js")).href);
-  const fixtures = await import(pathToFileURL(join(exactRoot, "test/helpers/manager-fixtures.mjs")).href);
+  const composition = await import(pathToFileURL(join(exactRoot, "dist/src/composition/index.js")).href);
+  const runtimeManager = await import(pathToFileURL(join(exactRoot, "dist/src/manager/index.js")).href);
+  const fixtures = await import(pathToFileURL(join(exactRoot, "test/helpers/manager-fixtures.ts")).href);
   const runtimeKit = { ...composition, ...runtimeManager };
 
   function admittedFixture() {

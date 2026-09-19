@@ -27,7 +27,7 @@ reviewed, digest-addressed GitHub release is the distribution boundary.
 ## Current status
 
 The workspace contains the public plugin declaration helpers, the isolated DSH
-`0.1.1-rc.2` adapter, the generic ten-operation application manager, portable
+`0.1.2-rc.1` adapter, the generic ten-operation application manager, portable
 host-to-batch invocation contracts, GitHub read/review-result contracts, six least-authority bot profiles, six
 independently admitted read-only assistant capability contracts, and reusable
 manual, GitHub-event, channel, and schedule trigger fixtures. Version
@@ -46,7 +46,10 @@ profile that composes those read contracts with governed organization data,
 agent sessions, candidate memory, and media/location input without adding
 shell or project-workspace authority. Version `0.8.0` adds the portable,
 channel-neutral host-to-batch invocation contract with exact correlated
-request and terminal-result bytes for Linux and macOS callers.
+request and terminal-result bytes for Linux and macOS callers. Version `0.9.0`
+admits the exact `@sympoies/dsh-llm-codex-subscription@0.1.2` artifact into all
+six model-using profiles and advances the coordinated compatibility line to
+DSH `0.1.2-rc.1` and its reviewed runtime-kit owner.
 
 ## Development
 
