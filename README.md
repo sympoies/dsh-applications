@@ -50,7 +50,8 @@ request and terminal-result bytes for Linux and macOS callers. Version `0.9.0`
 admits the exact `@sympoies/dsh-llm-codex-subscription@0.1.2` artifact into all
 six model-using profiles and advances the coordinated compatibility line to
 DSH `0.1.2-rc.1` and its reviewed runtime-kit owner. Version `0.9.1` adopts the
-exact `@sympoies/dsh-telegram@0.6.1` release with standard npm peer resolution.
+first official `@sympoies/dsh-telegram` release, and version `0.9.2` advances it
+to `0.6.2` with the session-picker deadlock repair.
 
 ## Development
 

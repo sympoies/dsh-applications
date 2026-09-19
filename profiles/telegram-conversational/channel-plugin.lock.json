@@ -1,9 +1,9 @@
 {
   "schemaVersion": "dsh-applications.external-plugin-lock.v1",
   "package": "@sympoies/dsh-telegram",
-  "version": "0.6.1",
-  "tarballSha256": "sha256:dd66423e725f4baf44e60aee1d0e0e027f297bb33c35d1c2887b80827b3ffa12",
-  "npmIntegrity": "sha512-2HESGrmeyPxnKXQIci47X8I9IKH95cADv63tGEMxfMkTOZbvoo60dw8to5FrxiHBzFOdtwDWXrz5KJx8yu4oyA==",
-  "sourceRevision": "6a40d415e620e6ac2fa118094ba8dc854998ccff",
-  "attestation": "https://registry.npmjs.org/-/npm/v1/attestations/@sympoies%2fdsh-telegram@0.6.1"
+  "version": "0.6.2",
+  "tarballSha256": "sha256:145bd3010c33e89b07a04fce9484bbb3a657ee3501abca478068cd2f503b04cf",
+  "npmIntegrity": "sha512-PDj57YPyeKYI9VXbSNMA4A3gcz4MdfvXJ9YL6UD830z6A3exXkbXCd/s7UrvsOkuKiXvyULyWrn9teNij53oDg==",
+  "sourceRevision": "d7090a8dd2ab0ed3a73674a55cbe619a356de580",
+  "attestation": "https://registry.npmjs.org/-/npm/v1/attestations/@sympoies%2fdsh-telegram@0.6.2"
 }

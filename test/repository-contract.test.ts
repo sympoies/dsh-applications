@@ -76,7 +76,7 @@ test("repository carries its public governance boundary", () => {
 test("workspace metadata is exact, private at the root, and release-safe", () => {
   const pkg = json("package.json");
   assert.equal(pkg.name, "@sympoies/dsh-applications-workspace");
-  assert.equal(pkg.version, "0.9.1");
+  assert.equal(pkg.version, "0.9.2");
   assert.equal(pkg.private, true);
   assert.deepEqual(pkg.workspaces, ["packages/*"]);
   assert.equal(pkg.packageManager, "npm@11.6.2");
@@ -282,17 +282,17 @@ test("installed workspace resolves every actual public package specifier", async
 test("compatibility lock pins the accepted runtime-kit and DSH identities", () => {
   const lock = json("compatibility/dsh-applications-lock.json");
   assert.equal(lock.schema_version, "dsh-applications.compatibility-lock.v1");
-  assert.equal(lock.application_version, "0.9.1");
+  assert.equal(lock.application_version, "0.9.2");
   assert.deepEqual(lock.profile_catalog, {
     path: "profiles/catalog.json",
-    digest: "sha256:0428dc98cb5c0fc936764c1865768a7dc0bb69a4a07ac92a2179a47094901ac5",
+    digest: "sha256:5b5c37c56c9c0384c56d5122213a922b52d6aa6880e38da52dd6ed59d997c21c",
   });
   assert.deepEqual(lock.telegram_plugin, {
     package: "@sympoies/dsh-telegram",
-    version: "0.6.1",
-    tarball_sha256: "sha256:dd66423e725f4baf44e60aee1d0e0e027f297bb33c35d1c2887b80827b3ffa12",
-    npm_integrity: "sha512-2HESGrmeyPxnKXQIci47X8I9IKH95cADv63tGEMxfMkTOZbvoo60dw8to5FrxiHBzFOdtwDWXrz5KJx8yu4oyA==",
-    source_revision: "6a40d415e620e6ac2fa118094ba8dc854998ccff",
+    version: "0.6.2",
+    tarball_sha256: "sha256:145bd3010c33e89b07a04fce9484bbb3a657ee3501abca478068cd2f503b04cf",
+    npm_integrity: "sha512-PDj57YPyeKYI9VXbSNMA4A3gcz4MdfvXJ9YL6UD830z6A3exXkbXCd/s7UrvsOkuKiXvyULyWrn9teNij53oDg==",
+    source_revision: "d7090a8dd2ab0ed3a73674a55cbe619a356de580",
   });
   assert.deepEqual(lock.runtime_kit, {
     package: "@sympoies/dsh-runtime-kit",

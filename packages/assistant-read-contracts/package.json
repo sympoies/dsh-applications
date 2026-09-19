@@ -1,6 +1,6 @@
 {
   "name": "@sympoies/dsh-assistant-read-contracts",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "Public mediated read-only assistant capability contracts",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "README.md"
   ],
   "dependencies": {
-    "@sympoies/dsh-plugin-sdk": "0.9.1"
+    "@sympoies/dsh-plugin-sdk": "0.9.2"
   },
   "engines": {
     "node": ">=24.0.0"

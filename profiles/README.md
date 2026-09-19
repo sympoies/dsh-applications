@@ -14,7 +14,7 @@ therefore reusable trigger configuration, not a second persona or authority
 document.
 
 The `telegram-conversational` profile adds the reviewed
-`@sympoies/dsh-telegram@0.6.1` channel to the channel-neutral conversation
+`@sympoies/dsh-telegram@0.6.2` channel to the channel-neutral conversation
 contract. Its native DSH insert row is shipped disabled; public configuration
 also fixes attachment ingestion, OCR, and screen capture off. Private
 infrastructure must verify the exact artifact identity and provide its own
