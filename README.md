@@ -49,7 +49,8 @@ channel-neutral host-to-batch invocation contract with exact correlated
 request and terminal-result bytes for Linux and macOS callers. Version `0.9.0`
 admits the exact `@sympoies/dsh-llm-codex-subscription@0.1.2` artifact into all
 six model-using profiles and advances the coordinated compatibility line to
-DSH `0.1.2-rc.1` and its reviewed runtime-kit owner.
+DSH `0.1.2-rc.1` and its reviewed runtime-kit owner. Version `0.9.1` adopts the
+exact `@sympoies/dsh-telegram@0.6.1` release with standard npm peer resolution.
 
 ## Development
 

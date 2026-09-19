@@ -1,7 +1,7 @@
 # Telegram channel descriptor
 
 This public package describes one reviewed external DSH channel artifact:
-`@ashafizullah/dsh-telegram@0.5.1`. It is not a Telegram client and does not
+`@sympoies/dsh-telegram@0.6.1`. It is not a Telegram client and does not
 copy, wrap, or execute the plugin. The exact npm tarball digest, source
 revision, provenance endpoint, DSH compatibility, required conversation
 capabilities, and bounded mediation classes are fixed in the descriptor.
@@ -126,7 +126,7 @@ one does not select either sibling or widen the existing plain conversation
 profile. The existing `telegram-conversational` BotProfile therefore remains
 unchanged.
 
-`@ashafizullah/dsh-telegram@0.5.1` implements photos, supported image/text
+`@sympoies/dsh-telegram@0.6.1` implements photos, supported image/text
 documents, captions, and albums natively. Its public `TelegramMessage` type
 does not contain location, so `telegram.location.input` is a separate mediated
 adapter seam and is not described as transport-native. Its OCR implementation

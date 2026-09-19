@@ -29,7 +29,7 @@ export const TELEGRAM_LOCATION_LIMITS = Object.freeze({
 });
 
 export const TELEGRAM_CAPABILITY_BUNDLE_CEILING_DIGEST =
-  "sha256:16dfe32f05a0730497d65c135a25e01044be8acd921139efb264757cc6cac80a";
+  "sha256:32382bf09d64cd0443023ca81c0c73760ce9c24f9b4a99e7549f6c1f91c3e680";
 
 export const TELEGRAM_INPUT_SCHEMA_DIGESTS = Object.freeze({
   "telegram.media.input": Object.freeze({
@@ -613,7 +613,7 @@ function createInputDescriptor(
   const descriptor = {
     apiVersion: "runtime.sympoies.dev/v1",
     kind: "PluginDescriptor",
-    metadata: { id: spec.id, version: "0.9.0", digest: `sha256:${"0".repeat(64)}` },
+    metadata: { id: spec.id, version: "0.9.1", digest: `sha256:${"0".repeat(64)}` },
     artifact: {
       package: "@sympoies/dsh-telegram-channel",
       digest: artifact.digest,
@@ -667,7 +667,7 @@ export function createTelegramMediaInputPluginDescriptor(runtimeKit: unknown, ar
     id: "telegram-media-input",
     action: "telegram.media.input",
     requires: ["channel.telegram.ingress"],
-    dependencies: [{ id: "telegram-channel", range: "=0.5.1", scope: "required" }],
+    dependencies: [{ id: "telegram-channel", range: "=0.6.1", scope: "required" }],
   });
 }
 

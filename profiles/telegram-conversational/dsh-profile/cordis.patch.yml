@@ -1,6 +1,6 @@
 - insert:
     - id: telegram-conversational-channel
-      name: '@ashafizullah/dsh-telegram'
+      name: '@sympoies/dsh-telegram'
       disabled: true
       config:
         enabled: false

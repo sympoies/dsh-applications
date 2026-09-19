@@ -1,5 +1,21 @@
 # Telegram channel
 
+## 2026-09-19 ownership update
+
+The adopted implementation moved to the maintained public package
+`@sympoies/dsh-telegram@0.6.1` in `sympoies/dsh-plugins`. The signed source tag
+`dsh-telegram-v0.6.1` resolves to
+`6a40d415e620e6ac2fa118094ba8dc854998ccff`; the published tarball has npm
+integrity
+`sha512-2HESGrmeyPxnKXQIci47X8I9IKH95cADv63tGEMxfMkTOZbvoo60dw8to5FrxiHBzFOdtwDWXrz5KJx8yu4oyA==`
+and SHA-256
+`dd66423e725f4baf44e60aee1d0e0e027f297bb33c35d1c2887b80827b3ffa12`.
+Its release lock disables legacy peer resolution and pins DSH `0.1.2-rc.1`,
+Cordis `4.0.2`, and Schemastery `3.18.2`; the native profile installs that
+graph with standard npm peer resolution and still mounts the transport
+disabled. This identity supersedes the package selected in the original survey
+below while preserving the same bounded transport role.
+
 - Date: 2026-09-07
 - Author: maintainer session (evaluate-dsh-plugin skill)
 - Decision: adopt
@@ -101,8 +117,9 @@ shape. It was not used as evidence; every result above came from the exact
 
 ## Decision
 
-**Continue to adopt `@ashafizullah/dsh-telegram`, pinned to exact version
-0.5.1 and the reviewed published artifact identity.** Mount it only through an
+**Historical decision, superseded on 2026-09-19:** adopt
+`@ashafizullah/dsh-telegram`, pinned to exact version 0.5.1 and the reviewed
+published artifact identity. Mount it only through an
 explicit `insert` patch row with `disabled: true`; never accept its add-time
 bundle registration as governed activation. The public Telegram composition
 may declare only the channel's bounded mediation and its dependency on

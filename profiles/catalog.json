@@ -1,37 +1,37 @@
 {
   "schemaVersion": "dsh-applications.profile-catalog.v1",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "runtimeKitRevision": "aa60655ddce3a0a5e56c331af41aa3cfbb3e88d4",
   "profiles": [
     {
       "id": "batch",
       "path": "profiles/batch/profile.json",
-      "digest": "sha256:6dbf09bac9458bd8fe1f7df68ef358cf3d735c062c6aa2b78aa36da399515568"
+      "digest": "sha256:0320bd13b74d8cccbddbfcbdd29c6dc809f226f60efc2969771c17994c8647fe"
     },
     {
       "id": "coding",
       "path": "profiles/coding/profile.json",
-      "digest": "sha256:d8dcfd88ab2bef11c371d070f958f22cd8df1be8b2df5fdfc9a2fc727484e4c0"
+      "digest": "sha256:967043d007b1a8104586300d6e674de9aa4d81633e7aff07150cbf8638cd3739"
     },
     {
       "id": "conversational",
       "path": "profiles/conversational/profile.json",
-      "digest": "sha256:30802218315465d9a35fcbcbea73ae45459aa638d78c895d8c54878052f9d966"
+      "digest": "sha256:4f7a479a833507c53b5ab970ab372a2f3f7ffd5506cb41676fa511c8f4c946d7"
     },
     {
       "id": "github-pr-review",
       "path": "profiles/github-pr-review/profile.json",
-      "digest": "sha256:d068ccdff2c6944d64868bc5fbe556ec782dcd53d46c3c224e3e15e7eefa9e51"
+      "digest": "sha256:f0171a7ac5797a390e98bd6d2315e18cbbbaec3c89957fbf99af5c138b817278"
     },
     {
       "id": "telegram-assistant",
       "path": "profiles/telegram-assistant/profile.json",
-      "digest": "sha256:cb354abd3020027584c30d5602bf891fbe136b35cc6bcd187136484b9b5a3128"
+      "digest": "sha256:34674dec9eb6cceaf7f36d3b057d7552cf4d2e286c593c549b0ba5abbe1d034e"
     },
     {
       "id": "telegram-conversational",
       "path": "profiles/telegram-conversational/profile.json",
-      "digest": "sha256:6263c4fa6d8a1a8fad54d79846bb01c38142c79c7c97a7c61f2a1f3dc98f51e3"
+      "digest": "sha256:52f9461c779d07cbc9582983309d767471fee00af7161ee39dccd6f18fc0c77b"
     }
   ],
   "triggerFixtures": [
