@@ -31,14 +31,14 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
         with:
           repository: sympoies/dsh-runtime-kit
-          ref: aa60655ddce3a0a5e56c331af41aa3cfbb3e88d4
+          ref: b225c70ecec73dc0912fea9e36c79901efa5fc40
           persist-credentials: false
           path: dsh-runtime-kit
       - name: Check out exact DSH
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
         with:
           repository: deepseek-ai/deepseek-harness
-          ref: a66e4702047846cdaa10c66c9d3df3951f5ea70d
+          ref: ddefc45fbc7f8e46dd73185e68295696d1297887
           persist-credentials: false
           path: deepseek-harness
       - name: Set up Node.js
@@ -106,13 +106,26 @@ jobs:
       - name: Install without lifecycle scripts
         working-directory: dsh-applications
         run: npm ci --ignore-scripts
+      - name: Activate exact pnpm
+        run: |
+          npm install --global pnpm@11.7.0 --ignore-scripts
+          test "$(pnpm --version)" = "11.7.0"
       - name: Build exact runtime-kit
         working-directory: dsh-runtime-kit
         run: |
           npm ci --ignore-scripts --legacy-peer-deps
           npm run build:emit
+      - name: Build exact DSH runtime closure
+        working-directory: deepseek-harness
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run build:lib:host
+          pnpm run build:native-system
       - name: Verify source and compatibility
         working-directory: dsh-applications
+        env:
+          DSH_ROOT: ../deepseek-harness
+          DSH_RUNTIME_KIT_ROOT: ../dsh-runtime-kit
         run: |
           npm test
           npm run typecheck
@@ -121,6 +134,8 @@ jobs:
             --dsh-root ../deepseek-harness
           npm run test:profile-compatibility -- \
             --runtime-kit-root ../dsh-runtime-kit
+          npm run test:exact-dsh
+          npm run test:telegram-exact-dsh
           npm run verify:package-reproducibility
       - name: Check out fresh exact tagged source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2

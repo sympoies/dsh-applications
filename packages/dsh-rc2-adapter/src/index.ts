@@ -90,7 +90,7 @@ export type DshRc2Context = Pick<Context, "agents" | "sessions" | "sessionPersis
 /** Untyped caller input after the object-shape check; every field is still validated. */
 type Fields = Record<string, unknown>;
 
-// The internal view of the DSH rc2 services and agent scope this adapter drives.
+// The internal view of the reviewed DSH services and agent scope this adapter drives.
 // `assertOwnerServices` and `assertAgentTools` establish only that the named
 // service and tool methods exist and that the agent is an object. The member
 // shapes below (`LiveAgent`, `AgentHandle`, `ToolExecution`, `ToolResult`) are
@@ -141,7 +141,6 @@ interface AgentTools {
 }
 
 interface AgentContext {
-  readonly agent: LiveAgent;
   readonly tools: AgentTools;
 }
 
@@ -153,7 +152,7 @@ interface OwnerServices {
   };
   readonly sessions: { flush(session: unknown): Promise<unknown> };
   readonly sessionPersistence: {
-    inspect(sessionId: string): Promise<{ readonly meta?: { readonly id?: unknown; readonly cwd?: unknown } } | undefined>;
+    stat(sessionId: string): Promise<{ readonly header?: { readonly id?: unknown; readonly cwd?: unknown } } | undefined>;
   };
 }
 
@@ -264,20 +263,20 @@ function assertOwnerServices(ctx: unknown, hostSandbox: unknown): void {
   const services = ctx as Partial<Record<keyof OwnerServices, Fields>> | null | undefined;
   for (const [owner, method] of [
     [services?.agents, "create"], [services?.agents, "resume"], [services?.agents, "get"],
-    [services?.sessions, "flush"], [services?.sessionPersistence, "inspect"],
-  ] as const) if (typeof owner?.[method] !== "function") fail(`DSH rc2 service ${method} is required`);
+    [services?.sessions, "flush"], [services?.sessionPersistence, "stat"],
+  ] as const) if (typeof owner?.[method] !== "function") fail(`DSH service ${method} is required`);
   const sandbox = hostSandbox as Fields | null | undefined;
   for (const method of ["bind", "assertCurrent", "execute"]) {
     if (typeof sandbox?.[method] !== "function") fail(`DSH/host sandbox owner ${method} is required`);
   }
 }
 
-function assertAgentTools(agentCtx: unknown): asserts agentCtx is AgentContext {
-  const candidate = agentCtx as { readonly tools?: Fields; readonly agent?: unknown } | null | undefined;
+function assertAgentTools(agentCtx: unknown, agent: unknown): asserts agentCtx is AgentContext {
+  const candidate = agentCtx as { readonly tools?: Fields } | null | undefined;
   for (const method of ["register", "restrict", "guard", "execute"]) {
     if (typeof candidate?.tools?.[method] !== "function") fail(`DSH agent-scoped tools.${method} is required`);
   }
-  if (candidate?.agent === null || typeof candidate?.agent !== "object") fail("DSH agent-scoped identity is required");
+  if (agent === null || typeof agent !== "object") fail("DSH agent-scoped identity is required");
 }
 
 function assertConfinementEvidence(evidence: unknown, entry: InstanceEntry, identity: DshRc2Identity): DshRc2Confinement {
@@ -362,17 +361,18 @@ export function createDshRc2Adapter({ ctx: ownerServices, resolveInstanceRuntime
       const runtime = assertRuntime(await resolveInstanceRuntime(structuredClone(identity)));
       reservation = reserveUnique(identity, runtime);
       if (resume) {
-        const inspection = await ctx.sessionPersistence.inspect(runtime.sessionId);
-        if (inspection?.meta?.id !== runtime.sessionId || inspection.meta.cwd !== runtime.root) {
+        const snapshot = await ctx.sessionPersistence.stat(runtime.sessionId);
+        if (snapshot?.header?.id !== runtime.sessionId || snapshot.header.cwd !== runtime.root) {
           fail("persisted DSH session is not bound to the instance root");
         }
       }
-      const setup = async (agentCtx: unknown): Promise<void> => {
-        assertAgentTools(agentCtx);
+      const setup = async (agentCtx: unknown, agent: unknown): Promise<void> => {
+        assertAgentTools(agentCtx, agent);
+        const liveAgent = agent as LiveAgent;
         await runtime.configureScope(agentCtx, runtime);
         const binding = await hostSandbox.bind(Object.freeze({
           agentCtx,
-          agent: agentCtx.agent,
+          agent: liveAgent,
           identity: structuredClone(identity),
           sessionId: runtime.sessionId,
           root: runtime.root,
@@ -393,12 +393,12 @@ export function createDshRc2Adapter({ ctx: ownerServices, resolveInstanceRuntime
           },
           output: { schema: {}, render: () => [] },
           async execute(args, execution) {
-            if (execution.agent !== agentCtx.agent) fail("plugin tool caller is not the bound DSH agent");
+            if (execution.agent !== liveAgent) fail("plugin tool caller is not the bound DSH agent");
             const row = pending.get(args?.invocationId as string);
             if (row === undefined) fail("plugin tool invocation is missing or already consumed");
             pending.delete(args?.invocationId as string);
             return hostSandbox.execute(binding, row.invocation, Object.freeze({
-              agent: agentCtx.agent,
+              agent: liveAgent,
               signal: execution.signal,
               confinement: row.confinement,
             }));
@@ -409,7 +409,7 @@ export function createDshRc2Adapter({ ctx: ownerServices, resolveInstanceRuntime
         agentCtx.tools.guard(execution => execution?.name === PLUGIN_TOOL
           ? undefined : "plugin ambient tool denied");
         scoped = Object.freeze({
-          agent: agentCtx.agent,
+          agent: liveAgent,
           binding,
           pending,
           executeTool: agentCtx.tools.execute.bind(agentCtx.tools),

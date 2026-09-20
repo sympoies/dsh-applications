@@ -674,7 +674,7 @@ function descriptor(
   const value = {
     apiVersion: "runtime.sympoies.dev/v1",
     kind: "PluginDescriptor",
-    metadata: { id: spec.id, version: "0.9.2", digest: `sha256:${"0".repeat(64)}` },
+    metadata: { id: spec.id, version: "0.9.3", digest: `sha256:${"0".repeat(64)}` },
     artifact: {
       package: "@sympoies/dsh-governed-action-contracts",
       digest: artifact.digest,
@@ -683,7 +683,7 @@ function descriptor(
       attestationIdentity: artifact.attestationIdentity,
     },
     compatibility: {
-      dsh: "=0.1.2-rc.1", runtimeKit: "=0.0.0", pluginApi: "=1.0.0", platforms: ["linux-x64"],
+      dsh: "=0.1.6-alpha.2", runtimeKit: "=0.0.0", pluginApi: "=1.0.0", platforms: ["linux-x64"],
     },
     capabilities: {
       provides: [...spec.provides].sort(), requires: [], tools: [], skills: [], services: [], dependencies: [],

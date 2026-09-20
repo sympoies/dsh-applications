@@ -13,10 +13,12 @@ import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import test from "node:test";
 
+import { normalizeRepositoryUrl } from "../scripts/repository-url.ts";
+
 const root = resolve(import.meta.dirname, "..");
 const expectedRuntimeKitRevision =
-  "aa60655ddce3a0a5e56c331af41aa3cfbb3e88d4";
-const expectedDshRevision = "a66e4702047846cdaa10c66c9d3df3951f5ea70d";
+  "b225c70ecec73dc0912fea9e36c79901efa5fc40";
+const expectedDshRevision = "ddefc45fbc7f8e46dd73185e68295696d1297887";
 const reviewedFixtureCommit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 function read(path: string) {
@@ -76,7 +78,7 @@ test("repository carries its public governance boundary", () => {
 test("workspace metadata is exact, private at the root, and release-safe", () => {
   const pkg = json("package.json");
   assert.equal(pkg.name, "@sympoies/dsh-applications-workspace");
-  assert.equal(pkg.version, "0.9.2");
+  assert.equal(pkg.version, "0.9.3");
   assert.equal(pkg.private, true);
   assert.deepEqual(pkg.workspaces, ["packages/*"]);
   assert.equal(pkg.packageManager, "npm@11.6.2");
@@ -181,7 +183,7 @@ test("workspace packages ship erasable TypeScript sources that Node executes wit
     "@deepseek-ai/dsh-session",
     "@deepseek-ai/dsh-session-persistence",
     "@deepseek-ai/dsh-tools",
-  ]) assert.equal(adapter.peerDependencies[dshPeer], "0.1.2-rc.1");
+  ]) assert.equal(adapter.peerDependencies[dshPeer], "0.1.6-alpha.2");
   assert(adapter.files.includes("types"), "the adapter ships its DSH peer fallback declarations");
   assert.equal(statSync(join(root, "packages/dsh-rc2-adapter/types/dsh-peer-fallbacks.d.ts")).isFile(), true);
 });
@@ -282,17 +284,17 @@ test("installed workspace resolves every actual public package specifier", async
 test("compatibility lock pins the accepted runtime-kit and DSH identities", () => {
   const lock = json("compatibility/dsh-applications-lock.json");
   assert.equal(lock.schema_version, "dsh-applications.compatibility-lock.v1");
-  assert.equal(lock.application_version, "0.9.2");
+  assert.equal(lock.application_version, "0.9.3");
   assert.deepEqual(lock.profile_catalog, {
     path: "profiles/catalog.json",
-    digest: "sha256:5b5c37c56c9c0384c56d5122213a922b52d6aa6880e38da52dd6ed59d997c21c",
+    digest: "sha256:887f637aa2d80cee3d1d07f4431a4c6f9d0686ca8cc06217b43807782218fefe",
   });
   assert.deepEqual(lock.telegram_plugin, {
     package: "@sympoies/dsh-telegram",
-    version: "0.6.2",
-    tarball_sha256: "sha256:145bd3010c33e89b07a04fce9484bbb3a657ee3501abca478068cd2f503b04cf",
-    npm_integrity: "sha512-PDj57YPyeKYI9VXbSNMA4A3gcz4MdfvXJ9YL6UD830z6A3exXkbXCd/s7UrvsOkuKiXvyULyWrn9teNij53oDg==",
-    source_revision: "d7090a8dd2ab0ed3a73674a55cbe619a356de580",
+    version: "0.6.3",
+    tarball_sha256: "sha256:935c061ae84f83d9dba0e7625b54c02053bab349ca4b08ae16acdef6ef6ebe94",
+    npm_integrity: "sha512-373KY0Uo+EHK8lVz66dTOon1wUU/vVbxSxcSN5OZpNTZHXIUrQ4B6mQ6VLDMbcDo4QxgKQ1FvPdjDqJKsvYtyw==",
+    source_revision: "e960d48f938bcc9c73abda9e4bcfe2e1d5b9af34",
   });
   assert.deepEqual(lock.runtime_kit, {
     package: "@sympoies/dsh-runtime-kit",
@@ -303,9 +305,9 @@ test("compatibility lock pins the accepted runtime-kit and DSH identities", () =
   });
   assert.deepEqual(lock.dsh, {
     repository: "https://github.com/deepseek-ai/deepseek-harness",
-    ref: "refs/tags/dsh-v0.1.2-rc.1",
+    ref: "refs/tags/dsh-v0.1.6-alpha.2",
     revision: expectedDshRevision,
-    version: "0.1.2-rc.1",
+    version: "0.1.6-alpha.2",
   });
   assert.equal(lock.node, "24.16.0");
   assert.equal(lock.package_manager, "npm@11.6.2");
@@ -323,6 +325,17 @@ test("compatibility lock pins the accepted runtime-kit and DSH identities", () =
   for (const dshOwner of ["agents", "sessions", "sessionPersistence", "tools"]) {
     assert.match(checker, new RegExp(`DSH ${dshOwner}`));
   }
+});
+
+test("compatibility checkout identity treats GitHub SSH and HTTPS remotes as equivalent", () => {
+  assert.equal(
+    normalizeRepositoryUrl("git@github.com:sympoies/dsh-runtime-kit.git"),
+    "https://github.com/sympoies/dsh-runtime-kit",
+  );
+  assert.equal(
+    normalizeRepositoryUrl("git+https://github.com/deepseek-ai/deepseek-harness.git"),
+    "https://github.com/deepseek-ai/deepseek-harness",
+  );
 });
 
 test("CI verifies the repository and exact compatibility checkouts", () => {
@@ -350,6 +363,11 @@ test("CI verifies the repository and exact compatibility checkouts", () => {
     workflow,
     /working-directory: dsh-runtime-kit[\s\S]*npm ci --ignore-scripts --legacy-peer-deps[\s\S]*npm run build:emit/,
   );
+  assert.match(
+    workflow,
+    /working-directory: deepseek-harness[\s\S]*pnpm run build:lib:host[\s\S]*pnpm run build:native-system[\s\S]*npm run test:telegram-exact-dsh[\s\S]*npm run test:exact-dsh/,
+    "exact CI must build DSH native bindings before runtime compatibility tests",
+  );
   assert.doesNotMatch(workflow, /uses:\s+[^\s@]+@(main|master|v\d+)\b/);
 });
 
@@ -362,6 +380,17 @@ test("tag release publishes digest-addressed, attested immutable assets", () => 
   assert.match(
     workflow,
     /working-directory: dsh-runtime-kit[\s\S]*npm ci --ignore-scripts --legacy-peer-deps[\s\S]*npm run build:emit/,
+  );
+  assert.match(workflow, /npm install --global pnpm@11\.7\.0 --ignore-scripts/);
+  assert.match(
+    workflow,
+    /working-directory: deepseek-harness[\s\S]*pnpm install --frozen-lockfile[\s\S]*pnpm run build:lib:host[\s\S]*pnpm run build:native-system/,
+    "release verification must build the exact DSH runtime closure",
+  );
+  assert.match(
+    workflow,
+    /DSH_ROOT: \.\.\/deepseek-harness[\s\S]*DSH_RUNTIME_KIT_ROOT: \.\.\/dsh-runtime-kit[\s\S]*npm run test:exact-dsh[\s\S]*npm run test:telegram-exact-dsh/,
+    "release verification must run both exact DSH consumers before packaging",
   );
   const restoreTag = workflow.indexOf(
     'git fetch --force --no-tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"',

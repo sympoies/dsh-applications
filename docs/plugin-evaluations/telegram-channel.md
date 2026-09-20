@@ -3,14 +3,14 @@
 ## 2026-09-20 maintained release update
 
 The adopted implementation moved to the maintained public package
-`@sympoies/dsh-telegram@0.6.2` in `sympoies/dsh-plugins`. The signed source tag
-`dsh-telegram-v0.6.2` resolves to
-`d7090a8dd2ab0ed3a73674a55cbe619a356de580`; the published tarball has npm
+`@sympoies/dsh-telegram@0.6.3` in `sympoies/dsh-plugins`. The signed source tag
+`dsh-telegram-v0.6.3` resolves to
+`e960d48f938bcc9c73abda9e4bcfe2e1d5b9af34`; the published tarball has npm
 integrity
-`sha512-PDj57YPyeKYI9VXbSNMA4A3gcz4MdfvXJ9YL6UD830z6A3exXkbXCd/s7UrvsOkuKiXvyULyWrn9teNij53oDg==`
+`sha512-373KY0Uo+EHK8lVz66dTOon1wUU/vVbxSxcSN5OZpNTZHXIUrQ4B6mQ6VLDMbcDo4QxgKQ1FvPdjDqJKsvYtyw==`
 and SHA-256
-`145bd3010c33e89b07a04fce9484bbb3a657ee3501abca478068cd2f503b04cf`.
-Its release lock disables legacy peer resolution and pins DSH `0.1.2-rc.1`,
+`935c061ae84f83d9dba0e7625b54c02053bab349ca4b08ae16acdef6ef6ebe94`.
+Its release lock disables legacy peer resolution and pins DSH `0.1.6-alpha.2`,
 Cordis `4.0.2`, and Schemastery `3.18.2`; the native profile installs that
 graph with standard npm peer resolution and still mounts the transport
 disabled. This identity supersedes the package selected in the original survey

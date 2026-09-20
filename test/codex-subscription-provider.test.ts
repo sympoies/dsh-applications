@@ -42,7 +42,7 @@ test("the reviewed Codex subscription artifact is fixed and composable", () => {
     `sha256:${createHash("sha256").update(readFileSync(resolve(root, "packages/codex-subscription-provider/schemas/public-config.schema.json"))).digest("hex")}`,
   );
   assert.deepEqual(descriptor.mediation.network, ["codex-subscription-provider"]);
-  assert.equal(descriptor.compatibility.dsh, "=0.1.2-rc.1");
+  assert.equal(descriptor.compatibility.dsh, "=0.1.6-alpha.2");
 });
 
 test("every model-using public profile requires the Codex subscription adapter", () => {

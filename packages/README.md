@@ -6,8 +6,8 @@ released together as one coordinated public application artifact.
 
 - `plugin-sdk` delegates canonical plugin descriptors to runtime-kit and owns
   typed trigger/output configuration helpers.
-- `dsh-rc2-adapter` isolates all direct DSH `0.1.2-rc.1` calls and requires
-  instance-bound DSH confinement.
+- `dsh-rc2-adapter` retains its stable package name, isolates all direct DSH
+  `0.1.6-alpha.2` calls, and requires instance-bound DSH confinement.
 - `manager` provides the exact ten-operation facade, authenticated internal
   control construction, and runtime-kit-mediated plugin action gateway.
 - `batch-invocation` defines canonical host-to-batch request bytes, exact

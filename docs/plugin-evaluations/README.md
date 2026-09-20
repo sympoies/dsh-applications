@@ -60,4 +60,4 @@ follow-ups.
 - [Telegram audience routing](telegram-audience-routing.md) — 2026-09-08 — build
   a public admission and routing contract beside the adopted transport
 - [Telegram channel](telegram-channel.md) — updated 2026-09-20 — adopt
-  `@sympoies/dsh-telegram@0.6.2`
+  `@sympoies/dsh-telegram@0.6.3`

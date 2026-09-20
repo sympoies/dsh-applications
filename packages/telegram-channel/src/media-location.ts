@@ -29,7 +29,7 @@ export const TELEGRAM_LOCATION_LIMITS = Object.freeze({
 });
 
 export const TELEGRAM_CAPABILITY_BUNDLE_CEILING_DIGEST =
-  "sha256:be2c4a29c887d9d02bb56cfde46d30f75f31564c58fdea077605afe024509ab3";
+  "sha256:4d8ed1ab4ec4a2d881717ee5fef3dda90555d4b7a5f4144f30c56700e095ad9e";
 
 export const TELEGRAM_INPUT_SCHEMA_DIGESTS = Object.freeze({
   "telegram.media.input": Object.freeze({
@@ -613,7 +613,7 @@ function createInputDescriptor(
   const descriptor = {
     apiVersion: "runtime.sympoies.dev/v1",
     kind: "PluginDescriptor",
-    metadata: { id: spec.id, version: "0.9.2", digest: `sha256:${"0".repeat(64)}` },
+    metadata: { id: spec.id, version: "0.9.3", digest: `sha256:${"0".repeat(64)}` },
     artifact: {
       package: "@sympoies/dsh-telegram-channel",
       digest: artifact.digest,
@@ -622,7 +622,7 @@ function createInputDescriptor(
       attestationIdentity: artifact.attestationIdentity,
     },
     compatibility: {
-      dsh: "=0.1.2-rc.1", runtimeKit: "=0.0.0", pluginApi: "=1.0.0", platforms: ["linux-x64"],
+      dsh: "=0.1.6-alpha.2", runtimeKit: "=0.0.0", pluginApi: "=1.0.0", platforms: ["linux-x64"],
     },
     capabilities: {
       provides: [spec.action], requires: [...spec.requires].sort(), tools: [], skills: [], services: [],
@@ -667,7 +667,7 @@ export function createTelegramMediaInputPluginDescriptor(runtimeKit: unknown, ar
     id: "telegram-media-input",
     action: "telegram.media.input",
     requires: ["channel.telegram.ingress"],
-    dependencies: [{ id: "telegram-channel", range: "=0.6.2", scope: "required" }],
+    dependencies: [{ id: "telegram-channel", range: "=0.6.3", scope: "required" }],
   });
 }
 

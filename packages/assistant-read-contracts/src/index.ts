@@ -904,7 +904,7 @@ export function createAssistantReadPluginDescriptor(runtimeKitValue: unknown, ca
   const descriptor = {
     apiVersion: "runtime.sympoies.dev/v1",
     kind: "PluginDescriptor",
-    metadata: { id: contract.pluginId, version: "0.9.2", digest: `sha256:${"0".repeat(64)}` },
+    metadata: { id: contract.pluginId, version: "0.9.3", digest: `sha256:${"0".repeat(64)}` },
     artifact: {
       package: "@sympoies/dsh-assistant-read-contracts",
       digest: artifact.digest,
@@ -913,7 +913,7 @@ export function createAssistantReadPluginDescriptor(runtimeKitValue: unknown, ca
       attestationIdentity: artifact.attestationIdentity,
     },
     compatibility: {
-      dsh: "=0.1.2-rc.1", runtimeKit: "=0.0.0", pluginApi: "=1.0.0", platforms: ["linux-x64"],
+      dsh: "=0.1.6-alpha.2", runtimeKit: "=0.0.0", pluginApi: "=1.0.0", platforms: ["linux-x64"],
     },
     capabilities: {
       provides: [capabilityId], requires: [], tools: [], skills: [], services: [], dependencies: [],
