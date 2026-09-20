@@ -1,6 +1,6 @@
 {
   "name": "@sympoies/dsh-batch-invocation",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "Portable request and terminal-result contract for host-invoked DSH batch applications",
   "private": true,
   "type": "module",

@@ -78,7 +78,7 @@ test("repository carries its public governance boundary", () => {
 test("workspace metadata is exact, private at the root, and release-safe", () => {
   const pkg = json("package.json");
   assert.equal(pkg.name, "@sympoies/dsh-applications-workspace");
-  assert.equal(pkg.version, "0.9.3");
+  assert.equal(pkg.version, "0.9.4");
   assert.equal(pkg.private, true);
   assert.deepEqual(pkg.workspaces, ["packages/*"]);
   assert.equal(pkg.packageManager, "npm@11.6.2");
@@ -284,10 +284,10 @@ test("installed workspace resolves every actual public package specifier", async
 test("compatibility lock pins the accepted runtime-kit and DSH identities", () => {
   const lock = json("compatibility/dsh-applications-lock.json");
   assert.equal(lock.schema_version, "dsh-applications.compatibility-lock.v1");
-  assert.equal(lock.application_version, "0.9.3");
+  assert.equal(lock.application_version, "0.9.4");
   assert.deepEqual(lock.profile_catalog, {
     path: "profiles/catalog.json",
-    digest: "sha256:887f637aa2d80cee3d1d07f4431a4c6f9d0686ca8cc06217b43807782218fefe",
+    digest: "sha256:2431cd659e18d18f3d56b06204796d6ff2a7285d6c19ce46c1bd48677666d738",
   });
   assert.deepEqual(lock.telegram_plugin, {
     package: "@sympoies/dsh-telegram",

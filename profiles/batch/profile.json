@@ -3,8 +3,8 @@
   "kind": "BotProfile",
   "metadata": {
     "id": "batch",
-    "version": "0.9.3",
-    "digest": "sha256:16e217802e5d787b0f3921b2fb37865ae0c8a48a494ee73e2c1429acdabad369",
+    "version": "0.9.4",
+    "digest": "sha256:a9b86d9387132464fae5d060a18833dfd73173b8493920c3b2d5b21cef1b22d2",
     "purpose": "Bounded one-shot work shared by manual and scheduled invocation"
   },
   "workload": {
@@ -18,7 +18,7 @@
     },
     {
       "id": "llm-codex-subscription",
-      "range": "=0.1.2"
+      "range": "=0.1.4"
     }
   ],
   "grants": [

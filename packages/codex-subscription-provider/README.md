@@ -1,7 +1,7 @@
 # Codex subscription provider descriptor
 
 This package describes the reviewed
-`@sympoies/dsh-llm-codex-subscription@0.1.2` artifact and its fixed
+`@sympoies/dsh-llm-codex-subscription@0.1.4` artifact and its fixed
 `codex-subscription` provider route. It does not copy, wrap, install, or execute
 the native DSH plugin.
 

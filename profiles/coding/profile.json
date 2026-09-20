@@ -3,8 +3,8 @@
   "kind": "BotProfile",
   "metadata": {
     "id": "coding",
-    "version": "0.9.3",
-    "digest": "sha256:47eb4ff13240d1fdcc2dc3d56611a3b91ad2c713b805d167fe132a1ec90ebcec",
+    "version": "0.9.4",
+    "digest": "sha256:67563a207daa22c5f6b356e8d0425f901dc38b0f89bd292e094f9c2e32026f24",
     "purpose": "Interactive coding inside one admitted project workspace"
   },
   "workload": {
@@ -18,7 +18,7 @@
     },
     {
       "id": "llm-codex-subscription",
-      "range": "=0.1.2"
+      "range": "=0.1.4"
     }
   ],
   "grants": [

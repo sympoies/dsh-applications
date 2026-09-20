@@ -54,6 +54,7 @@ first official `@sympoies/dsh-telegram` release, and version `0.9.2` advances it
 to `0.6.2` with the session-picker deadlock repair. Version `0.9.3` advances
 DSH and the reviewed runtime-kit contract to `0.1.6-alpha.2`, and selects the
 matching `@sympoies/dsh-telegram@0.6.3` release.
+Version `0.9.4` advances the reviewed Codex subscription provider to `0.1.4`.
 
 ## Development
 

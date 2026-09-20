@@ -28,13 +28,13 @@ test("the reviewed Codex subscription artifact is fixed and composable", () => {
   }) as any;
 
   assert.equal(descriptor.metadata.id, "llm-codex-subscription");
-  assert.equal(descriptor.metadata.version, "0.1.2");
+  assert.equal(descriptor.metadata.version, "0.1.4");
   assert.deepEqual(descriptor.artifact, {
     package: "@sympoies/dsh-llm-codex-subscription",
-    digest: "sha256:971272b8ca78d522f6241c850fe21ca4498ac44bd87e27d1f5ee268cc49e7534",
+    digest: "sha256:60a2a41b61f0d72420082e10ff0ba9b6048a2f52238bbfdeaa1a8031f4b5c3fe",
     entrypoint: "lib/index.js",
-    sourceRevision: "33258db12d189f6d6499ff1c1c834996008be9e8",
-    attestationIdentity: "https://github.com/sympoies/dsh-plugins/.github/workflows/release.yml@refs/tags/dsh-llm-codex-subscription-v0.1.2",
+    sourceRevision: "c51ebcf6b351675fd9ef8ef9a88e3bd7742fcb58",
+    attestationIdentity: "https://github.com/sympoies/dsh-plugins/.github/workflows/release.yml@refs/tags/dsh-llm-codex-subscription-v0.1.4",
   });
   assert.equal(descriptor.configuration.defaults.route, "codex-subscription");
   assert.equal(
@@ -50,7 +50,7 @@ test("every model-using public profile requires the Codex subscription adapter",
     const profile = json(`profiles/${id}/profile.json`);
     assert.deepEqual(
       profile.plugins.find((plugin: any) => plugin.id === "llm-codex-subscription"),
-      { id: "llm-codex-subscription", range: "=0.1.2" },
+      { id: "llm-codex-subscription", range: "=0.1.4" },
       `${id} must require the reviewed provider plugin`,
     );
     assert(profile.requiredHealth.includes("llm-codex-subscription.ready"));

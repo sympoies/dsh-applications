@@ -1,6 +1,6 @@
 {
   "name": "@sympoies/dsh-conversation-agent",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "Least-authority conversation turn and reply contracts for governed DSH channel agents",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "README.md"
   ],
   "dependencies": {
-    "@sympoies/dsh-plugin-sdk": "0.9.3"
+    "@sympoies/dsh-plugin-sdk": "0.9.4"
   },
   "engines": {
     "node": ">=24.0.0"
