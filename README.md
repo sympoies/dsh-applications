@@ -27,7 +27,7 @@ reviewed, digest-addressed GitHub release is the distribution boundary.
 ## Current status
 
 The workspace contains the public plugin declaration helpers, the isolated DSH
-`0.1.2-rc.1` adapter, the generic ten-operation application manager, portable
+`0.1.6-alpha.2` adapter, the generic ten-operation application manager, portable
 host-to-batch invocation contracts, GitHub read/review-result contracts, six least-authority bot profiles, six
 independently admitted read-only assistant capability contracts, and reusable
 manual, GitHub-event, channel, and schedule trigger fixtures. Version
@@ -51,7 +51,9 @@ admits the exact `@sympoies/dsh-llm-codex-subscription@0.1.2` artifact into all
 six model-using profiles and advances the coordinated compatibility line to
 DSH `0.1.2-rc.1` and its reviewed runtime-kit owner. Version `0.9.1` adopts the
 first official `@sympoies/dsh-telegram` release, and version `0.9.2` advances it
-to `0.6.2` with the session-picker deadlock repair.
+to `0.6.2` with the session-picker deadlock repair. Version `0.9.3` advances
+DSH and the reviewed runtime-kit contract to `0.1.6-alpha.2`, and selects the
+matching `@sympoies/dsh-telegram@0.6.3` release.
 
 ## Development
 

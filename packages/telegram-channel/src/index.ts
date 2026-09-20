@@ -4,10 +4,10 @@ import { definePlugin, type PluginDescriptor, type RuntimeKitPluginValidator } f
 
 export * from "./media-location.ts";
 
-export const TELEGRAM_PLUGIN_VERSION = "0.6.2";
-export const TELEGRAM_PLUGIN_TARBALL_DIGEST = "sha256:145bd3010c33e89b07a04fce9484bbb3a657ee3501abca478068cd2f503b04cf";
-export const TELEGRAM_PLUGIN_SOURCE_REVISION = "d7090a8dd2ab0ed3a73674a55cbe619a356de580";
-export const TELEGRAM_PLUGIN_ATTESTATION = "https://github.com/sympoies/dsh-plugins/.github/workflows/release.yml@refs/tags/dsh-telegram-v0.6.2";
+export const TELEGRAM_PLUGIN_VERSION = "0.6.3";
+export const TELEGRAM_PLUGIN_TARBALL_DIGEST = "sha256:935c061ae84f83d9dba0e7625b54c02053bab349ca4b08ae16acdef6ef6ebe94";
+export const TELEGRAM_PLUGIN_SOURCE_REVISION = "e960d48f938bcc9c73abda9e4bcfe2e1d5b9af34";
+export const TELEGRAM_PLUGIN_ATTESTATION = "https://github.com/sympoies/dsh-plugins/.github/workflows/release.yml@refs/tags/dsh-telegram-v0.6.3";
 export const TELEGRAM_PUBLIC_CONFIG_SCHEMA_DIGEST = "sha256:91b024d728e80f3b9a75aff52de1a9dbba5b0c0db42f1a9bcd90bc81970a734f";
 export const TELEGRAM_AUDIENCE_BINDING_SCHEMA_DIGEST = "sha256:9c0bc1d3b0202ab5f8489d2ab3e8a6ebe2e49f5a4566b5b606360f0a33b06d13";
 
@@ -528,7 +528,7 @@ export function createTelegramChannelPluginDescriptor(runtimeKit: unknown): unkn
       attestationIdentity: TELEGRAM_PLUGIN_ATTESTATION,
     },
     compatibility: {
-      dsh: "=0.1.2-rc.1",
+      dsh: "=0.1.6-alpha.2",
       runtimeKit: "=0.0.0",
       pluginApi: "=1.0.0",
       platforms: ["linux-x64"],

@@ -38,7 +38,7 @@ The public API is `ASSISTANT_READ_CONTRACTS`,
 `createAssistantReadPluginDescriptor` plus their exported types. Text bounds
 count Unicode code points to match JSON Schema `maxLength`; the separate
 input/output ceilings count encoded JSON bytes. The package owner is
-dsh-applications. Compatibility is exact DSH `0.1.2-rc.1`, runtime-kit
+dsh-applications. Compatibility is exact DSH `0.1.6-alpha.2`, runtime-kit
 contract `0.0.0`, plugin API `1.0.0`, Linux x64, and the coordinated
 workspace version.
 

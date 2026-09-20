@@ -2,7 +2,7 @@
   "schemaVersion": "dsh-applications.telegram-capability-bundle-ceiling.v1",
   "transport": {
     "package": "@sympoies/dsh-telegram",
-    "version": "0.6.2"
+    "version": "0.6.3"
   },
   "actions": [
     {

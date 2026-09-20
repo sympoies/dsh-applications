@@ -38,7 +38,7 @@ export function createCodexSubscriptionProviderDescriptor(runtimeKit: unknown): 
       attestationIdentity: CODEX_SUBSCRIPTION_PLUGIN_ATTESTATION,
     },
     compatibility: {
-      dsh: "=0.1.2-rc.1",
+      dsh: "=0.1.6-alpha.2",
       runtimeKit: "=0.0.0",
       pluginApi: "=1.0.0",
       platforms: ["darwin-arm64", "linux-x64"],

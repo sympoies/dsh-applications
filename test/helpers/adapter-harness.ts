@@ -97,7 +97,11 @@ export function createAdapterHarness(options: HarnessOptions = {}) {
     };
   }
 
-  async function setupAgent(sessionId: string, root: string, setup: (scope: unknown) => unknown | Promise<unknown>) {
+  async function setupAgent(
+    sessionId: string,
+    root: string,
+    setup: (scope: unknown, agent: LiveAgent) => unknown | Promise<unknown>,
+  ) {
     const handle = makeHandle(sessionId, root);
     let definition: ToolDefinition | undefined;
     let guard: ToolGuard | undefined;
@@ -123,7 +127,7 @@ export function createAdapterHarness(options: HarnessOptions = {}) {
         }
       },
     };
-    await setup({ agent: handle.agent, tools });
+    await setup({ tools }, handle.agent);
     return handle;
   }
 
@@ -149,10 +153,10 @@ export function createAdapterHarness(options: HarnessOptions = {}) {
     },
     sessions: { async flush(session: { id: string }) { flushed.push(session.id); } },
     sessionPersistence: {
-      async inspect(sessionId: string) {
+      async stat(sessionId: string) {
         inspectCalls.push(sessionId);
         if (!persisted.has(sessionId)) throw new Error("not found");
-        return { meta: { id: sessionId, cwd: persisted.get(sessionId) }, events: [] };
+        return { header: { id: sessionId, cwd: persisted.get(sessionId) }, revision: "fixture" };
       },
     },
   };

@@ -31,14 +31,14 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
         with:
           repository: sympoies/dsh-runtime-kit
-          ref: aa60655ddce3a0a5e56c331af41aa3cfbb3e88d4
+          ref: b225c70ecec73dc0912fea9e36c79901efa5fc40
           persist-credentials: false
           path: dsh-runtime-kit
       - name: Check out exact DSH
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
         with:
           repository: deepseek-ai/deepseek-harness
-          ref: a66e4702047846cdaa10c66c9d3df3951f5ea70d
+          ref: ddefc45fbc7f8e46dd73185e68295696d1297887
           persist-credentials: false
           path: deepseek-harness
       - name: Set up Node.js

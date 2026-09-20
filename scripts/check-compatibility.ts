@@ -4,10 +4,12 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { normalizeRepositoryUrl } from "./repository-url.ts";
+
 const root = resolve(import.meta.dirname, "..");
 const expectedRuntimeKitRevision =
-  "aa60655ddce3a0a5e56c331af41aa3cfbb3e88d4";
-const expectedDshRevision = "a66e4702047846cdaa10c66c9d3df3951f5ea70d";
+  "b225c70ecec73dc0912fea9e36c79901efa5fc40";
+const expectedDshRevision = "ddefc45fbc7f8e46dd73185e68295696d1297887";
 
 type CompatibilityOptions = {
   manifestOnly: boolean;
@@ -54,10 +56,6 @@ function git(checkout: string, ...arguments_: string[]) {
   }).trim();
 }
 
-function normalizeRepository(url: string) {
-  return url.replace(/^git\+/, "").replace(/\.git$/, "").replace(/\/$/, "");
-}
-
 function source(path: string) {
   return readFileSync(path, "utf8");
 }
@@ -81,10 +79,10 @@ assert.equal(lock.runtime_kit.revision, expectedRuntimeKitRevision);
 assert.equal(lock.dsh.revision, expectedDshRevision);
 assert.match(lock.runtime_kit.revision, /^[0-9a-f]{40}$/);
 assert.match(lock.dsh.revision, /^[0-9a-f]{40}$/);
-assert.equal(normalizeRepository(lock.runtime_kit.repository), "https://github.com/sympoies/dsh-runtime-kit");
-assert.equal(normalizeRepository(lock.dsh.repository), "https://github.com/deepseek-ai/deepseek-harness");
-assert.equal(lock.dsh.ref, "refs/tags/dsh-v0.1.2-rc.1");
-assert.equal(lock.dsh.version, "0.1.2-rc.1");
+assert.equal(normalizeRepositoryUrl(lock.runtime_kit.repository), "https://github.com/sympoies/dsh-runtime-kit");
+assert.equal(normalizeRepositoryUrl(lock.dsh.repository), "https://github.com/deepseek-ai/deepseek-harness");
+assert.equal(lock.dsh.ref, "refs/tags/dsh-v0.1.6-alpha.2");
+assert.equal(lock.dsh.version, "0.1.6-alpha.2");
 assert.deepEqual(lock.runtime_kit.required_exports, ["./composition", "./manager"]);
 assert.deepEqual(lock.telegram_plugin, {
   package: telegramPluginLock.package,
@@ -103,12 +101,12 @@ if (!options.manifestOnly) {
   assert.equal(git(runtimeKitRoot, "status", "--porcelain"), "");
   assert.equal(git(dshRoot, "status", "--porcelain"), "");
   assert.equal(
-    normalizeRepository(git(runtimeKitRoot, "remote", "get-url", "origin")),
-    normalizeRepository(lock.runtime_kit.repository),
+    normalizeRepositoryUrl(git(runtimeKitRoot, "remote", "get-url", "origin")),
+    normalizeRepositoryUrl(lock.runtime_kit.repository),
   );
   assert.equal(
-    normalizeRepository(git(dshRoot, "remote", "get-url", "origin")),
-    normalizeRepository(lock.dsh.repository),
+    normalizeRepositoryUrl(git(dshRoot, "remote", "get-url", "origin")),
+    normalizeRepositoryUrl(lock.dsh.repository),
   );
 
   const runtimePackage = load(resolve(runtimeKitRoot, "package.json"));
@@ -169,7 +167,7 @@ if (!options.manifestOnly) {
   }, "DSH agent handle");
   assertSourceMethods(sessionSource, { flush: /\bflush\s*\(\s*session\s*:\s*Session/u }, "DSH sessions");
   assertSourceMethods(persistenceSource, {
-    inspect: /\babstract\s+inspect\s*\(/u,
+    stat: /\babstract\s+stat\s*\(/u,
     list: /\babstract\s+list\s*\(/u,
   }, "DSH sessionPersistence");
   assertSourceMethods(toolsSource, {
