@@ -30,6 +30,9 @@ Version `0.9.3` advances the coordinated compatibility line to DSH
 `@sympoies/dsh-telegram@0.6.3`. The Telegram release keeps the existing
 capability and authority boundary while declaring the exact alpha.2 peer graph.
 
+Version `0.9.4` advances the exact reviewed
+`@sympoies/dsh-llm-codex-subscription` artifact to `0.1.4`.
+
 Workspace dependencies and external compatibility are exact. A dependency
 promotion requires reviewed compatibility evidence and changes every pinned
 identity that enforces the selection. A release never resolves `latest`, a
@@ -62,11 +65,11 @@ exact pinned invocation with `--execute`:
 
 ```sh
 .agents/scripts/release.sh --dry-run \
-  --version 0.9.3 \
+  --version 0.9.4 \
   --expected-head <full-main-commit> \
   --repository sympoies/dsh-applications
 .agents/scripts/release.sh --execute \
-  --version 0.9.3 \
+  --version 0.9.4 \
   --expected-head <same-full-main-commit> \
   --repository sympoies/dsh-applications
 ```

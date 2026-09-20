@@ -3,8 +3,8 @@
   "kind": "BotProfile",
   "metadata": {
     "id": "github-pr-review",
-    "version": "0.9.3",
-    "digest": "sha256:040a2106504a03a521f269f1d44cf1460047b2fafa9d646dc4aac997079c49e8",
+    "version": "0.9.4",
+    "digest": "sha256:584157aee462ac25a453ffe54809e45ddfbd85bbbc6d476930bff5fef5cefd54",
     "purpose": "Credential-free review of one broker-admitted pull request capsule"
   },
   "workload": {
@@ -22,7 +22,7 @@
     },
     {
       "id": "llm-codex-subscription",
-      "range": "=0.1.2"
+      "range": "=0.1.4"
     }
   ],
   "grants": [

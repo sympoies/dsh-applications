@@ -33,7 +33,7 @@ test("the Telegram conversation profile adds only the reviewed channel to the co
   assert.equal(profile.metadata.id, "telegram-conversational");
   assert.deepEqual(profile.plugins, [
     { id: "conversation-agent", range: ">=0.3.0 <1.0.0" },
-    { id: "llm-codex-subscription", range: "=0.1.2" },
+    { id: "llm-codex-subscription", range: "=0.1.4" },
     { id: "telegram-channel", range: "=0.6.3" },
   ]);
   assert.deepEqual(profile.grants, ["conversation.memory", "conversation.reply"]);

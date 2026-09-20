@@ -1,9 +1,9 @@
 import { definePlugin, type PluginDescriptor, type RuntimeKitPluginValidator } from "@sympoies/dsh-plugin-sdk";
 
-export const CODEX_SUBSCRIPTION_PLUGIN_VERSION = "0.1.2";
-export const CODEX_SUBSCRIPTION_PLUGIN_TARBALL_DIGEST = "sha256:971272b8ca78d522f6241c850fe21ca4498ac44bd87e27d1f5ee268cc49e7534";
-export const CODEX_SUBSCRIPTION_PLUGIN_SOURCE_REVISION = "33258db12d189f6d6499ff1c1c834996008be9e8";
-export const CODEX_SUBSCRIPTION_PLUGIN_ATTESTATION = "https://github.com/sympoies/dsh-plugins/.github/workflows/release.yml@refs/tags/dsh-llm-codex-subscription-v0.1.2";
+export const CODEX_SUBSCRIPTION_PLUGIN_VERSION = "0.1.4";
+export const CODEX_SUBSCRIPTION_PLUGIN_TARBALL_DIGEST = "sha256:60a2a41b61f0d72420082e10ff0ba9b6048a2f52238bbfdeaa1a8031f4b5c3fe";
+export const CODEX_SUBSCRIPTION_PLUGIN_SOURCE_REVISION = "c51ebcf6b351675fd9ef8ef9a88e3bd7742fcb58";
+export const CODEX_SUBSCRIPTION_PLUGIN_ATTESTATION = "https://github.com/sympoies/dsh-plugins/.github/workflows/release.yml@refs/tags/dsh-llm-codex-subscription-v0.1.4";
 export const CODEX_SUBSCRIPTION_PUBLIC_CONFIG_SCHEMA_DIGEST = "sha256:2743bd73726f204b1cbc0b7ad20a893329a46b01b732a8a74ddbcfcd9f0e63ca";
 export const CODEX_SUBSCRIPTION_PROVIDER_ROUTE = "codex-subscription";
 

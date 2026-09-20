@@ -3,8 +3,8 @@
   "kind": "BotProfile",
   "metadata": {
     "id": "conversational",
-    "version": "0.9.3",
-    "digest": "sha256:0a327a9d3f3978bae93bdb9e4239430fb0dd44cd14cd11b8d15f15b668b3d940",
+    "version": "0.9.4",
+    "digest": "sha256:1096890f50a10807668f8716b468de818a5e2a87fd8aef8b6b881955f262d0d3",
     "purpose": "Persistent channel conversation without project or shell authority"
   },
   "workload": {
@@ -18,7 +18,7 @@
     },
     {
       "id": "llm-codex-subscription",
-      "range": "=0.1.2"
+      "range": "=0.1.4"
     }
   ],
   "grants": [
