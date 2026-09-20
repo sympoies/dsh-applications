@@ -115,6 +115,7 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm run build:lib:host
+          pnpm run build:native-system
       - name: Verify exact dependency identities
         working-directory: dsh-applications
         run: >-

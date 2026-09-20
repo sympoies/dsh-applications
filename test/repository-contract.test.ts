@@ -363,6 +363,11 @@ test("CI verifies the repository and exact compatibility checkouts", () => {
     workflow,
     /working-directory: dsh-runtime-kit[\s\S]*npm ci --ignore-scripts --legacy-peer-deps[\s\S]*npm run build:emit/,
   );
+  assert.match(
+    workflow,
+    /working-directory: deepseek-harness[\s\S]*pnpm run build:lib:host[\s\S]*pnpm run build:native-system[\s\S]*npm run test:telegram-exact-dsh[\s\S]*npm run test:exact-dsh/,
+    "exact CI must build DSH native bindings before runtime compatibility tests",
+  );
   assert.doesNotMatch(workflow, /uses:\s+[^\s@]+@(main|master|v\d+)\b/);
 });
 
@@ -375,6 +380,17 @@ test("tag release publishes digest-addressed, attested immutable assets", () => 
   assert.match(
     workflow,
     /working-directory: dsh-runtime-kit[\s\S]*npm ci --ignore-scripts --legacy-peer-deps[\s\S]*npm run build:emit/,
+  );
+  assert.match(workflow, /npm install --global pnpm@11\.7\.0 --ignore-scripts/);
+  assert.match(
+    workflow,
+    /working-directory: deepseek-harness[\s\S]*pnpm install --frozen-lockfile[\s\S]*pnpm run build:lib:host[\s\S]*pnpm run build:native-system/,
+    "release verification must build the exact DSH runtime closure",
+  );
+  assert.match(
+    workflow,
+    /DSH_ROOT: \.\.\/deepseek-harness[\s\S]*DSH_RUNTIME_KIT_ROOT: \.\.\/dsh-runtime-kit[\s\S]*npm run test:exact-dsh[\s\S]*npm run test:telegram-exact-dsh/,
+    "release verification must run both exact DSH consumers before packaging",
   );
   const restoreTag = workflow.indexOf(
     'git fetch --force --no-tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"',
