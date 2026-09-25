@@ -152,6 +152,31 @@
               "$ref": "#/$defs/ref"
             }
           }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "eventRef",
+            "response"
+          ],
+          "description": "Answers an invitation by changing only the bound account's own attendee status. The private owner refuses an event the account organizes or is not invited to.",
+          "properties": {
+            "kind": {
+              "const": "respond"
+            },
+            "eventRef": {
+              "$ref": "#/$defs/ref"
+            },
+            "response": {
+              "enum": [
+                "accepted",
+                "declined",
+                "tentative"
+              ]
+            }
+          }
         }
       ]
     }

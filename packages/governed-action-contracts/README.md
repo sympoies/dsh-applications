@@ -3,7 +3,9 @@
 This package owns five independently selectable, provider-neutral public
 descriptor and payload families:
 
-- scoped calendar read and write;
+- scoped calendar read and write, where a write creates, updates, or deletes an
+  event, or answers an invitation with the bound account's own attendee
+  response;
 - conversation-scoped group-note read and write;
 - read-only work recommendations from one admitted source;
 - bounded recall and candidate-only proposal writes to an external agent-memory
@@ -36,7 +38,9 @@ cryptographic host-action receipt. This package adds only bounded
 Telegram-suitable output projections correlated to the admitted request and,
 where applicable, the trusted workspace, live session, current state, and
 prior receipt. Calendar output uses a 256 KiB sandbox budget so the documented
-16-event maximum remains valid for maximum-size UTF-8 fields; the other
+16-event maximum remains valid for maximum-size UTF-8 fields. A calendar
+receipt event may report the bound account's own `responseStatus`, so an
+unanswered invitation is visible as `needsAction`; the other
 families retain the default 64 KiB budget. It does not implement an approval
 mechanism, agent loop, session store, provider client, broad filesystem access,
 or shell execution.

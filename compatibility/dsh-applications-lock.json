@@ -1,9 +1,9 @@
 {
   "schema_version": "dsh-applications.compatibility-lock.v1",
-  "application_version": "0.9.4",
+  "application_version": "0.10.0",
   "profile_catalog": {
     "path": "profiles/catalog.json",
-    "digest": "sha256:2431cd659e18d18f3d56b06204796d6ff2a7285d6c19ce46c1bd48677666d738"
+    "digest": "sha256:84ce75d5fd2a2e83128bc57fcb92d492b1cbfc7de8c152d39c7e481d09df718a"
   },
   "telegram_plugin": {
     "package": "@sympoies/dsh-telegram",
