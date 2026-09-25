@@ -39,6 +39,13 @@ attendee response status on calendar receipt events. The write request's new
 `accepted`, `declined`, or `tentative`; both calendar receipts may report the
 bound account's own `responseStatus`.
 
+Version `0.10.1` pins the reviewed `@sympoies/dsh-telegram@0.7.0` artifact,
+which accepts voice messages through a deployment-bound speech service and
+continues the DSH conversation with the transcript. Its public profile ceiling
+adds the bounded `speech-service` network class; the descriptor declares the
+matching `speech-service-token` credential-handle class. Endpoint, credential
+reference, and enablement remain private deployment bindings.
+
 Workspace dependencies and external compatibility are exact. A dependency
 promotion requires reviewed compatibility evidence and changes every pinned
 identity that enforces the selection. A release never resolves `latest`, a
@@ -71,11 +78,11 @@ exact pinned invocation with `--execute`:
 
 ```sh
 .agents/scripts/release.sh --dry-run \
-  --version 0.10.0 \
+  --version 0.10.1 \
   --expected-head <full-main-commit> \
   --repository sympoies/dsh-applications
 .agents/scripts/release.sh --execute \
-  --version 0.10.0 \
+  --version 0.10.1 \
   --expected-head <same-full-main-commit> \
   --repository sympoies/dsh-applications
 ```

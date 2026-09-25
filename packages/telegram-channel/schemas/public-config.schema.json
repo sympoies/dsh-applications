@@ -19,7 +19,8 @@
       "additionalProperties": false,
       "required": [
         "enabled",
-        "ocr"
+        "ocr",
+        "speech"
       ],
       "properties": {
         "enabled": {
@@ -36,6 +37,19 @@
             "enabled": {
               "const": false,
               "description": "OCR subprocess execution is outside the conversation-only public contract."
+            }
+          }
+        },
+        "speech": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled"
+          ],
+          "properties": {
+            "enabled": {
+              "const": false,
+              "description": "Speech transcription requires a separately admitted private service and credential."
             }
           }
         }

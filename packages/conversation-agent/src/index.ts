@@ -164,7 +164,7 @@ export function createConversationAgentPluginDescriptor(runtimeKit: unknown, art
   const descriptor = {
     apiVersion: "runtime.sympoies.dev/v1",
     kind: "PluginDescriptor",
-    metadata: { id: "conversation-agent", version: "0.10.0", digest: `sha256:${"0".repeat(64)}` },
+    metadata: { id: "conversation-agent", version: "0.10.1", digest: `sha256:${"0".repeat(64)}` },
     artifact: {
       package: "@sympoies/dsh-conversation-agent",
       digest: artifact.digest,

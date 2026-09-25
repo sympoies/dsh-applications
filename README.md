@@ -56,7 +56,8 @@ DSH and the reviewed runtime-kit contract to `0.1.6-alpha.2`, and selects the
 matching `@sympoies/dsh-telegram@0.6.3` release.
 Version `0.9.4` advances the reviewed Codex subscription provider to `0.1.4`.
 Version `0.10.0` adds the Calendar invitation-response mutation and the
-attendee response status on calendar receipt events.
+attendee response status on calendar receipt events. Version `0.10.1`
+adopts the reviewed Telegram voice transcription transport.
 
 ## Development
 

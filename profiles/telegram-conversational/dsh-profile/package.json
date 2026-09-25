@@ -1,6 +1,6 @@
 {
   "name": "@sympoies/dsh-telegram-conversational-profile",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "private": true,
   "dsh": {
     "profile": {
@@ -11,7 +11,7 @@
     }
   },
   "dependencies": {
-    "@sympoies/dsh-telegram": "0.6.3",
+    "@sympoies/dsh-telegram": "0.7.0",
     "@deepseek-ai/dsh-base": "0.1.6-alpha.2",
     "@deepseek-ai/dsh-headless": "0.1.6-alpha.2"
   }
