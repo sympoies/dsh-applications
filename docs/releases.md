@@ -33,6 +33,12 @@ capability and authority boundary while declaring the exact alpha.2 peer graph.
 Version `0.9.4` advances the exact reviewed
 `@sympoies/dsh-llm-codex-subscription` artifact to `0.1.4`.
 
+Version `0.10.0` adds the Calendar invitation-response mutation and the
+attendee response status on calendar receipt events. The write request's new
+`respond` mutation carries only an opaque event reference and one of
+`accepted`, `declined`, or `tentative`; both calendar receipts may report the
+bound account's own `responseStatus`.
+
 Workspace dependencies and external compatibility are exact. A dependency
 promotion requires reviewed compatibility evidence and changes every pinned
 identity that enforces the selection. A release never resolves `latest`, a
@@ -65,11 +71,11 @@ exact pinned invocation with `--execute`:
 
 ```sh
 .agents/scripts/release.sh --dry-run \
-  --version 0.9.4 \
+  --version 0.10.0 \
   --expected-head <full-main-commit> \
   --repository sympoies/dsh-applications
 .agents/scripts/release.sh --execute \
-  --version 0.9.4 \
+  --version 0.10.0 \
   --expected-head <same-full-main-commit> \
   --repository sympoies/dsh-applications
 ```

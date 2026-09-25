@@ -3,11 +3,11 @@ import { definePlugin, type PluginDescriptor, type RuntimeKitPluginValidator } f
 export const GOVERNED_ACTION_SCHEMA_DIGESTS = Object.freeze({
   "organization.calendar.read": Object.freeze({
     input: "sha256:35df26f4c791b1730db3c502fb057e355447e5f6f32ff1eb54c9a78b08e45c89",
-    output: "sha256:a1d38f1acff37c1e64a8dc2709e9d086f6ba5ea58ffdad911a45003d9bc9c5ca",
+    output: "sha256:a9e5e9f2495ccba55dd17f1857d98c024ae8a1155e58326b3c3bbb3c7296bcf9",
   }),
   "organization.calendar.write": Object.freeze({
-    input: "sha256:8996b049e59bbc80257b7fc108a0f811de54ce8dcdbdfcd6ac3524931a3311b9",
-    output: "sha256:87aa000794704a7195f0e59578c27168f06ed0428c0f0290c417503350b0959e",
+    input: "sha256:1099f8929a6f04a32627ef13aabe4361013a659f9c2615f9d41a0b687134e677",
+    output: "sha256:9c9c4e50b09307a9f2ce75257e923114b9589e22c06b2cac2b557577243c8adc",
   }),
   "conversation.group-notes.read": Object.freeze({
     input: "sha256:1a947eebf6850b5edff62c0b5706ec62740e1e2b652397319bc2c5c2285b630a",
@@ -305,6 +305,11 @@ function validateEventPatch(value: unknown, label: string): Fields {
   return patch;
 }
 
+// An attendee answers an invitation with one of these; `needsAction` is the
+// unanswered state a receipt may report but a request cannot send.
+const CALENDAR_RESPONSES = ["accepted", "declined", "tentative"] as const;
+const CALENDAR_RESPONSE_STATUSES = ["needsAction", ...CALENDAR_RESPONSES] as const;
+
 function validateCalendarMutation(value: unknown): Fields {
   const mutation = record(value, "calendarRequest.mutation");
   if (mutation.kind === "create") {
@@ -320,6 +325,10 @@ function validateCalendarMutation(value: unknown): Fields {
   } else if (mutation.kind === "delete") {
     exactKeys(mutation, ["kind", "eventRef"], [], "calendarRequest.mutation");
     opaqueRef(mutation.eventRef, "calendarRequest.mutation.eventRef");
+  } else if (mutation.kind === "respond") {
+    exactKeys(mutation, ["kind", "eventRef", "response"], [], "calendarRequest.mutation");
+    opaqueRef(mutation.eventRef, "calendarRequest.mutation.eventRef");
+    enumeration(mutation.response, CALENDAR_RESPONSES, "calendarRequest.mutation.response");
   } else fail("calendarRequest.mutation.kind is unsupported");
   return mutation;
 }
@@ -343,12 +352,15 @@ export function validateCalendarRequest(input: unknown, expected: BoundRequestCo
 
 function validateCalendarEvent(value: unknown, label: string): Fields {
   const event = record(value, label);
-  exactKeys(event, ["eventRef", "title", "startsAt", "endsAt"], ["description", "location"], label);
+  exactKeys(event, ["eventRef", "title", "startsAt", "endsAt"], ["description", "location", "responseStatus"], label);
   opaqueRef(event.eventRef, `${label}.eventRef`);
   boundedText(event.title, `${label}.title`, 256);
   validateWindow({ startsAt: event.startsAt, endsAt: event.endsAt }, label);
   optionalText(event.description, `${label}.description`, 2_048);
   optionalText(event.location, `${label}.location`, 512);
+  if (event.responseStatus !== undefined) {
+    enumeration(event.responseStatus, CALENDAR_RESPONSE_STATUSES, `${label}.responseStatus`);
+  }
   return event;
 }
 
@@ -674,7 +686,7 @@ function descriptor(
   const value = {
     apiVersion: "runtime.sympoies.dev/v1",
     kind: "PluginDescriptor",
-    metadata: { id: spec.id, version: "0.9.4", digest: `sha256:${"0".repeat(64)}` },
+    metadata: { id: spec.id, version: "0.10.0", digest: `sha256:${"0".repeat(64)}` },
     artifact: {
       package: "@sympoies/dsh-governed-action-contracts",
       digest: artifact.digest,

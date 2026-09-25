@@ -103,6 +103,15 @@
           "location": {
             "type": "string",
             "maxLength": 512
+          },
+          "responseStatus": {
+            "enum": [
+              "needsAction",
+              "accepted",
+              "declined",
+              "tentative"
+            ],
+            "description": "The bound account's own attendee status when it is invited."
           }
         }
       }

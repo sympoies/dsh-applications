@@ -71,6 +71,9 @@ test("calendar read and every write mutation validate only inside the admitted o
     },
     { kind: "update", eventRef: ref("event"), patch: { title: "Updated" } },
     { kind: "delete", eventRef: ref("event") },
+    { kind: "respond", eventRef: ref("invite"), response: "accepted" },
+    { kind: "respond", eventRef: ref("invite"), response: "declined" },
+    { kind: "respond", eventRef: ref("invite"), response: "tentative" },
   ]) {
     const request = {
       action: "organization.calendar.write", requestRef: owner.requestRef,
@@ -96,6 +99,41 @@ test("calendar read and every write mutation validate only inside the admitted o
     () => validateCalendarRequest(candidate, admitted(owner, candidate.action as GovernedActionId)),
     /scope|target|request|unknown|items|time/i,
   );
+});
+
+test("calendar invitation responses carry only an opaque event and a closed answer", () => {
+  const owner = context();
+  const request = (mutation: Record<string, unknown>) => ({
+    action: "organization.calendar.write", requestRef: owner.requestRef, scope: owner.scope, mutation,
+  });
+  for (const mutation of [
+    { kind: "respond", eventRef: ref("invite") },
+    { kind: "respond", eventRef: ref("invite"), response: "needsAction" },
+    { kind: "respond", eventRef: ref("invite"), response: "maybe" },
+    { kind: "respond", eventRef: "google-event-id", response: "accepted" },
+    { kind: "respond", eventRef: ref("invite"), response: "accepted", comment: "see you" },
+    { kind: "respond", eventRef: ref("invite"), response: "accepted", attendee: "someone@example.com" },
+  ]) assert.throws(
+    () => validateCalendarRequest(request(mutation), admitted(owner, "organization.calendar.write")),
+    /response|eventRef|ref|unknown|required|missing/i,
+    JSON.stringify(mutation),
+  );
+});
+
+test("calendar receipt events may report the bound account's own response status", () => {
+  const owner = context();
+  for (const action of ["organization.calendar.read", "organization.calendar.write"] as const) {
+    const event = { eventRef: ref("invite"), title: "Review", startsAt: "2026-09-08T02:00:00Z", endsAt: "2026-09-08T03:00:00Z" };
+    const receipt = { action, requestRef: owner.requestRef, scope: owner.scope, outcome: "succeeded", summary: "1 event" };
+    for (const responseStatus of ["needsAction", "accepted", "declined", "tentative"]) {
+      const candidate = { ...receipt, events: [{ ...event, responseStatus }] };
+      assert.deepEqual(validateCalendarReceipt(candidate, admitted(owner, action)), candidate);
+    }
+    assert.throws(
+      () => validateCalendarReceipt({ ...receipt, events: [{ ...event, responseStatus: "maybe" }] }, admitted(owner, action)),
+      /responseStatus|enum|unsupported|one of/i,
+    );
+  }
 });
 
 test("calendar receipts stay bounded, correlated, immutable, and non-bearer", () => {
@@ -390,7 +428,7 @@ test("every governed action descriptor shares the coordinated release version", 
     createAgentSessionPluginDescriptor,
     createAgentMemoryPluginDescriptor,
   ]) {
-    assert.equal(createDescriptor(runtimeKit, artifactIdentity).metadata.version, "0.9.4");
+    assert.equal(createDescriptor(runtimeKit, artifactIdentity).metadata.version, "0.10.0");
   }
 });
 
@@ -414,7 +452,7 @@ test("exact-runtime descriptors keep each capability independently selectable", 
     "agent-session.create", "agent-session.status",
   ]);
   for (const descriptor of descriptors) {
-    assert.equal(descriptor.metadata.version, "0.9.4");
+    assert.equal(descriptor.metadata.version, "0.10.0");
     assert.equal(descriptor.metadata.digest, runtimeKit.computeDocumentDigest(descriptor));
     assert.equal(descriptor.artifact.entrypoint, "packages/governed-action-contracts/src/index.ts");
     assert(Object.isFrozen(descriptor));
