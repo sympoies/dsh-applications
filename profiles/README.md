@@ -14,9 +14,9 @@ therefore reusable trigger configuration, not a second persona or authority
 document.
 
 The `telegram-conversational` profile adds the reviewed
-`@sympoies/dsh-telegram@0.6.3` channel to the channel-neutral conversation
+`@sympoies/dsh-telegram@0.7.0` channel to the channel-neutral conversation
 contract. Its native DSH insert row is shipped disabled; public configuration
-also fixes attachment ingestion, OCR, and screen capture off. Private
+also fixes attachment ingestion, speech transcription, OCR, and screen capture off. Private
 infrastructure must verify the exact artifact identity and provide its own
 admitted credential, access, isolated workspace, conversation-only agent
 preset, host, and enablement bindings; none of those values is a public profile

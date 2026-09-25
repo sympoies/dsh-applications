@@ -1,7 +1,7 @@
 # Telegram channel descriptor
 
 This public package describes one reviewed external DSH channel artifact:
-`@sympoies/dsh-telegram@0.6.3`. It is not a Telegram client and does not
+`@sympoies/dsh-telegram@0.7.0`. It is not a Telegram client and does not
 copy, wrap, or execute the plugin. The exact npm tarball digest, source
 revision, provenance endpoint, DSH compatibility, required conversation
 capabilities, and bounded mediation classes are fixed in the descriptor.
@@ -11,6 +11,11 @@ The transport-descriptor API is
 canonical descriptor and digest owner. The caller supplies no artifact or
 configuration values, so it cannot replace the reviewed bytes or widen the
 public contract.
+
+The descriptor declares `speech-service` network and `speech-service-token`
+credential-handle classes. Public configuration fixes `media.speech.enabled`
+to `false`; a private deployment must separately admit the speech endpoint,
+credential reference, and enablement.
 
 The same package also exports `createTelegramAudienceRouter(authorityOwner)`.
 It is the public, channel-admission contract placed in front of agent dispatch;
@@ -56,7 +61,7 @@ once, `{ accepted: false }` reports replay, and additional or malformed fields
 fail closed.
 
 The public configuration fixes the channel at `enabled: false` and explicitly
-turns off attachment ingestion, OCR, and screen capture. The companion DSH
+turns off attachment ingestion, speech transcription, OCR, and screen capture. The companion DSH
 profile also mounts the plugin with `disabled: true`. A private deployment must
 independently verify and admit the exact artifact before it may supply its
 credential reference, access bindings, isolated workspace, conversation-only
@@ -64,7 +69,8 @@ agent preset, and enablement patch. Those private values never enter this
 descriptor, the public profile, or a public composition lock.
 
 When admitted, the channel may use only an instance-state filesystem class,
-the Telegram API network class, and a Telegram bot credential-handle class. It
+the Telegram API and speech service network classes, and Telegram bot and
+speech service credential-handle classes. It
 requires the public `conversation.memory` and `conversation.reply`
 capabilities, exposes no agent tool or skill, and grants no project workspace,
 shell, or ambient network authority. DSH continues to own agents, sessions,
@@ -122,11 +128,13 @@ The companion
 [`capability-bundle.ceiling.json`](capability-bundle.ceiling.json) keeps all
 three actions at `requested: false`. A private `dsh-bots` composition may
 choose the corresponding descriptor only after runtime admission; selecting
-one does not select either sibling or widen the existing plain conversation
-profile. The existing `telegram-conversational` BotProfile therefore remains
-unchanged.
+one does not select either sibling or widen the optional media, location, or
+vision action selection. The `telegram-conversational` BotProfile now admits
+the bounded speech network class while keeping the transport disabled by
+default.
 
-`@sympoies/dsh-telegram@0.6.3` implements photos, supported image/text
+`@sympoies/dsh-telegram@0.7.0` implements voice transcription via a
+deployment-bound speech service, photos, supported image/text
 documents, captions, and albums natively. Its public `TelegramMessage` type
 does not contain location, so `telegram.location.input` is a separate mediated
 adapter seam and is not described as transport-native. Its OCR implementation

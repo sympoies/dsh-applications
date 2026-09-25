@@ -1,5 +1,16 @@
 # Telegram channel
 
+## 2026-09-26 maintained release update
+
+The reviewed `@sympoies/dsh-telegram@0.7.0` release adds bounded voice
+transcription through a separately admitted speech service. The signed source
+tag resolves to `103ad9cf25c7dc4e904abd9751999420d7bfae05`; the tarball
+SHA-256 is
+`cafc77f3ffcf2dc85a6b6068eaaa373f678b43598947e7a7b85470a79007e967`.
+The public descriptor declares speech network and credential-handle classes;
+the public profile keeps speech disabled until private admission supplies the
+service and credential binding. The original adoption decision remains valid.
+
 ## 2026-09-20 maintained release update
 
 The adopted implementation moved to the maintained public package

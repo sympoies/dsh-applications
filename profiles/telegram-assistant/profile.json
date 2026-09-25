@@ -3,8 +3,8 @@
   "kind": "BotProfile",
   "metadata": {
     "id": "telegram-assistant",
-    "version": "0.10.0",
-    "digest": "sha256:739e65a936f56ab25bfa2a074f04a4716f8f6b45b1fe1d19ca2db044ccec190f",
+    "version": "0.10.1",
+    "digest": "sha256:96cc429b6ac3761a093f47f04f246edc8687114e0c6cf0dbff8412d377052312",
     "purpose": "Persistent Telegram assistant with bounded reads and governed private actions, without project or shell authority"
   },
   "workload": {
@@ -66,7 +66,7 @@
     },
     {
       "id": "telegram-channel",
-      "range": "=0.6.3"
+      "range": "=0.7.0"
     },
     {
       "id": "telegram-location-input",
@@ -157,6 +157,7 @@
       "public-taiwan-discussion",
       "public-weather-data",
       "public-web-data",
+      "speech-service",
       "telegram-api"
     ],
     "workspaceClasses": [],

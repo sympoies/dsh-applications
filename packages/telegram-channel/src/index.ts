@@ -4,11 +4,11 @@ import { definePlugin, type PluginDescriptor, type RuntimeKitPluginValidator } f
 
 export * from "./media-location.ts";
 
-export const TELEGRAM_PLUGIN_VERSION = "0.6.3";
-export const TELEGRAM_PLUGIN_TARBALL_DIGEST = "sha256:935c061ae84f83d9dba0e7625b54c02053bab349ca4b08ae16acdef6ef6ebe94";
-export const TELEGRAM_PLUGIN_SOURCE_REVISION = "e960d48f938bcc9c73abda9e4bcfe2e1d5b9af34";
-export const TELEGRAM_PLUGIN_ATTESTATION = "https://github.com/sympoies/dsh-plugins/.github/workflows/release.yml@refs/tags/dsh-telegram-v0.6.3";
-export const TELEGRAM_PUBLIC_CONFIG_SCHEMA_DIGEST = "sha256:91b024d728e80f3b9a75aff52de1a9dbba5b0c0db42f1a9bcd90bc81970a734f";
+export const TELEGRAM_PLUGIN_VERSION = "0.7.0";
+export const TELEGRAM_PLUGIN_TARBALL_DIGEST = "sha256:cafc77f3ffcf2dc85a6b6068eaaa373f678b43598947e7a7b85470a79007e967";
+export const TELEGRAM_PLUGIN_SOURCE_REVISION = "103ad9cf25c7dc4e904abd9751999420d7bfae05";
+export const TELEGRAM_PLUGIN_ATTESTATION = "https://github.com/sympoies/dsh-plugins/.github/workflows/release.yml@refs/tags/dsh-telegram-v0.7.0";
+export const TELEGRAM_PUBLIC_CONFIG_SCHEMA_DIGEST = "sha256:af28846aca8d465fd9986ac50d06decc22444f2d269029e3fbe28e8a2a521755";
 export const TELEGRAM_AUDIENCE_BINDING_SCHEMA_DIGEST = "sha256:9c0bc1d3b0202ab5f8489d2ab3e8a6ebe2e49f5a4566b5b606360f0a33b06d13";
 
 export const TELEGRAM_AMBIENT_CONTEXT_CEILING = Object.freeze({
@@ -546,16 +546,16 @@ export function createTelegramChannelPluginDescriptor(runtimeKit: unknown): unkn
       schemaDigest: TELEGRAM_PUBLIC_CONFIG_SCHEMA_DIGEST,
       defaults: {
         enabled: false,
-        media: { enabled: false, ocr: { enabled: false } },
+        media: { enabled: false, ocr: { enabled: false }, speech: { enabled: false } },
         screenshot: { enabled: false },
       },
     },
     mediation: {
       filesystem: ["instance-state"],
-      network: ["telegram-api"],
+      network: ["speech-service", "telegram-api"],
       subprocess: [],
       resources: { cpuClass: "shared", memoryMb: 128, outputBytes: 65_536 },
-      credentialHandleClasses: ["telegram-bot-token"],
+      credentialHandleClasses: ["speech-service-token", "telegram-bot-token"],
     },
     health: { probes: [{ id: "telegram-channel.ready", requirement: "required" }] },
     composition: {

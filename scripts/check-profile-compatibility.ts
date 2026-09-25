@@ -140,7 +140,7 @@ const reviewPlugins = [
 ];
 const reviewPublisher = reviewPlugins.find(plugin => plugin.metadata.id === "github-review-publish");
 assert(reviewPublisher, "the actual github-review-publish descriptor is required");
-assert.equal(reviewPublisher.metadata.version, "0.10.0");
+assert.equal(reviewPublisher.metadata.version, "0.10.1");
 assert.equal(composition.versionSatisfies(reviewPublisher.metadata.version, reviewPublisherRange), true);
 const reviewPolicy = {
   digest: `sha256:${"0".repeat(64)}`,
@@ -166,7 +166,7 @@ const resolvedReview = composition.resolveComposition({
 });
 assert.deepEqual(
   resolvedReview.composition.plugins.map((plugin: { id: string; version: string }) => [plugin.id, plugin.version]),
-  [["github-read", "0.10.0"], ["github-review-publish", "0.10.0"], ["llm-codex-subscription", "0.1.4"]],
+  [["github-read", "0.10.1"], ["github-review-publish", "0.10.1"], ["llm-codex-subscription", "0.1.4"]],
 );
 
 const telegramProfile = load(resolve(root, "profiles/telegram-conversational/profile.json"));
@@ -199,11 +199,11 @@ const resolvedTelegram = composition.resolveComposition({
 });
 assert.deepEqual(
   resolvedTelegram.composition.plugins.map((plugin: { id: string; version: string }) => [plugin.id, plugin.version]),
-  [["conversation-agent", "0.10.0"], ["llm-codex-subscription", "0.1.4"], ["telegram-channel", "0.6.3"]],
+  [["conversation-agent", "0.10.1"], ["llm-codex-subscription", "0.1.4"], ["telegram-channel", "0.7.0"]],
 );
 assert.deepEqual(resolvedTelegram.composition.authorityCeiling, {
   capabilities: ["conversation.memory", "conversation.reply"],
-  networkClasses: ["codex-subscription-provider", "telegram-api"],
+  networkClasses: ["codex-subscription-provider", "speech-service", "telegram-api"],
   workspaceClasses: [],
 });
 
