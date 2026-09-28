@@ -57,6 +57,11 @@ DeepSeek Harness (DSH).
   version and publish as one application artifact.
 - Release, private consumer repin, hosted acceptance, and deployment remain
   separate authority boundaries.
+- Before finishing, handing off, or abandoning work, reduce the `agent-out`
+  run directory to receipts, trimmed logs, and identity records. Delete
+  dependency trees, build output, source clones, superseded installed trees,
+  and isolated homes; see
+  [run artifact retention](docs/development-testing.md#run-artifact-retention).
 
 ## Releases
 
