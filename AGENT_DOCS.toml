@@ -49,5 +49,5 @@ description = "Run the complete routine repository gate once for the stable cand
 [path_classes]
 production = [".gitignore", ".node-version", ".npmrc", "AGENT_DOCS.toml", "package.json", "package-lock.json", "tsconfig.json", "tsconfig.tools.json", ".agents/**", ".github/workflows/**", "compatibility/**", "fixtures/**", "profiles/**", "packages/**", "scripts/**"]
 test = ["test/**"]
-docs = ["AGENTS.md", "CLAUDE.md", "CONTRIBUTING.md", "README.md", "LICENSE", "SECURITY.md", "docs/**"]
+docs = ["AGENTS.md", "CONTRIBUTING.md", "README.md", "LICENSE", "SECURITY.md", "docs/**"]
 unmatched = "unknown"
