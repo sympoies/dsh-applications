@@ -119,3 +119,5 @@ and [contributing](CONTRIBUTING.md) before adding a package.
 ## License
 
 [MIT](LICENSE)
+
+Use the [documentation map](docs/README.md) to find a guide or package contract.
