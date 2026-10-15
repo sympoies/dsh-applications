@@ -36,6 +36,9 @@ DeepSeek Harness (DSH).
   `docs/development-testing.md` for material application, profile,
   compatibility, packaging, or development-policy work. Start at the earliest
   layer that can prove the observable delta.
+- See also `CONTRIBUTING.md`, `docs/ownership.md`, and (for release work)
+  `docs/releases.md`. The finish-line validation contract and path classes
+  live in `VALIDATION.toml`.
 - Before building a new DSH capability, use the separate
   `evaluate-dsh-plugin` skill and retain its adopt/reference/build decision.
 - Add or change testable behavior with a meaningful failing owner test first,

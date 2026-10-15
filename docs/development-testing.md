@@ -131,7 +131,7 @@ in scope.
 | Runtime-kit or DSH compatibility pin | Compatibility validation and every exact-checkout, native-profile, artifact, and consumer receipt using it. |
 | Package source, script, dependency, shipped document, or inventory rule | Typecheck where applicable, reproducible archive, dry-run inventory, and later artifact consumers. |
 | Root version or coordinated package metadata | Repository contract, archive identity, release plan, and consumer pins. |
-| Agent-only routing outside the package inventory | Agent-docs and repository policy checks; artifact evidence remains current only if no shipped entrypoint changed with it. |
+| Agent-only routing outside the package inventory | `VALIDATION.toml` contract and repository policy checks; artifact evidence remains current only if no shipped entrypoint changed with it. |
 | Deployment-only binding or credential projection | Private deployment-owner evidence; never encode it here. |
 
 Reviews bind to an exact head. After a repair, review the changed delta, direct
