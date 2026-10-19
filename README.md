@@ -8,6 +8,8 @@ the exact public contracts supplied by
 [dsh-runtime-kit](https://github.com/sympoies/dsh-runtime-kit) and leaves DSH's
 agent loop, sessions, tools, sandbox, approvals, and subagents in DSH.
 
+Use the [documentation map](docs/README.md) to find a guide or package contract.
+
 ## Repository boundary
 
 - [`sympoies/dsh-runtime-kit`](https://github.com/sympoies/dsh-runtime-kit)
@@ -26,38 +28,54 @@ reviewed, digest-addressed GitHub release is the distribution boundary.
 
 ## Current status
 
-The workspace contains the public plugin declaration helpers, the isolated DSH
-`0.1.6-alpha.2` adapter, the generic ten-operation application manager, portable
-host-to-batch invocation contracts, GitHub read/review-result contracts, six least-authority bot profiles, six
-independently admitted read-only assistant capability contracts, and reusable
-manual, GitHub-event, channel, and schedule trigger fixtures. Version
-`0.1.3` is the first published coordinated catalog release; `0.2.0` adds the
-GitHub contracts and complete native review-output schema. Version `0.3.0`
-raises the supported Node.js floor to 24 and requires fingerprinted native
-threads for every actionable GitHub review finding. Version `0.4.0` adds the
-fail-closed Telegram conversational profile and its reviewed public channel
-package contract. Version `0.5.0` adds bounded weather, market/exchange, Steam
-catalog, Web lookup/extraction, recent-community, Taiwan public-discussion,
-governed action, media, vision, and location contracts without embedding their
-private providers. Version `0.6.0` adds an optional, request-bound 24-hour
-projection to the public weather contract while preserving existing
-current/daily consumers. Version `0.7.0` adds the portable Telegram assistant
-profile that composes those read contracts with governed organization data,
-agent sessions, candidate memory, and media/location input without adding
-shell or project-workspace authority. Version `0.8.0` adds the portable,
-channel-neutral host-to-batch invocation contract with exact correlated
-request and terminal-result bytes for Linux and macOS callers. Version `0.9.0`
-admits the exact `@sympoies/dsh-llm-codex-subscription@0.1.2` artifact into all
-six model-using profiles and advances the coordinated compatibility line to
-DSH `0.1.2-rc.1` and its reviewed runtime-kit owner. Version `0.9.1` adopts the
-first official `@sympoies/dsh-telegram` release, and version `0.9.2` advances it
-to `0.6.2` with the session-picker deadlock repair. Version `0.9.3` advances
-DSH and the reviewed runtime-kit contract to `0.1.6-alpha.2`, and selects the
-matching `@sympoies/dsh-telegram@0.6.3` release.
-Version `0.9.4` advances the reviewed Codex subscription provider to `0.1.4`.
-Version `0.10.0` adds the Calendar invitation-response mutation and the
-attendee response status on calendar receipt events. Version `0.10.1`
-adopts the reviewed Telegram voice transcription transport.
+The workspace contains:
+
+- the public plugin declaration helpers and the isolated DSH `0.1.6-alpha.2`
+  adapter;
+- the generic ten-operation application manager;
+- portable host-to-batch invocation contracts;
+- GitHub read/review-result contracts;
+- six least-authority bot profiles;
+- six independently admitted read-only assistant capability contracts;
+- reusable manual, GitHub-event, channel, and schedule trigger fixtures.
+
+Release history (versioning policy and full notes in
+[release rules](docs/releases.md)):
+
+- Version `0.1.3` is the first published coordinated catalog release.
+- `0.2.0` adds the GitHub contracts and complete native review-output schema.
+- Version `0.3.0` raises the supported Node.js floor to 24 and requires
+  fingerprinted native threads for every actionable GitHub review finding.
+- Version `0.4.0` adds the fail-closed Telegram conversational profile and its
+  reviewed public channel package contract.
+- Version `0.5.0` adds bounded weather, market/exchange, Steam catalog, Web
+  lookup/extraction, recent-community, Taiwan public-discussion, governed
+  action, media, vision, and location contracts without embedding their
+  private providers.
+- Version `0.6.0` adds an optional, request-bound 24-hour projection to the
+  public weather contract while preserving existing current/daily consumers.
+- Version `0.7.0` adds the portable Telegram assistant profile that composes
+  those read contracts with governed organization data, agent sessions,
+  candidate memory, and media/location input without adding shell or
+  project-workspace authority.
+- Version `0.8.0` adds the portable, channel-neutral host-to-batch invocation
+  contract with exact correlated request and terminal-result bytes for Linux
+  and macOS callers.
+- Version `0.9.0` admits the exact
+  `@sympoies/dsh-llm-codex-subscription@0.1.2` artifact into all six
+  model-using profiles and advances the coordinated compatibility line to DSH
+  `0.1.2-rc.1` and its reviewed runtime-kit owner.
+- Version `0.9.1` adopts the first official `@sympoies/dsh-telegram` release,
+  and version `0.9.2` advances it to `0.6.2` with the session-picker deadlock
+  repair.
+- Version `0.9.3` advances DSH and the reviewed runtime-kit contract to
+  `0.1.6-alpha.2`, and selects the matching `@sympoies/dsh-telegram@0.6.3`
+  release.
+- Version `0.9.4` advances the reviewed Codex subscription provider to
+  `0.1.4`.
+- Version `0.10.0` adds the Calendar invitation-response mutation and the
+  attendee response status on calendar receipt events.
+- Version `0.10.1` adopts the reviewed Telegram voice transcription transport.
 
 ## Development
 
@@ -87,7 +105,8 @@ changes should follow the
 The workspace packages are written in erasable TypeScript that Node.js 24
 executes directly through its built-in type stripping. There is no build step:
 `exports` point at the `.ts` sources, the shipped tarball is the reviewed
-source, and `npm run typecheck` (`tsc --noEmit`) is the only compiler
+source, and `npm run typecheck` (`tsc -p tsconfig.json && tsc -p
+tsconfig.tools.json`, both inheriting `noEmit`) is the only compiler
 invocation. Node.js 24 or newer is therefore a runtime requirement, not only a
 development one.
 
@@ -119,5 +138,3 @@ and [contributing](CONTRIBUTING.md) before adding a package.
 ## License
 
 [MIT](LICENSE)
-
-Use the [documentation map](docs/README.md) to find a guide or package contract.
