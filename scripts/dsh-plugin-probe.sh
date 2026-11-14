@@ -4,7 +4,7 @@
 #   1. install    - `dsh plugin add` succeeds with build scripts blocked
 #   2. fail-closed - the installed plugin does NOT appear in the composed tree
 #   3. activation - an `insert` patch row mounts it (disabled) in the tree
-# Companion to .agents/skills/evaluate-dsh-plugin/SKILL.md.
+# Procedure: docs/plugin-evaluations/README.md.
 set -euo pipefail
 
 usage() {
