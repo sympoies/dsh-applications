@@ -32,15 +32,16 @@ DeepSeek Harness (DSH).
 
 ## Changes and validation
 
-- Use the project-local `project-application-development` skill and read
-  `docs/development-testing.md` for material application, profile,
+- Read the canonical
+  [development and testing policy](docs/development-testing.md) for material application, profile,
   compatibility, packaging, or development-policy work. Start at the earliest
   layer that can prove the observable delta.
 - See also `CONTRIBUTING.md`, `docs/ownership.md`, and (for release work)
   `docs/releases.md`. The finish-line validation contract and path classes
   live in `VALIDATION.toml`.
-- Before building a new DSH capability, use the separate
-  `evaluate-dsh-plugin` skill and retain its adopt/reference/build decision.
+- Before building a new DSH capability, follow the
+  [plugin evaluation procedure](docs/plugin-evaluations/README.md) and retain
+  its adopt/reference/build decision.
 - Add or change testable behavior with a meaningful failing owner test first,
   then make the same command pass.
 - Run `npm ci --ignore-scripts`, `npm run test:repository-contract`, the
@@ -87,7 +88,3 @@ DeepSeek Harness (DSH).
 - When to read it, when to append, what the mechanism is, and what must never
   go into it belong to the `project-dev` devlog capability
   (`core/policies/devlog-capability.md` in the agent home), not to this file.
-
-## Project skills
-
-- Project-local skills live under `.agents/skills/<name>/`.

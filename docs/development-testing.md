@@ -1,8 +1,7 @@
 # Layered application development and testing
 
 This is the mandatory validation policy for material changes to
-`dsh-applications`. Use the repository-local
-`project-application-development` skill to apply it.
+`dsh-applications`. Apply this policy directly.
 
 Each layer proves a different boundary. A schema test does not prove profile
 composition, a repository test does not prove the exact runtime-kit and DSH
@@ -55,9 +54,9 @@ used by the change. Prove that declarations remain non-authorizing, authority
 can only narrow, instance identities cannot cross, and private deployment data
 does not enter public packages, profiles, locks, fixtures, or receipts.
 
-For a new capability, first use `evaluate-dsh-plugin` to record whether an
+For a new capability, follow [plugin evaluation](plugin-evaluations/README.md) to record whether an
 existing plugin should be adopted, referenced, or whether a new contract is
-actually required. Probe third-party candidates only in the skill's throwaway,
+actually required. Probe third-party candidates only in a throwaway,
 disabled profile.
 
 ### 3. Compatibility-lock validation
@@ -256,7 +255,7 @@ When work exposes repeatable friction:
 4. Repair that owner within the active authority; otherwise prepare the
    smallest handoff and stop at the boundary.
 5. Resume from the first invalidated required layer.
-6. Update this policy or project skill only when the lesson generalizes to
+6. Update this policy only when the lesson generalizes to
    future application work; use the development log for durable reasoning.
 
 The loop improves tests and diagnostics. It never grants issue, release,

@@ -58,10 +58,10 @@ checkout refs, contract expectations, and documentation in one reviewed pull
 request. Version-range widening without evidence is not accepted.
 
 For material application, profile, compatibility, packaging, or
-development-policy work, use the repository-local
-`project-application-development` skill and follow the
-[layered development and testing policy](docs/development-testing.md). Use the
-separate `evaluate-dsh-plugin` skill before building a new DSH capability.
+development-policy work, follow the
+[layered development and testing policy](docs/development-testing.md). Follow
+[plugin evaluation](docs/plugin-evaluations/README.md) before building a new
+DSH capability.
 
 ## Review and release
 
