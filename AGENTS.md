@@ -88,7 +88,3 @@ DeepSeek Harness (DSH).
 - When to read it, when to append, what the mechanism is, and what must never
   go into it belong to the `project-dev` devlog capability
   (`core/policies/devlog-capability.md` in the agent home), not to this file.
-
-## Project skills
-
-- Project-local skills live under `.agents/skills/<name>/`.
